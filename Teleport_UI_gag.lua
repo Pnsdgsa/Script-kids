@@ -7,12 +7,15 @@ frame.Size = UDim2.new(0.4, 0, 0.085, 0)
 
 local sellButton = frame:WaitForChild("Sell")
 sellButton.Size = UDim2.new(0.22, 0, 0.791, 0)
+sellButton.Txt.UISizeConstraint.MinSize = Vector2.new(50, 1)
 
 local seedsButton = frame:WaitForChild("Seeds")
 seedsButton.Size = UDim2.new(0.22, 0, 0.791, 0)
+seedsButton.Txt.UISizeConstraint.MinSize = Vector2.new(50, 1)
 
 local gardenButton = frame:WaitForChild("Garden")
 gardenButton.Size = UDim2.new(0.35, 0, 0.985, 0)
+gardenButton.Txt.UISizeConstraint.MinSize = Vector2.new(100, 1)
 
 local petsButton = frame:WaitForChild("Pets")
 local gearButton = frame:WaitForChild("Gear")
@@ -73,6 +76,7 @@ else
     eventTextLabel.TextScaled = true
     eventTextLabel.Parent = eventButton
 end
+eventTextLabel.UISizeConstraint.MinSize = Vector2.new(100, 1)
 eventButton.Parent = frame
 
 petsButton.Visible = true
