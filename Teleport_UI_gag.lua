@@ -1,5 +1,7 @@
-local player = game:GetService("Players").LocalPlayer
-local character = player.Character
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 local playerGui = player.PlayerGui
 local frame = playerGui:WaitForChild("Teleport_UI"):WaitForChild("Frame")
 
@@ -88,22 +90,71 @@ task.spawn(function()
     cosmeticsCraftingButton.Visible = true
 end)
 
+-- Teleport function for UpdateItems
+local function teleportToUpdateItems()
+    local updateItems = workspace:WaitForChild("Interaction"):WaitForChild("UpdateItems")
+    if updateItems then
+        local targetPosition
+        if updateItems:IsA("Folder") or updateItems:IsA("Model") then
+            if updateItems:IsA("Model") and updateItems.PrimaryPart then
+                targetPosition = updateItems.PrimaryPart.Position
+            else
+                local parts = updateItems:GetDescendants()
+                local totalPosition = Vector3.new(0, 0, 0)
+                local partCount = 0
+                for _, descendant in pairs(parts) do
+                    if descendant:IsA("BasePart") then
+                        totalPosition = totalPosition + descendant.Position
+                        partCount = partCount + 1
+                    end
+                end
+                if partCount > 0 then
+                    targetPosition = totalPosition / partCount
+                else
+                    local firstPart = updateItems:FindFirstChildWhichIsA("BasePart")
+                    if firstPart then
+                        targetPosition = firstPart.Position
+                    else
+                        warn("No valid parts found in UpdateItems to teleport to!")
+                        return
+                    end
+                end
+            end
+            if character and humanoidRootPart then
+                local yawAngle = math.rad(90)
+                local targetCFrame = CFrame.new(targetPosition + Vector3.new(0, 5, 0)) * CFrame.Angles(0, yawAngle, 0)
+                humanoidRootPart.CFrame = targetCFrame
+                print("Teleported to UpdateItems at position: ", targetPosition)
+            else
+                warn("Character or HumanoidRootPart not found!")
+            end
+        else
+            warn("UpdateItems is not a Folder or Model!")
+        end
+    else
+        warn("UpdateItems not found in workspace.Interaction!")
+    end
+end
+
+-- Teleport function for hardcoded positions
 local function teleportPlayer(position)
-    if character and character:FindFirstChild("HumanoidRootPart") then
+    if character and humanoidRootPart then
         local yawAngle = math.rad(90)
         local targetCFrame = CFrame.new(position) * CFrame.Angles(0, yawAngle, 0)
-        character.HumanoidRootPart.CFrame = targetCFrame
+        humanoidRootPart.CFrame = targetCFrame
+    else
+        warn("Character or HumanoidRootPart not found!")
     end
 end
 
 petsButton.MouseButton1Click:Connect(function()
-    teleportPlayer(Vector3.new(-288, 3, -1))
+    teleportPlayer(Vector3.new(-285, 3, -0))
 end)
 gearButton.MouseButton1Click:Connect(function()
     teleportPlayer(Vector3.new(-285, 3, -14))
 end)
 eventButton.MouseButton1Click:Connect(function()
-    teleportPlayer(Vector3.new(-95, 3, -15))
+    teleportToUpdateItems()
 end)
 cosmeticsCraftingButton.MouseButton1Click:Connect(function()
     teleportPlayer(Vector3.new(-287, 3, -25))
