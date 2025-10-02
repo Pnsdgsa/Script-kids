@@ -30,15 +30,22 @@ local Localization = WindUI:Localization({
             ["FULL_BRIGHT"] = "FullBright",
             ["NO_FOG"] = "Remove Fog",
             ["FOV"] = "Field of View",
-            ["PLAYER_TRACER"] = "Player Tracer (Active Players)",
-            ["NEXTBOT_TRACER"] = "Nextbot Tracer",
-            ["DOWNED_TRACER"] = "Downed Player Tracer",
-            ["PLAYER_NAME_ESP"] = "Player Name ESP (Active Players)",
+            ["PLAYER_BOX_ESP"] = "Player Box ESP",
+            ["PLAYER_TRACER"] = "Player Tracer",
+            ["PLAYER_NAME_ESP"] = "Player Name ESP",
             ["PLAYER_DISTANCE_ESP"] = "Player Distance ESP",
-            ["DOWNED_NAME_ESP"] = "Downed Player Name ESP",
-            ["DOWNED_DISTANCE_ESP"] = "Downed Player Distance ESP",
+            ["PLAYER_RAINBOW_BOXES"] = "Player Rainbow Boxes",
+            ["PLAYER_RAINBOW_TRACERS"] = "Player Rainbow Tracers",
+            ["NEXTBOT_BOX_ESP"] = "Nextbot Box ESP",
+            ["NEXTBOT_TRACER"] = "Nextbot Tracer",
             ["NEXTBOT_NAME_ESP"] = "Nextbot Name ESP",
             ["NEXTBOT_DISTANCE_ESP"] = "Nextbot Distance ESP",
+            ["NEXTBOT_RAINBOW_BOXES"] = "Nextbot Rainbow Boxes",
+            ["NEXTBOT_RAINBOW_TRACERS"] = "Nextbot Rainbow Tracers",
+            ["DOWNED_BOX_ESP"] = "Downed Player Box ESP",
+            ["DOWNED_TRACER"] = "Downed Player Tracer",
+            ["DOWNED_NAME_ESP"] = "Downed Player Name ESP",
+            ["DOWNED_DISTANCE_ESP"] = "Downed Player Distance ESP",
             ["AUTO_CARRY"] = "Auto Carry",
             ["AUTO_REVIVE"] = "Auto Revive",
             ["AUTO_VOTE"] = "Auto Vote",
@@ -152,6 +159,7 @@ local RunService = game:GetService("RunService")
 local VirtualUser = game:GetService("VirtualUser")
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local workspace = game:GetService("Workspace")
 
 -- Player reference
 local player = Players.LocalPlayer
@@ -172,13 +180,24 @@ local featureStates = {
     AutoWin = false,
     AutoMoneyFarm = false,
     AutoRevive = false,
-    PlayerTracer = false,
-    NextbotTracer = false,
+    PlayerESP = {
+        boxes = false,
+        tracers = false,
+        names = false,
+        distance = false,
+        rainbowBoxes = false,
+        rainbowTracers = false,
+    },
+    NextbotESP = {
+        boxes = false,
+        tracers = false,
+        names = false,
+        distance = false,
+        rainbowBoxes = false,
+        rainbowTracers = false,
+    },
+    DownedBoxESP = false,
     DownedTracer = false,
-    PlayerNameESP = false,
-    PlayerDistanceESP = false,
-    NextbotNameESP = false,
-    NextbotDistanceESP = false,
     DownedNameESP = false,
     DownedDistanceESP = false,
     FlySpeed = 50,
@@ -221,20 +240,288 @@ local reviveLoopHandle = nil
 local interactEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Character"):WaitForChild("Interact")
 
 -- ESP Variables
-local playerESPThread, ticketESPThread, nextbotESPThread, tracerThread
-local tracerLines = {}
-
--- Tracer Variables
-local playerTracerConnection, nextbotTracerConnection, downedTracerConnection
-local playerTracerLines = {}
-local nextbotTracerLines = {}
+local playerEspElements = {}
+local playerEspConnection = nil
+local nextbotEspElements = {}
+local nextbotEspConnection = nil
+local downedTracerConnection
+local downedNameESPConnection
 local downedTracerLines = {}
-
--- Name ESP Variables
-local playerNameESPConnection, nextbotNameESPConnection, downedNameESPConnection
-local playerNameESPLabels = {}
-local nextbotNameESPLabels = {}
 local downedNameESPLabels = {}
+
+-- Player ESP Module
+local function updatePlayerESP()
+    if not camera then camera = workspace.CurrentCamera end
+    local screenBottomCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y)
+    local currentTargets = {}
+
+    if workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players") then
+        for _, model in pairs(workspace.Game.Players:GetChildren()) do
+            if model:IsA("Model") and model:FindFirstChild("HumanoidRootPart") then
+                local isPlayer = Players:GetPlayerFromCharacter(model) ~= nil
+                if isPlayer and model.Name ~= player.Name then
+                    currentTargets[model] = true
+                    if not playerEspElements[model] then
+                        playerEspElements[model] = {
+                            box = Drawing.new("Square"),
+                            tracer = Drawing.new("Line"),
+                            name = Drawing.new("Text"),
+                            distance = Drawing.new("Text"),
+                        }
+                        playerEspElements[model].box.Thickness = 2
+                        playerEspElements[model].box.Filled = false
+                        playerEspElements[model].tracer.Thickness = 1
+                        playerEspElements[model].name.Size = 14
+                        playerEspElements[model].name.Center = true
+                        playerEspElements[model].name.Outline = true
+                        playerEspElements[model].distance.Size = 14
+                        playerEspElements[model].distance.Center = true
+                        playerEspElements[model].distance.Outline = true
+                    end
+
+                    local esp = playerEspElements[model]
+                    local hrp = model.HumanoidRootPart
+                    local vector, onScreen = camera:WorldToViewportPoint(hrp.Position)
+
+                    if onScreen then
+                        local topY = camera:WorldToViewportPoint(hrp.Position + Vector3.new(0, 3, 0)).Y
+                        local bottomY = camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0)).Y
+                        local size = (bottomY - topY) / 2
+                        local toggles = featureStates.PlayerESP
+
+                        if toggles.boxes then
+                            esp.box.Visible = true
+                            esp.box.Size = Vector2.new(size * 2, size * 3)
+                            esp.box.Position = Vector2.new(vector.X - size, vector.Y - size * 1.5)
+                            if toggles.rainbowBoxes then
+                                local hue = (tick() % 5) / 5
+                                esp.box.Color = Color3.fromHSV(hue, 1, 1)
+                            else
+                                esp.box.Color = Color3.fromRGB(0, 255, 0)
+                            end
+                        else
+                            esp.box.Visible = false
+                        end
+
+                        if toggles.tracers then
+                            esp.tracer.Visible = true
+                            esp.tracer.From = screenBottomCenter
+                            esp.tracer.To = Vector2.new(vector.X, vector.Y)
+                            if toggles.rainbowTracers then
+                                local hue = (tick() % 5) / 5
+                                esp.tracer.Color = Color3.fromHSV(hue, 1, 1)
+                            else
+                                esp.tracer.Color = Color3.fromRGB(0, 255, 0)
+                            end
+                        else
+                            esp.tracer.Visible = false
+                        end
+
+                        if toggles.names then
+                            esp.name.Visible = true
+                            esp.name.Text = model.Name
+                            esp.name.Position = Vector2.new(vector.X, vector.Y - size * 1.5 - 20)
+                            esp.name.Color = Color3.fromRGB(255, 255, 255)
+                        else
+                            esp.name.Visible = false
+                        end
+
+                        if toggles.distance then
+                            local distance = (Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and (Players.LocalPlayer.Character.HumanoidRootPart.Position - hrp.Position).Magnitude) or 0
+                            esp.distance.Visible = true
+                            esp.distance.Text = string.format("%.1f", distance)
+                            esp.distance.Position = Vector2.new(vector.X, vector.Y + size * 1.5 + 5)
+                            esp.distance.Color = Color3.fromRGB(255, 255, 255)
+                        else
+                            esp.distance.Visible = false
+                        end
+                    else
+                        esp.box.Visible = false
+                        esp.tracer.Visible = false
+                        esp.name.Visible = false
+                        esp.distance.Visible = false
+                    end
+                end
+            end
+        end
+    end
+
+    for target, esp in pairs(playerEspElements) do
+        if not currentTargets[target] then
+            for _, drawing in pairs(esp) do
+                pcall(function() drawing:Remove() end)
+            end
+            playerEspElements[target] = nil
+        end
+    end
+end
+
+local function startPlayerESP()
+    if playerEspConnection then return end
+    playerEspConnection = RunService.RenderStepped:Connect(updatePlayerESP)
+end
+
+local function stopPlayerESP()
+    if playerEspConnection then
+        playerEspConnection:Disconnect()
+        playerEspConnection = nil
+    end
+    for _, esp in pairs(playerEspElements) do
+        for _, drawing in pairs(esp) do
+            pcall(function() drawing:Remove() end)
+        end
+    end
+    playerEspElements = {}
+end
+
+-- Nextbot ESP Module
+local nextBotNames = {}
+if ReplicatedStorage:FindFirstChild("NPCs") then
+    for _, npc in ipairs(ReplicatedStorage.NPCs:GetChildren()) do
+        table.insert(nextBotNames, npc.Name)
+    end
+end
+
+local function isNextbotModel(model)
+    if not model or not model.Name then return false end
+    for _, name in ipairs(nextBotNames) do
+        if model.Name == name then return true end
+    end
+    return false
+end
+
+local function updateNextbotESP()
+    if not camera then camera = workspace.CurrentCamera end
+    local screenBottomCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y)
+    local currentTargets = {}
+
+    if workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players") then
+        for _, model in pairs(workspace.Game.Players:GetChildren()) do
+            processModel(model)
+        end
+    end
+
+    if workspace:FindFirstChild("NPCs") then
+        for _, model in pairs(workspace.NPCs:GetChildren()) do
+            processModel(model)
+        end
+    end
+
+    local function processModel(model)
+        if not model or not model:IsA("Model") or not model:FindFirstChild("HumanoidRootPart") then return end
+        if not isNextbotModel(model) then return end
+        currentTargets[model] = true
+
+        if not nextbotEspElements[model] then
+            nextbotEspElements[model] = {
+                box = Drawing.new("Square"),
+                tracer = Drawing.new("Line"),
+                name = Drawing.new("Text"),
+                distance = Drawing.new("Text"),
+            }
+            nextbotEspElements[model].box.Thickness = 2
+            nextbotEspElements[model].box.Filled = false
+            nextbotEspElements[model].tracer.Thickness = 1
+            nextbotEspElements[model].name.Size = 14
+            nextbotEspElements[model].name.Center = true
+            nextbotEspElements[model].name.Outline = true
+            nextbotEspElements[model].distance.Size = 14
+            nextbotEspElements[model].distance.Center = true
+            nextbotEspElements[model].distance.Outline = true
+        end
+
+        local esp = nextbotEspElements[model]
+        local hrp = model.HumanoidRootPart
+        local vector, onScreen = camera:WorldToViewportPoint(hrp.Position)
+
+        if onScreen then
+            local topY = camera:WorldToViewportPoint(hrp.Position + Vector3.new(0, 3, 0)).Y
+            local bottomY = camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0)).Y
+            local size = (bottomY - topY) / 2
+            local toggles = featureStates.NextbotESP
+
+            if toggles.boxes then
+                esp.box.Visible = true
+                esp.box.Size = Vector2.new(size * 2, size * 3)
+                esp.box.Position = Vector2.new(vector.X - size, vector.Y - size * 1.5)
+                if toggles.rainbowBoxes then
+                    local hue = (tick() % 5) / 5
+                    esp.box.Color = Color3.fromHSV(hue, 1, 1)
+                else
+                    esp.box.Color = Color3.fromRGB(255, 0, 0)
+                end
+            else
+                esp.box.Visible = false
+            end
+
+            if toggles.tracers then
+                esp.tracer.Visible = true
+                esp.tracer.From = screenBottomCenter
+                esp.tracer.To = Vector2.new(vector.X, vector.Y)
+                if toggles.rainbowTracers then
+                    local hue = (tick() % 5) / 5
+                    esp.tracer.Color = Color3.fromHSV(hue, 1, 1)
+                else
+                    esp.tracer.Color = Color3.fromRGB(255, 0, 0)
+                end
+            else
+                esp.tracer.Visible = false
+            end
+
+            if toggles.names then
+                esp.name.Visible = true
+                esp.name.Text = model.Name
+                esp.name.Position = Vector2.new(vector.X, vector.Y - size * 1.5 - 20)
+                esp.name.Color = Color3.fromRGB(255, 255, 255)
+            else
+                esp.name.Visible = false
+            end
+
+            if toggles.distance then
+                local distance = (Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and
+                    (Players.LocalPlayer.Character.HumanoidRootPart.Position - hrp.Position).Magnitude) or 0
+                esp.distance.Visible = true
+                esp.distance.Text = string.format("%.1f", distance)
+                esp.distance.Position = Vector2.new(vector.X, vector.Y + size * 1.5 + 5)
+                esp.distance.Color = Color3.fromRGB(255, 255, 255)
+            else
+                esp.distance.Visible = false
+            end
+        else
+            esp.box.Visible = false
+            esp.tracer.Visible = false
+            esp.name.Visible = false
+            esp.distance.Visible = false
+        end
+    end
+
+    for target, esp in pairs(nextbotEspElements) do
+        if not currentTargets[target] then
+            for _, drawing in pairs(esp) do
+                pcall(function() drawing:Remove() end)
+            end
+            nextbotEspElements[target] = nil
+        end
+    end
+end
+
+local function startNextbotESP()
+    if nextbotEspConnection then return end
+    nextbotEspConnection = RunService.RenderStepped:Connect(updateNextbotESP)
+end
+
+local function stopNextbotESP()
+    if nextbotEspConnection then
+        nextbotEspConnection:Disconnect()
+        nextbotEspConnection = nil
+    end
+    for _, esp in pairs(nextbotEspElements) do
+        for _, drawing in pairs(esp) do
+            pcall(function() drawing:Remove() end)
+        end
+    end
+    nextbotEspElements = {}
+end
 
 -- Visual Variables
 local originalBrightness = Lighting.Brightness
@@ -672,94 +959,16 @@ local function manualRevive()
     end
 end
 
--- Tracer Functions
+-- Downed Tracer and Box ESP Functions
 local function cleanupTracers(tracerTable)
-    for _, line in ipairs(tracerTable) do
-        if line and line.Remove then 
-            line:Remove()
-        elseif line then 
-            line.Visible = false 
+    for _, drawing in ipairs(tracerTable) do
+        if drawing and drawing.Remove then 
+            pcall(function() drawing:Remove() end)
+        elseif drawing then 
+            drawing.Visible = false 
         end
     end
     tracerTable = {}
-end
-
-local function startPlayerTracer()
-    playerTracerConnection = RunService.Heartbeat:Connect(function()
-        cleanupTracers(playerTracerLines)
-        playerTracerLines = {}
-        local folder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players")
-        if folder then
-            for _, char in ipairs(folder:GetChildren()) do
-                if char:IsA("Model") then
-                    local team = char:GetAttribute("Team")
-                    local downed = char:GetAttribute("Downed")
-                    if team ~= "Nextbot" and char.Name ~= player.Name and downed ~= true then
-                        local hrp = char:FindFirstChild("HumanoidRootPart")
-                        if hrp and workspace.CurrentCamera then
-                            local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
-                            if onScreen then
-                                local tracer = Drawing.new("Line")
-                                tracer.Color = Color3.fromRGB(0, 255, 0)
-                                tracer.Thickness = 2
-                                tracer.From = Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y)
-                                tracer.To = Vector2.new(pos.X, pos.Y)
-                                tracer.ZIndex = 1
-                                tracer.Visible = true
-                                table.insert(playerTracerLines, tracer)
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end)
-end
-
-local function stopPlayerTracer()
-    if playerTracerConnection then
-        playerTracerConnection:Disconnect()
-        playerTracerConnection = nil
-    end
-    cleanupTracers(playerTracerLines)
-    playerTracerLines = {}
-end
-
-local function startNextbotTracer()
-    nextbotTracerConnection = RunService.Heartbeat:Connect(function()
-        cleanupTracers(nextbotTracerLines)
-        nextbotTracerLines = {}
-        local folder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players")
-        if folder then
-            for _, npc in ipairs(folder:GetChildren()) do
-                if npc:IsA("Model") and npc:GetAttribute("Team") == "Nextbot" then
-                    local hrp = npc:FindFirstChild("HumanoidRootPart") or npc:FindFirstChild("Hitbox")
-                    if hrp and workspace.CurrentCamera then
-                        local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
-                        if onScreen then
-                            local tracer = Drawing.new("Line")
-                            tracer.Color = Color3.fromRGB(255, 0, 0)
-                            tracer.Thickness = 2
-                            tracer.From = Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y)
-                            tracer.To = Vector2.new(pos.X, pos.Y)
-                            tracer.ZIndex = 1
-                            tracer.Visible = true
-                            table.insert(nextbotTracerLines, tracer)
-                        end
-                    end
-                end
-            end
-        end
-    end)
-end
-
-local function stopNextbotTracer()
-    if nextbotTracerConnection then
-        nextbotTracerConnection:Disconnect()
-        nextbotTracerConnection = nil
-    end
-    cleanupTracers(nextbotTracerLines)
-    nextbotTracerLines = {}
 end
 
 local function startDownedTracer()
@@ -777,14 +986,32 @@ local function startDownedTracer()
                         if hrp and workspace.CurrentCamera then
                             local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
                             if onScreen then
-                                local tracer = Drawing.new("Line")
-                                tracer.Color = Color3.fromRGB(255, 165, 0)
-                                tracer.Thickness = 2
-                                tracer.From = Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y)
-                                tracer.To = Vector2.new(pos.X, pos.Y)
-                                tracer.ZIndex = 1
-                                tracer.Visible = true
-                                table.insert(downedTracerLines, tracer)
+                                -- Tracer
+                                if featureStates.DownedTracer then
+                                    local tracer = Drawing.new("Line")
+                                    tracer.Color = Color3.fromRGB(255, 165, 0)
+                                    tracer.Thickness = 2
+                                    tracer.From = Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y)
+                                    tracer.To = Vector2.new(pos.X, pos.Y)
+                                    tracer.ZIndex = 1
+                                    tracer.Visible = true
+                                    table.insert(downedTracerLines, tracer)
+                                end
+                                -- Box
+                                if featureStates.DownedBoxESP then
+                                    local topY = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position + Vector3.new(0, 3, 0)).Y
+                                    local bottomY = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0)).Y
+                                    local size = (bottomY - topY) / 2
+                                    local box = Drawing.new("Square")
+                                    box.Thickness = 2
+                                    box.Filled = false
+                                    box.Color = Color3.fromRGB(255, 255, 0) -- Yellow
+                                    box.Size = Vector2.new(size * 2, size * 3)
+                                    box.Position = Vector2.new(pos.X - size, pos.Y - size * 1.5)
+                                    box.ZIndex = 1
+                                    box.Visible = true
+                                    table.insert(downedTracerLines, box)
+                                end
                             end
                         end
                     end
@@ -803,7 +1030,7 @@ local function stopDownedTracer()
     downedTracerLines = {}
 end
 
--- Name ESP Functions
+-- Downed Name ESP Functions
 local function cleanupNameESPLabels(labelTable)
     for _, label in ipairs(labelTable) do
         if label and label.Remove then 
@@ -813,98 +1040,6 @@ local function cleanupNameESPLabels(labelTable)
         end
     end
     labelTable = {}
-end
-
-local function startPlayerNameESP()
-    playerNameESPConnection = RunService.Heartbeat:Connect(function()
-        cleanupNameESPLabels(playerNameESPLabels)
-        playerNameESPLabels = {}
-        local folder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players")
-        if folder then
-            for _, char in ipairs(folder:GetChildren()) do
-                if char:IsA("Model") then
-                    local team = char:GetAttribute("Team")
-                    local downed = char:GetAttribute("Downed")
-                    if team ~= "Nextbot" and char.Name ~= player.Name and downed ~= true then
-                        local hrp = char:FindFirstChild("HumanoidRootPart")
-                        if hrp and workspace.CurrentCamera then
-                            local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
-                            if onScreen then
-                                local distance = getDistanceFromPlayer(hrp.Position)
-                                local displayText = char.Name
-                                if featureStates.PlayerDistanceESP then
-                                    displayText = displayText .. "\n" .. math.floor(distance) .. " studs"
-                                end
-                                local label = Drawing.new("Text")
-                                label.Text = displayText
-                                label.Size = 16
-                                label.Center = true
-                                label.Outline = true
-                                label.OutlineColor = Color3.new(0, 0, 0)
-                                label.Color = Color3.fromRGB(0, 255, 0)
-                                label.Position = Vector2.new(pos.X, pos.Y - 50)
-                                label.Visible = true
-                                table.insert(playerNameESPLabels, label)
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end)
-end
-
-local function stopPlayerNameESP()
-    if playerNameESPConnection then
-        playerNameESPConnection:Disconnect()
-        playerNameESPConnection = nil
-    end
-    cleanupNameESPLabels(playerNameESPLabels)
-    playerNameESPLabels = {}
-end
-
-local function startNextbotNameESP()
-    nextbotNameESPConnection = RunService.Heartbeat:Connect(function()
-        cleanupNameESPLabels(nextbotNameESPLabels)
-        nextbotNameESPLabels = {}
-        local folder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players")
-        if folder then
-            for _, npc in ipairs(folder:GetChildren()) do
-                if npc:IsA("Model") and npc:GetAttribute("Team") == "Nextbot" then
-                    local hrp = npc:FindFirstChild("HumanoidRootPart") or npc:FindFirstChild("Hitbox")
-                    if hrp and workspace.CurrentCamera then
-                        local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
-                        if onScreen then
-                            local distance = getDistanceFromPlayer(hrp.Position)
-                            local displayText = npc.Name
-                            if featureStates.NextbotDistanceESP then
-                                displayText = displayText .. "\n" .. math.floor(distance) .. " studs"
-                            end
-                            local label = Drawing.new("Text")
-                            label.Text = displayText
-                            label.Size = 16
-                            label.Center = true
-                            label.Outline = true
-                            label.OutlineColor = Color3.new(0, 0, 0)
-                            label.Color = Color3.fromRGB(255, 0, 0)
-                            label.Position = Vector2.new(pos.X, pos.Y - 50)
-                            label.Visible = true
-                            table.insert(nextbotNameESPLabels, label)
-                        end
-                    end
-                end
-            end
-        end
-    end)
-end
-
-local function stopNextbotNameESP()
-    if nextbotNameESPConnection then
-        nextbotNameESPConnection:Disconnect()
-        nextbotNameESPConnection = nil
-    end
-    cleanupNameESPLabels(nextbotNameESPLabels)
-    nextbotNameESPLabels = {}
 end
 
 local function startDownedNameESP()
@@ -1022,25 +1157,17 @@ local function reapplyFeatures()
         if AutoMoneyFarmConnection then stopAutoMoneyFarm() end
         startAutoMoneyFarm()
     end
-    if featureStates.PlayerTracer then
-        if playerTracerConnection then stopPlayerTracer() end
-        startPlayerTracer()
+    if featureStates.PlayerESP.boxes or featureStates.PlayerESP.tracers or featureStates.PlayerESP.names or featureStates.PlayerESP.distance then
+        stopPlayerESP()
+        startPlayerESP()
     end
-    if featureStates.NextbotTracer then
-        if nextbotTracerConnection then stopNextbotTracer() end
-        startNextbotTracer()
+    if featureStates.NextbotESP.boxes or featureStates.NextbotESP.tracers or featureStates.NextbotESP.names or featureStates.NextbotESP.distance then
+        stopNextbotESP()
+        startNextbotESP()
     end
-    if featureStates.DownedTracer then
+    if featureStates.DownedBoxESP or featureStates.DownedTracer then
         if downedTracerConnection then stopDownedTracer() end
         startDownedTracer()
-    end
-    if featureStates.PlayerNameESP then
-        if playerNameESPConnection then stopPlayerNameESP() end
-        startPlayerNameESP()
-    end
-    if featureStates.NextbotNameESP then
-        if nextbotNameESPConnection then stopNextbotNameESP() end
-        startNextbotNameESP()
     end
     if featureStates.DownedNameESP then
         if downedNameESPConnection then stopDownedNameESP() end
@@ -1336,15 +1463,91 @@ local function setupGui()
     Tabs.ESP:Section({ Title = "Enable visual indicators for players and objects", TextSize = 16, TextTransparency = 0.25 })
     Tabs.ESP:Divider()
 
+    local PlayerBoxESPToggle = Tabs.ESP:Toggle({
+        Title = "loc:PLAYER_BOX_ESP",
+        Value = false,
+        Callback = function(state)
+            featureStates.PlayerESP.boxes = state
+            if state or featureStates.PlayerESP.tracers or featureStates.PlayerESP.names or featureStates.PlayerESP.distance then
+                startPlayerESP()
+            else
+                stopPlayerESP()
+            end
+        end
+    })
+
     local PlayerTracerToggle = Tabs.ESP:Toggle({
         Title = "loc:PLAYER_TRACER",
         Value = false,
         Callback = function(state)
-            featureStates.PlayerTracer = state
-            if state then
-                startPlayerTracer()
+            featureStates.PlayerESP.tracers = state
+            if state or featureStates.PlayerESP.boxes or featureStates.PlayerESP.names or featureStates.PlayerESP.distance then
+                startPlayerESP()
             else
-                stopPlayerTracer()
+                stopPlayerESP()
+            end
+        end
+    })
+
+    local PlayerNameESPToggle = Tabs.ESP:Toggle({
+        Title = "loc:PLAYER_NAME_ESP",
+        Value = false,
+        Callback = function(state)
+            featureStates.PlayerESP.names = state
+            if state or featureStates.PlayerESP.boxes or featureStates.PlayerESP.tracers or featureStates.PlayerESP.distance then
+                startPlayerESP()
+            else
+                stopPlayerESP()
+            end
+        end
+    })
+
+    local PlayerDistanceESPToggle = Tabs.ESP:Toggle({
+        Title = "loc:PLAYER_DISTANCE_ESP",
+        Value = false,
+        Callback = function(state)
+            featureStates.PlayerESP.distance = state
+            if state or featureStates.PlayerESP.boxes or featureStates.PlayerESP.tracers or featureStates.PlayerESP.names then
+                startPlayerESP()
+            else
+                stopPlayerESP()
+            end
+        end
+    })
+
+    local PlayerRainbowBoxesToggle = Tabs.ESP:Toggle({
+        Title = "loc:PLAYER_RAINBOW_BOXES",
+        Value = false,
+        Callback = function(state)
+            featureStates.PlayerESP.rainbowBoxes = state
+            if featureStates.PlayerESP.boxes then
+                stopPlayerESP()
+                startPlayerESP()
+            end
+        end
+    })
+
+    local PlayerRainbowTracersToggle = Tabs.ESP:Toggle({
+        Title = "loc:PLAYER_RAINBOW_TRACERS",
+        Value = false,
+        Callback = function(state)
+            featureStates.PlayerESP.rainbowTracers = state
+            if featureStates.PlayerESP.tracers then
+                stopPlayerESP()
+                startPlayerESP()
+            end
+        end
+    })
+
+    local NextbotBoxESPToggle = Tabs.ESP:Toggle({
+        Title = "loc:NEXTBOT_BOX_ESP",
+        Value = false,
+        Callback = function(state)
+            featureStates.NextbotESP.boxes = state
+            if state or featureStates.NextbotESP.tracers or featureStates.NextbotESP.names or featureStates.NextbotESP.distance then
+                startNextbotESP()
+            else
+                stopNextbotESP()
             end
         end
     })
@@ -1353,11 +1556,75 @@ local function setupGui()
         Title = "loc:NEXTBOT_TRACER",
         Value = false,
         Callback = function(state)
-            featureStates.NextbotTracer = state
-            if state then
-                startNextbotTracer()
+            featureStates.NextbotESP.tracers = state
+            if state or featureStates.NextbotESP.boxes or featureStates.NextbotESP.names or featureStates.NextbotESP.distance then
+                startNextbotESP()
             else
-                stopNextbotTracer()
+                stopNextbotESP()
+            end
+        end
+    })
+
+    local NextbotNameESPToggle = Tabs.ESP:Toggle({
+        Title = "loc:NEXTBOT_NAME_ESP",
+        Value = false,
+        Callback = function(state)
+            featureStates.NextbotESP.names = state
+            if state or featureStates.NextbotESP.boxes or featureStates.NextbotESP.tracers or featureStates.NextbotESP.distance then
+                startNextbotESP()
+            else
+                stopNextbotESP()
+            end
+        end
+    })
+
+    local NextbotDistanceESPToggle = Tabs.ESP:Toggle({
+        Title = "loc:NEXTBOT_DISTANCE_ESP",
+        Value = false,
+        Callback = function(state)
+            featureStates.NextbotESP.distance = state
+            if state or featureStates.NextbotESP.boxes or featureStates.NextbotESP.tracers or featureStates.NextbotESP.names then
+                startNextbotESP()
+            else
+                stopNextbotESP()
+            end
+        end
+    })
+
+    local NextbotRainbowBoxesToggle = Tabs.ESP:Toggle({
+        Title = "loc:NEXTBOT_RAINBOW_BOXES",
+        Value = false,
+        Callback = function(state)
+            featureStates.NextbotESP.rainbowBoxes = state
+            if featureStates.NextbotESP.boxes then
+                stopNextbotESP()
+                startNextbotESP()
+            end
+        end
+    })
+
+    local NextbotRainbowTracersToggle = Tabs.ESP:Toggle({
+        Title = "loc:NEXTBOT_RAINBOW_TRACERS",
+        Value = false,
+        Callback = function(state)
+            featureStates.NextbotESP.rainbowTracers = state
+            if featureStates.NextbotESP.tracers then
+                stopNextbotESP()
+                startNextbotESP()
+            end
+        end
+    })
+
+    local DownedBoxESPToggle = Tabs.ESP:Toggle({
+        Title = "loc:DOWNED_BOX_ESP",
+        Value = false,
+        Callback = function(state)
+            featureStates.DownedBoxESP = state
+            if state or featureStates.DownedTracer then
+                if downedTracerConnection then stopDownedTracer() end
+                startDownedTracer()
+            else
+                stopDownedTracer()
             end
         end
     })
@@ -1367,35 +1634,11 @@ local function setupGui()
         Value = false,
         Callback = function(state)
             featureStates.DownedTracer = state
-            if state then
+            if state or featureStates.DownedBoxESP then
+                if downedTracerConnection then stopDownedTracer() end
                 startDownedTracer()
             else
                 stopDownedTracer()
-            end
-        end
-    })
-
-    local PlayerNameESPToggle = Tabs.ESP:Toggle({
-        Title = "loc:PLAYER_NAME_ESP",
-        Value = false,
-        Callback = function(state)
-            featureStates.PlayerNameESP = state
-            if state then
-                startPlayerNameESP()
-            else
-                stopPlayerNameESP()
-            end
-        end
-    })
-
-    local PlayerDistanceESPToggle = Tabs.ESP:Toggle({
-        Title = "loc:PLAYER_DISTANCE_ESP",
-        Value = false,
-        Callback = function(state)
-            featureStates.PlayerDistanceESP = state
-            if featureStates.PlayerNameESP then
-                stopPlayerNameESP()
-                startPlayerNameESP()
             end
         end
     })
@@ -1421,31 +1664,6 @@ local function setupGui()
             if featureStates.DownedNameESP then
                 stopDownedNameESP()
                 startDownedNameESP()
-            end
-        end
-    })
-
-    local NextbotNameESPToggle = Tabs.ESP:Toggle({
-        Title = "loc:NEXTBOT_NAME_ESP",
-        Value = false,
-        Callback = function(state)
-            featureStates.NextbotNameESP = state
-            if state then
-                startNextbotNameESP()
-            else
-                stopNextbotNameESP()
-            end
-        end
-    })
-
-    local NextbotDistanceESPToggle = Tabs.ESP:Toggle({
-        Title = "loc:NEXTBOT_DISTANCE_ESP",
-        Value = false,
-        Callback = function(state)
-            featureStates.NextbotDistanceESP = state
-            if featureStates.NextbotNameESP then
-                stopNextbotNameESP()
-                startNextbotNameESP()
             end
         end
     })
@@ -1665,15 +1883,22 @@ local function setupGui()
                 configFile:Register("FullBrightToggle", FullBrightToggle)
                 configFile:Register("NoFogToggle", NoFogToggle)
                 configFile:Register("FOVSlider", FOVSlider)
+                configFile:Register("PlayerBoxESPToggle", PlayerBoxESPToggle)
                 configFile:Register("PlayerTracerToggle", PlayerTracerToggle)
-                configFile:Register("NextbotTracerToggle", NextbotTracerToggle)
-                configFile:Register("DownedTracerToggle", DownedTracerToggle)
                 configFile:Register("PlayerNameESPToggle", PlayerNameESPToggle)
                 configFile:Register("PlayerDistanceESPToggle", PlayerDistanceESPToggle)
-                configFile:Register("DownedNameESPToggle", DownedNameESPToggle)
-                configFile:Register("DownedDistanceESPToggle", DownedDistanceESPToggle)
+                configFile:Register("PlayerRainbowBoxesToggle", PlayerRainbowBoxesToggle)
+                configFile:Register("PlayerRainbowTracersToggle", PlayerRainbowTracersToggle)
+                configFile:Register("NextbotBoxESPToggle", NextbotBoxESPToggle)
+                configFile:Register("NextbotTracerToggle", NextbotTracerToggle)
                 configFile:Register("NextbotNameESPToggle", NextbotNameESPToggle)
                 configFile:Register("NextbotDistanceESPToggle", NextbotDistanceESPToggle)
+                configFile:Register("NextbotRainbowBoxesToggle", NextbotRainbowBoxesToggle)
+                configFile:Register("NextbotRainbowTracersToggle", NextbotRainbowTracersToggle)
+                configFile:Register("DownedBoxESPToggle", DownedBoxESPToggle)
+                configFile:Register("DownedTracerToggle", DownedTracerToggle)
+                configFile:Register("DownedNameESPToggle", DownedNameESPToggle)
+                configFile:Register("DownedDistanceESPToggle", DownedDistanceESPToggle)
                 configFile:Register("AutoCarryToggle", AutoCarryToggle)
                 configFile:Register("AutoReviveToggle", AutoReviveToggle)
                 configFile:Register("AutoVoteDropdown", AutoVoteDropdown)
@@ -1721,6 +1946,23 @@ local function setupGui()
         })
     end
 
+    -- Keybind Section
+    Tabs.Settings:Section({ Title = "Keybind Settings", TextSize = 20 })
+    Tabs.Settings:Section({ Title = "Change toggle key for GUI", TextSize = 16, TextTransparency = 0.25 })
+    Tabs.Settings:Divider()
+
+    Tabs.Settings:Input({
+        Title = "Toggle Key",
+        Desc = "Enter key to toggle GUI (e.g. G)",
+        Value = "G",
+        Callback = function(value)
+            local key = value:upper()
+            if Enum.KeyCode[key] then
+                toggleKey = Enum.KeyCode[key]
+            end
+        end
+    })
+
     -- Select default tab
     Window:SelectTab(1)
 end
@@ -1749,3 +1991,19 @@ Window:OnOpen(function()
 end)
 
 Window:UnlockAll()
+
+-- GUI Toggle Logic
+local toggleKey = Enum.KeyCode.G
+local isVisible = true
+
+UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+    if gameProcessedEvent then return end
+    if input.KeyCode == toggleKey then
+        isVisible = not isVisible
+        if isVisible then
+            Window:Open()
+        else
+            Window:Close()
+        end
+    end
+end)
