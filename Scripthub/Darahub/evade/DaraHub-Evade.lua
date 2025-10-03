@@ -1339,7 +1339,10 @@ UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
                     end
                 end)
             elseif featureStates.JumpMethod == "Spam" then
-                bouncePlayer()
+                if not isJumpHeld then
+                    isJumpHeld = true
+                    bouncePlayer()
+                end
             end
         end
     end
@@ -1360,16 +1363,23 @@ local function setupMobileJumpButton()
         
         jumpButton.Activated:Connect(function()
             if featureStates.InfiniteJump then
-                bouncePlayer()
+                if featureStates.JumpMethod == "Spam" then
+                    -- Trigger a single jump on tap
+                    bouncePlayer()
+                elseif featureStates.JumpMethod == "Hold" then
+                    -- Trigger a single jump on tap for consistency
+                    bouncePlayer()
+                end
             end
         end)
 
         jumpButton.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.Touch then
                 isJumpHeld = true
-                if featureStates.InfiniteJump then
-                    while isJumpHeld and featureStates.InfiniteJump and wait(0.1) do
+                if featureStates.InfiniteJump and featureStates.JumpMethod == "Hold" then
+                    while isJumpHeld and featureStates.InfiniteJump and featureStates.JumpMethod == "Hold" do
                         bouncePlayer()
+                        task.wait(0.1)
                     end
                 end
             end
@@ -1511,7 +1521,7 @@ local function setupGui()
     local JumpBoostSlider = Tabs.Player:Slider({
         Title = "loc:JUMP_POWER",
         Desc = "Adjust jump height",
-        Value = { Min = 16, Max = 500, Default = 5, Step = 1 },
+        Value = { Min = 1, Max = 500, Default = 5, Step = 1 },
         Callback = function(value)
             featureStates.JumpPower = value
             if featureStates.JumpBoost then
@@ -1565,7 +1575,7 @@ local NoFogToggle = Tabs.Visuals:Toggle({
 })
     local FOVSlider = Tabs.Visuals:Slider({
         Title = "loc:FOV",
-        Value = { Min = 10, Max = 120, Default = 70, Step = 1 },
+        Value = { Min = 1, Max = 120, Default = 70, Step = 1 },
         Callback = function(value)
             featureStates.DesiredFOV = value
             local camera = workspace.CurrentCamera or game:GetService("Workspace"):WaitForChild("CurrentCamera", 5)
