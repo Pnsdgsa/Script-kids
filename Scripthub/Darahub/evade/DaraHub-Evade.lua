@@ -989,6 +989,7 @@ end
 local function startAutoSelfRevive()
     AutoSelfReviveConnection = RunService.Heartbeat:Connect(function()
         if character and character:GetAttribute("Downed") then
+                task.wait(5)
             ReplicatedStorage.Events.Player.ChangePlayerMode:FireServer(true)
         end
     end)
