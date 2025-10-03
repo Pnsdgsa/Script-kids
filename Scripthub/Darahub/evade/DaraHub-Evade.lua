@@ -282,7 +282,8 @@ local function updatePlayerESP()
         for _, model in pairs(workspace.Game.Players:GetChildren()) do
             if model:IsA("Model") and model:FindFirstChild("HumanoidRootPart") then
                 local isPlayer = Players:GetPlayerFromCharacter(model) ~= nil
-                if isPlayer and model.Name ~= player.Name then
+                local humanoid = model:FindFirstChild("Humanoid")
+                if isPlayer and model.Name ~= player.Name and humanoid and humanoid.Health > 0 then
                     currentTargets[model] = true
                     if not playerEspElements[model] then
                         playerEspElements[model] = {
@@ -321,11 +322,18 @@ local function updatePlayerESP()
                                 boxColor = Color3.fromRGB(0, 255, 0)
                             end
                             if toggles.boxType == "2D" then
+                                -- Show 2D box and hide 3D box lines
                                 esp.box.Visible = true
                                 esp.box.Size = Vector2.new(size * 2, size * 3)
                                 esp.box.Position = Vector2.new(vector.X - size, vector.Y - size * 1.5)
                                 esp.box.Color = boxColor
+                                if esp.boxLines then
+                                    for _, line in ipairs(esp.boxLines) do
+                                        line.Visible = false
+                                    end
+                                end
                             else
+                                -- Show 3D box and hide 2D box
                                 esp.box.Visible = false
                                 draw3DBox(esp, hrp, camera, boxColor)
                             end
