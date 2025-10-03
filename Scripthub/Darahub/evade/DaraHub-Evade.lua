@@ -584,12 +584,28 @@ end)
 
 -- Visual Variables
 local originalBrightness = Lighting.Brightness
-local originalFogEnd = game.Lighting.FogEnd
+local originalFogEnd = Lighting.FogEnd
 local originalOutdoorAmbient = Lighting.OutdoorAmbient
 local originalAmbient = Lighting.Ambient
 local originalGlobalShadows = Lighting.GlobalShadows
 local originalFOV = workspace.CurrentCamera and workspace.CurrentCamera.FieldOfView or 70
+local originalAtmospheres = {}
 
+-- Store existing Atmosphere objects
+for _, v in pairs(Lighting:GetDescendants()) do
+    if v:IsA("Atmosphere") then
+        table.insert(originalAtmospheres, v)
+    end
+end
+local function startNoFog()
+    originalFogEnd = Lighting.FogEnd
+    Lighting.FogEnd = 1000000
+    for _, v in pairs(Lighting:GetDescendants()) do
+        if v:IsA("Atmosphere") then
+            v:Destroy()
+        end
+    end
+end
 -- Function to check if player is grounded
 local function isPlayerGrounded()
     if not character or not humanoid or not rootPart then
@@ -884,16 +900,20 @@ local function stopFullBright()
     Lighting.GlobalShadows = originalGlobalShadows
 end
 
--- No Fog Functions
-local function startNoFog()
-    game.originalFogEnd = game.Lighting.FogEnd
-    game.game.Lighting.FogEnd = 1000000
-end
-
 local function stopNoFog()
-    game.game.Lighting.FogEnd = originalFogEnd
+    Lighting.FogEnd = originalFogEnd
+    for _, atmosphere in pairs(originalAtmospheres) do
+        if not atmosphere.Parent then
+            local newAtmosphere = Instance.new("Atmosphere")
+            for _, prop in pairs({"Density", "Offset", "Color", "Decay", "Glare", "Haze"}) do
+                if atmosphere[prop] then
+                    newAtmosphere[prop] = atmosphere[prop]
+                end
+            end
+            newAtmosphere.Parent = Lighting
+        end
+    end
 end
-
 -- Auto Vote Functions
 local function fireVoteServer(mapNumber)
     local eventsFolder = ReplicatedStorage:WaitForChild("Events", 10)
@@ -1238,10 +1258,10 @@ local function reapplyFeatures()
         stopFullBright()
     end
     if featureStates.NoFog then
-        startNoFog()
-    else
-        stopNoFog()
-    end
+    startNoFog()
+else
+    stopNoFog()
+end
     if featureStates.AutoVote then
         if AutoVoteConnection then stopAutoVote() end
         startAutoVote()
@@ -1523,20 +1543,18 @@ local function setupGui()
             end
         end
     })
-
-    local NoFogToggle = Tabs.Visuals:Toggle({
-        Title = "loc:NO_FOG",
-        Value = false,
-        Callback = function(state)
-            featureStates.NoFog = state
-            if state then
-                startNoFog()
-            else
-                stopNoFog()
-            end
+local NoFogToggle = Tabs.Visuals:Toggle({
+    Title = "loc:NO_FOG",
+    Value = false,
+    Callback = function(state)
+        featureStates.NoFog = state
+        if state then
+            startNoFog()
+        else
+            stopNoFog()
         end
-    })
-
+    end
+})
     local FOVSlider = Tabs.Visuals:Slider({
         Title = "loc:FOV",
         Value = { Min = 10, Max = 120, Default = 70, Step = 1 },
@@ -1999,7 +2017,6 @@ local NextbotDistanceESPToggle = Tabs.ESP:Toggle({
                 configFile:Register("JumpBoostSlider", JumpBoostSlider)
                 configFile:Register("AntiAFKToggle", AntiAFKToggle)
                 configFile:Register("FullBrightToggle", FullBrightToggle)
-                configFile:Register("NoFogToggle", NoFogToggle)
                 configFile:Register("FOVSlider", FOVSlider)
                 configFile:Register("PlayerBoxESPToggle", PlayerBoxESPToggle)
                 configFile:Register("PlayerBoxTypeDropdown", PlayerBoxTypeDropdown)
@@ -2017,6 +2034,8 @@ local NextbotDistanceESPToggle = Tabs.ESP:Toggle({
                 configFile:Register("NextbotRainbowTracersToggle", NextbotRainbowTracersToggle)
                 configFile:Register("DownedBoxESPToggle", DownedBoxESPToggle)
                 configFile:Register("DownedBoxTypeDropdown", DownedBoxTypeDropdown)
+                
+ configFile:Register("NoFogToggle", NoFogToggle)
                 configFile:Register("DownedTracerToggle", DownedTracerToggle)
                 configFile:Register("DownedNameESPToggle", DownedNameESPToggle)
                 configFile:Register("DownedDistanceESPToggle", DownedDistanceESPToggle)
