@@ -52,13 +52,6 @@ if selectedScript then
             Text = "Legacy Evade is currently unsupported. Please check back later.",
             Duration = 5
         })
-    else
-        loadstring(game:HttpGet(selectedScript.url))()
-        game:GetService("StarterGui"):SetCore("SendNotification",{
-            Title = "Script loaded - Enjoy!",
-            Text = "Credits to [Your Name Here]",
-            Duration = 5
-        })
     end
 else
     loadstring(game:HttpGet(UniversalScript.url))()
