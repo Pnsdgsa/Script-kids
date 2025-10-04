@@ -859,7 +859,12 @@ end
 local function startAutoJump()
     AutoJumpConnection = RunService.Heartbeat:Connect(function()
         if featureStates.AutoJump and character and humanoid and rootPart and humanoid.Health > 0 then
-            humanoid.Jump = true
+            repeat
+    humanoid.Jump = true
+    wait(0.1)
+    humanoid.Jump = false
+    wait(0.1)
+until false
         end
     end)
 end
