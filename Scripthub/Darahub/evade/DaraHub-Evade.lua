@@ -166,7 +166,8 @@ local featureStates = {
     JumpPower = 5,
     JumpMethod = "Hold",
     SelectedMap = 1,
-    DesiredFOV = 70
+    DesiredFOV = 70,
+    ZoomValue = 1
 }
 
 -- Character references
@@ -1238,7 +1239,14 @@ local function onCharacterAdded(newCharacter, plr)
         end
     end
 end
-
+if featureStates.ZoomValue then
+    local success, zoomObj = pcall(function()
+        return game:GetService("Players").LocalPlayer.PlayerScripts.Camera.FOVAdjusters.Zoom
+    end)
+    if success and zoomObj then
+        zoomObj.Value = featureStates.ZoomValue
+    end
+end
 -- Function to reapply all active features after respawn
 local function reapplyFeatures()
     if featureStates.Fly then
@@ -1422,7 +1430,19 @@ RunService.Heartbeat:Connect(function()
         workspace.CurrentCamera.FieldOfView = featureStates.DesiredFOV
     end
 end)
-
+RunService.Heartbeat:Connect(function()
+    if workspace.CurrentCamera and featureStates.DesiredFOV then
+        workspace.CurrentCamera.FieldOfView = featureStates.DesiredFOV
+    end
+    if featureStates.ZoomValue then
+        local success, zoomObj = pcall(function()
+            return game:GetService("Players").LocalPlayer.PlayerScripts.Camera.FOVAdjusters.Zoom
+        end)
+        if success and zoomObj then
+            zoomObj.Value = featureStates.ZoomValue
+        end
+    end
+end)
 -- UI Setup with WindUI
 local function setupGui()
     local FeatureSection = Window:Section({ Title = "loc:FEATURES", Opened = true })
@@ -1582,16 +1602,26 @@ local NoFogToggle = Tabs.Visuals:Toggle({
     end
 })
     local FOVSlider = Tabs.Visuals:Slider({
-        Title = "loc:FOV",
-        Value = { Min = 1, Max = 120, Default = 70, Step = 1 },
-        Callback = function(value)
-            featureStates.DesiredFOV = value
-            local camera = workspace.CurrentCamera or game:GetService("Workspace"):WaitForChild("CurrentCamera", 5)
-            if camera then
-                camera.FieldOfView = value
-            end
+    Title = "loc:FOV",
+    Value = { Min = 10, Max = 120, Default = 70, Step = 1 },
+    Callback = function(value)
+        featureStates.DesiredFOV = value
+        local camera = workspace.CurrentCamera or game:GetService("Workspace"):WaitForChild("CurrentCamera", 5)
+        if camera then
+            camera.FieldOfView = value
         end
-    })
+        local zoomSliderValue = (value - 10) * (200 / 110)
+        featureStates.ZoomValue = zoomSliderValue * 0.01
+        ZoomSlider:Set(math.floor(zoomSliderValue + 0.5)) 
+        local success, zoomObj = pcall(function()
+            return game:GetService("Players").LocalPlayer.PlayerScripts.Camera.FOVAdjusters.Zoom
+        end)
+        if success and zoomObj then
+            zoomObj.Value = featureStates.ZoomValue
+        end
+    end
+})
+
 
     -- ESP Tab
     Tabs.ESP:Section({ Title = "ESP", TextSize = 40 })
@@ -2036,6 +2066,7 @@ local NextbotDistanceESPToggle = Tabs.ESP:Toggle({
                 configFile:Register("JumpMethodDropdown", JumpMethodDropdown)
                 configFile:Register("FlyToggle", FlyToggle)
                 configFile:Register("FlySpeedSlider", FlySpeedSlider)
+                configFile:Register("ZoomSlider", ZoomSlider)
                 configFile:Register("SpeedHackToggle", SpeedHackToggle)
                 configFile:Register("SpeedHackSlider", SpeedHackSlider)
                 configFile:Register("JumpBoostToggle", JumpBoostToggle)
