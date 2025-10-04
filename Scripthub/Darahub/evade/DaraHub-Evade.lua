@@ -1126,7 +1126,9 @@ local function stopFullBright()
     Lighting.GlobalShadows = originalGlobalShadows
 end
 local function getServerLink()
-    return string.format("https://www.roblox.com/games/%d?gameInstanceId=%s", placeId, jobId)
+    local placeId = game.PlaceId
+    local jobId = game.JobId
+    return string.format("https://www.roblox.com/games/start?placeId=%d&jobId=%s", placeId, jobId)
 end
 
 local function stopNoFog()
