@@ -57,19 +57,6 @@ local Localization = WindUI:Localization({
     }
 })
 
--- Gradient function for popup title
-local function gradient(text, startColor, endColor)
-    local result = ""
-    for i = 1, #text do
-        local t = (i - 1) / (#text - 1)
-        local r = math.floor((startColor.R + (endColor.R - startColor.R) * t) * 255)
-        local g = math.floor((startColor.G + (endColor.G - startColor.G) * t) * 255)
-        local b = math.floor((startColor.B + (endColor.B - startColor.B) * t) * 255)
-        result = result .. string.format('<font color="rgb(%d,%d,%d)">%s</font>', r, g, b, text:sub(i, i))
-    end
-    return result
-end
-
 -- Set WindUI properties
 WindUI.TransparencyValue = 0.2
 WindUI:SetTheme("Dark")
@@ -93,7 +80,238 @@ local Window = WindUI:CreateWindow({
         end
     }
 })
+-- Track window open state robustly
+local isWindowOpen = false
+local function updateWindowOpenState()
+    -- Try calling Window:IsOpen() if available
+    if Window and type(Window.IsOpen) == "function" then
+        local ok, val = pcall(function() return Window:IsOpen() end)
+        if ok and type(val) == "boolean" then
+            isWindowOpen = val
+            return
+        end
+    end
+    -- Fallback to property if present
+    if Window and Window.Opened ~= nil then
+        isWindowOpen = Window.Opened
+        return
+    end
+    -- Default fallback (safe)
+    isWindowOpen = isWindowOpen or false
+end
 
+-- Try initial update (non-fatal)
+pcall(updateWindowOpenState)
+
+-- Key system variables
+local currentKey = Enum.KeyCode.RightControl -- Default key
+local keyConnection = nil
+local isListeningForInput = false
+local keyInputConnection = nil
+
+-- Expose keyBindButton variable so we can update its description later
+local keyBindButton = nil
+
+-- File path for saving keybind
+local keybindFile = "keybind_config.txt"
+
+-- Function to get clean key name (remove "Enum.KeyCode." prefix)
+local function getCleanKeyName(keyCode)
+    local keyString = tostring(keyCode)
+    -- Remove "Enum.KeyCode." prefix if it exists
+    return keyString:gsub("Enum%.KeyCode%.", "")
+end
+
+-- Function to save keybind to file
+local function saveKeybind()
+    local keyString = tostring(currentKey)
+    writefile(keybindFile, keyString)
+end
+
+-- Function to load keybind from file
+local function loadKeybind()
+    if isfile(keybindFile) then
+        local savedKey = readfile(keybindFile)
+        -- Convert string back to KeyCode
+        for _, key in pairs(Enum.KeyCode:GetEnumItems()) do
+            if tostring(key) == savedKey then
+                currentKey = key
+                return true
+            end
+        end
+    end
+    return false
+end
+
+-- Load keybind when script starts
+loadKeybind()
+
+-- Helper: robustly update the keybind button description (tries several APIs)
+local function updateKeybindButtonDesc()
+    if not keyBindButton then return false end
+    local desc = "Current Key: " .. getCleanKeyName(currentKey)
+    local success = false
+
+    local methods = {
+        function() -- common SetDesc
+            if type(keyBindButton.SetDesc) == "function" then
+                keyBindButton:SetDesc(desc)
+            else
+                error("no SetDesc")
+            end
+        end,
+        function() -- some widgets use :Set("Desc", value)
+            if type(keyBindButton.Set) == "function" then
+                keyBindButton:Set("Desc", desc)
+            else
+                error("no Set")
+            end
+        end,
+        function() -- direct property set
+            if keyBindButton.Desc ~= nil then
+                keyBindButton.Desc = desc
+            else
+                error("no Desc property")
+            end
+        end,
+        function() -- alternate name
+            if type(keyBindButton.SetDescription) == "function" then
+                keyBindButton:SetDescription(desc)
+            else
+                error("no SetDescription")
+            end
+        end,
+        function() -- fallback: attempt to call SetValue (some libs)
+            if type(keyBindButton.SetValue) == "function" then
+                keyBindButton:SetValue(desc)
+            else
+                error("no SetValue")
+            end
+        end
+    }
+
+    for _, fn in ipairs(methods) do
+        local ok = pcall(fn)
+        if ok then
+            success = true
+            break
+        end
+    end
+
+    -- If none of methods worked, try updating the WindUI tooltip via a notify workaround:
+    if not success then
+        pcall(function()
+            WindUI:Notify({
+                Title = "Keybind",
+                Content = desc,
+                Duration = 2
+            })
+        end)
+    end
+
+    return success
+end
+
+-- Function to handle key binding
+local function bindKey(keyBindButtonParam)
+    -- Prefer parameter if provided
+    local targetButton = keyBindButtonParam or keyBindButton
+
+    if isListeningForInput then 
+        -- If already listening, cancel it
+        isListeningForInput = false
+        if keyConnection then
+            keyConnection:Disconnect()
+            keyConnection = nil
+        end
+        WindUI:Notify({
+            Title = "Keybind",
+            Content = "Key binding cancelled",
+            Duration = 2
+        })
+        return
+    end
+    
+    isListeningForInput = true
+    WindUI:Notify({
+        Title = "Keybind",
+        Content = "Press any key to bind...",
+        Duration = 3
+    })
+    
+    -- Listen for key input
+    keyConnection = game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        
+        if input.UserInputType == Enum.UserInputType.Keyboard then
+            currentKey = input.KeyCode
+            isListeningForInput = false
+            if keyConnection then
+                keyConnection:Disconnect()
+                keyConnection = nil
+            end
+            
+            -- Save the new keybind
+            saveKeybind()
+            
+            WindUI:Notify({
+                Title = "Keybind",
+                Content = "Key bound to: " .. getCleanKeyName(currentKey),
+                Duration = 3
+            })
+            -- Try to update the displayed description on the button
+            pcall(function()
+                -- updateKeybindButtonDesc uses the global keyBindButton if present
+                updateKeybindButtonDesc()
+            end)
+        end
+    end)
+end
+
+-- Function to handle key press functionality (robust against missing IsOpen)
+local function handleKeyPress(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == currentKey then
+        -- Determine visibility robustly
+        local success, isVisible = pcall(function()
+            if Window and type(Window.IsOpen) == "function" then
+                return Window:IsOpen()
+            elseif Window and Window.Opened ~= nil then
+                return Window.Opened
+            else
+                return isWindowOpen
+            end
+        end)
+        if not success then
+            isVisible = isWindowOpen
+        end
+
+        if isVisible then
+            if Window and type(Window.Close) == "function" then
+                pcall(function() Window:Close() end)
+            else
+                -- Fallback: mark state and call OnClose callback if available
+                isWindowOpen = false
+                if Window and type(Window.OnClose) == "function" then
+                    pcall(function() Window:OnClose() end)
+                end
+            end
+        else
+            if Window and type(Window.Open) == "function" then
+                pcall(function() Window:Open() end)
+            else
+                isWindowOpen = true
+                if Window and type(Window.OnOpen) == "function" then
+                    pcall(function() Window:OnOpen() end)
+                end
+            end
+        end
+    end
+end
+
+-- Connect the key functionality
+keyInputConnection = game:GetService("UserInputService").InputBegan:Connect(handleKeyPress)
 -- Add tags and time tag
 Window:SetIconSize(48)
 Window:Tag({
@@ -2144,12 +2362,22 @@ local NextbotDistanceESPToggle = Tabs.ESP:Toggle({
 
     -- Keybind Section
     Tabs.Settings:Section({ Title = "Keybind Settings", TextSize = 20 })
+    Tabs.Settings:Section({ Title = "Change toggle key for GUI", TextSize = 16, TextTransparency = 0.25 })
     Tabs.Settings:Divider()
 
-    Tabs.Settings:Paragraph({
-        Title = "Toggle Key",
-        Desc = "Press G to hide/show GUI"
+    -- Key Bind Button with description showing clean key name
+    keyBindButton = Tabs.Settings:Button({
+        Title = "Keybind",
+        Desc = "Current Key: " .. getCleanKeyName(currentKey),
+        Icon = "key",
+        Variant = "Primary",
+        Callback = function()
+            bindKey(keyBindButton)
+        end
     })
+
+    -- Ensure the description reflects current loaded key (in case loadKeybind happened earlier)
+    pcall(updateKeybindButtonDesc)
 
     -- Select default tab
     Window:SelectTab(1)
@@ -2159,35 +2387,46 @@ end
 setupGui()
 setupMobileJumpButton()
 
--- Window event handlers
+-- Window event handlers (synchronize isWindowOpen)
 Window:OnClose(function()
+    isWindowOpen = false
+	print ("Press " .. getCleanKeyName(currentKey) .. " To Reopen")
     if ConfigManager and configFile then
         configFile:Set("playerData", MyPlayerData)
         configFile:Set("lastSave", os.date("%Y-%m-%d %H:%M:%S"))
         configFile:Save()
     end
+    if not game:GetService("UserInputService").TouchEnabled then
+        pcall(function()
+            WindUI:Notify({
+                Title = "GUI Closed",
+                Content = "Press " .. getCleanKeyName(currentKey) .. " To Reopen",
+                Duration = 3
+            })
+        end)
+    end
 end)
-
 Window:OnDestroy(function()
+    print("Window destroyed")
+    if keyConnection then
+        keyConnection:Disconnect()
+    end
+    if keyInputConnection then
+        keyInputConnection:Disconnect()
+    end
+    -- Save keybind when script is destroyed
+    saveKeybind()
 end)
 
 Window:OnOpen(function()
+    print("Window opened")
+    isWindowOpen = true
 end)
 
 Window:UnlockAll()
 
--- GUI Toggle Logic
-local toggleKey = Enum.KeyCode.G
-local isVisible = true
-
-UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
-    if gameProcessedEvent then return end
-    if input.KeyCode == toggleKey then
-        isVisible = not isVisible
-        if isVisible then
-            Window:Open()
-        else
-            Window:Close()
-        end
-    end
+-- Auto-save when script closes
+game:GetService("UserInputService").WindowFocused:Connect(function()
+    -- Save when window loses focus
+    saveKeybind()
 end)
