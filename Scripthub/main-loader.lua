@@ -47,12 +47,32 @@ local selectedScript = PlaceScripts[currentGameId]
 
 if selectedScript then
     if selectedScript.url == "UNSUPPORTED" then
-        game:GetService("StarterGui"):SetCore("SendNotification",{
+        game:GetService("StarterGui"):SetCore("SendNotification", {
             Title = "Error - Game Not Supported",
-            Text = "Legacy Evade is currently unsupported. Please check back later.",
+            Text = selectedScript.name .. " is currently unsupported. Please check back later.",
+            Duration = 5
+        })
+    else
+        local success, result = pcall(function()
+            return loadstring(game:HttpGet(selectedScript.url))()
+        end)
+        if not success then
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "",
+                Text = "" .. selectedScript.name .. " script: " .. tostring(result),
+                Duration = 5
+            })
+        end
+    end
+else
+    local success, result = pcall(function()
+        return loadstring(game:HttpGet(UniversalScript.url))()
+    end)
+    if not success then
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "",
+            Text = "" .. tostring(result),
             Duration = 5
         })
     end
-else
-    loadstring(game:HttpGet(UniversalScript.url))()
 end
