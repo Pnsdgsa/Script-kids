@@ -105,18 +105,6 @@ Window:Tag({
     Color = Color3.fromHex("#315dff")
 })
 
-local hue = 0
-task.spawn(function()
-    while true do
-        local now = os.date("*t")
-        local hours = string.format("%02d", now.hour)
-        local minutes = string.format("%02d", now.min)
-        hue = (hue + 0.01) % 1
-        TimeTag:SetTitle(hours .. ":" .. minutes)
-        task.wait(0.06)
-    end
-end)
-
 -- Theme switcher button
 Window:CreateTopbarButton("theme-switcher", "moon", function()
     WindUI:SetTheme(WindUI:GetCurrentTheme() == "Dark" and "Light" or "Dark")
@@ -173,9 +161,9 @@ local featureStates = {
     DownedNameESP = false,
     DownedDistanceESP = false,
     DownedBoxType = "2D",
-    FlySpeed = 50,
+    FlySpeed = 5,
     TpwalkValue = 1,
-    JumpPower = 50,
+    JumpPower = 5,
     JumpMethod = "Hold",
     SelectedMap = 1,
     DesiredFOV = 70
@@ -812,6 +800,7 @@ local function stopTpwalk()
 end
 
 -- Jump Boost Functions
+-- Define critical functions at the top
 local function setupJumpBoost()
     if not character or not humanoid then return end
     humanoid.StateChanged:Connect(function(oldState, newState)
@@ -828,6 +817,13 @@ local function setupJumpBoost()
             end
         end
     end)
+end
+
+local function reapplyFeatures()
+    if featureStates.Fly then
+        if flying then stopFlying() end
+        startFlying()
+    end
 end
 
 local function startJumpBoost()
@@ -1224,10 +1220,22 @@ end
 local function onCharacterAdded(newCharacter, plr)
     if plr == player then
         character = newCharacter
-        humanoid = character:WaitForChild("Humanoid")
-        rootPart = character:WaitForChild("HumanoidRootPart")
-        setupJumpBoost()
-        reapplyFeatures()
+        humanoid = character:WaitForChild("Humanoid", 5)
+        rootPart = character:WaitForChild("HumanoidRootPart", 5)
+        if not humanoid or not rootPart then
+            warn("Failed to find Humanoid or HumanoidRootPart")
+            return
+        end
+        if type(setupJumpBoost) == "function" then
+            setupJumpBoost()
+        else
+            warn("setupJumpBoost is not a function")
+        end
+        if type(reapplyFeatures) == "function" then
+            reapplyFeatures()
+        else
+            warn("reapplyFeatures is not a function")
+        end
     end
 end
 
@@ -1476,7 +1484,7 @@ local function setupGui()
 
     local FlySpeedSlider = Tabs.Player:Slider({
         Title = "loc:FLY_SPEED",
-        Value = { Min = 1, Max = 900, Default = 5, Step = 1 },
+        Value = { Min = 1, Max = 200, Default = 5, Step = 1 },
                 Desc = "Adjust fly speed",
         Callback = function(value)
             featureStates.FlySpeed = value
@@ -1499,7 +1507,7 @@ local function setupGui()
     local SpeedHackSlider = Tabs.Player:Slider({
         Title = "loc:SPEED_HACK_VALUE",
          Desc = "Adjust speed",
-        Value = { Min = 1, Max = 500, Default = 1, Step = 1 },
+        Value = { Min = 1, Max = 200, Default = 1, Step = 1 },
         Callback = function(value)
             featureStates.TpwalkValue = value
         end
@@ -1521,7 +1529,7 @@ local function setupGui()
     local JumpBoostSlider = Tabs.Player:Slider({
         Title = "loc:JUMP_POWER",
         Desc = "Adjust jump height",
-        Value = { Min = 1, Max = 500, Default = 5, Step = 1 },
+        Value = { Min = 1, Max = 200, Default = 5, Step = 1 },
         Callback = function(value)
             featureStates.JumpPower = value
             if featureStates.JumpBoost then
@@ -1588,7 +1596,6 @@ local NoFogToggle = Tabs.Visuals:Toggle({
     -- ESP Tab
     Tabs.ESP:Section({ Title = "ESP", TextSize = 40 })
     Tabs.ESP:Divider()
-
     Tabs.ESP:Section({ Title = "Player ESP" })
     local PlayerNameESPToggle = Tabs.ESP:Toggle({
         Title = "loc:PLAYER_NAME_ESP",
