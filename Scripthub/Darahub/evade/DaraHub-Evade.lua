@@ -336,10 +336,13 @@ local VirtualUser = game:GetService("VirtualUser")
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local workspace = game:GetService("Workspace")
-
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local MarketplaceService = game:GetService("MarketplaceService")
 -- Player reference
 local player = Players.LocalPlayer
-
+local placeId = game.PlaceId
+local jobId = game.JobId
 -- Feature states
 local featureStates = {
     InfiniteJump = false,
@@ -1122,6 +1125,9 @@ local function stopFullBright()
     Lighting.Ambient = originalAmbient
     Lighting.GlobalShadows = originalGlobalShadows
 end
+local function getServerLink()
+    return string.format("https://www.roblox.com/games/%d?gameInstanceId=%s", placeId, jobId)
+end
 
 local function stopNoFog()
     Lighting.FogEnd = originalFogEnd
@@ -1663,15 +1669,184 @@ RunService.Heartbeat:Connect(function()
 end)
 -- UI Setup with WindUI
 local function setupGui()
+
+-- Function to fetch a list of public servers (sorted by player count ascending)
+-- Function to fetch a list of public servers (sorted by player count ascending)
+local function getServers()
+    local servers = {}
+    local cursor = ""
+    repeat
+        local url = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Asc&limit=100"
+        if cursor ~= "" then url = url .. "&cursor=" .. cursor end
+        local response = HttpService:JSONDecode(game:HttpGet(url))
+        for _, server in ipairs(response.data) do
+            if server.id ~= jobId and server.playing < server.maxPlayers then
+                table.insert(servers, server)
+            end
+        end
+        cursor = response.nextPageCursor
+    until not cursor
+    return servers
+end
+
+-- Function for random server hop
+local function serverHop()
+    local servers = getServers()
+    if #servers > 0 then
+        local randomServer = servers[math.random(1, #servers)]
+        TeleportService:TeleportToPlaceInstance(placeId, randomServer.id)
+    else
+        warn("No other servers found.")
+    end
+end
+
+-- Function to hop to the smallest server
+local function hopToSmallServer()
+    local servers = getServers()
+    if #servers > 0 then
+        table.sort(servers, function(a, b) return a.playing < b.playing end)
+        local smallestServer = servers[1]
+        TeleportService:TeleportToPlaceInstance(placeId, smallestServer.id)
+    else
+        warn("No smaller servers found.")
+    end
+end
+
+-- Function to hop to a server with a specific player count (or closest)
+local function hopToServerWithPlayerCount(targetCount)
+    local servers = getServers()
+    if #servers > 0 then
+        table.sort(servers, function(a, b)
+            return math.abs(a.playing - targetCount) < math.abs(b.playing - targetCount)
+        end)
+        local targetServer = servers[1]
+        TeleportService:TeleportToPlaceInstance(placeId, targetServer.id)
+    else
+        warn("No servers found with approximately " .. targetCount .. " players.")
+    end
+end
+
+-- Function to rejoin current server
+local function rejoinServer()
+    TeleportService:TeleportToPlaceInstance(placeId, jobId)
+end
+
     local FeatureSection = Window:Section({ Title = "loc:FEATURES", Opened = true })
 
     local Tabs = {
-        Player = FeatureSection:Tab({ Title = "loc:Player_TAB", Icon = "user" }),
-        Auto = FeatureSection:Tab({ Title = "loc:AUTO_TAB", Icon = "zap" }),
-        Visuals = FeatureSection:Tab({ Title = "loc:VISUALS_TAB", Icon = "eye" }),
-        ESP = FeatureSection:Tab({ Title = "loc:ESP_TAB", Icon = "scan" }),
-        Settings = FeatureSection:Tab({ Title = "loc:SETTINGS_TAB", Icon = "settings" })
-    }
+    Main = FeatureSection:Tab({ Title = "Main", Icon = "home" }),  -- New Main tab
+    Player = FeatureSection:Tab({ Title = "loc:Player_TAB", Icon = "user" }),
+    Auto = FeatureSection:Tab({ Title = "loc:AUTO_TAB", Icon = "zap" }),
+    Visuals = FeatureSection:Tab({ Title = "loc:VISUALS_TAB", Icon = "eye" }),
+    ESP = FeatureSection:Tab({ Title = "loc:ESP_TAB", Icon = "scan" }),
+    Settings = FeatureSection:Tab({ Title = "loc:SETTINGS_TAB", Icon = "settings" })
+}
+
+
+-- Main Tab
+Tabs.Main:Section({ Title = "Server Info", TextSize = 20 })
+Tabs.Main:Divider()
+
+-- Get Place Name
+local placeName = "Unknown"
+local success, productInfo = pcall(function()
+    return MarketplaceService:GetProductInfo(placeId)
+end)
+if success and productInfo then
+    placeName = productInfo.Name
+end
+
+Tabs.Main:Paragraph({
+    Title = "Game Mode",
+    Desc = placeName
+})
+
+Tabs.Main:Button({
+    Title = "Copy Server Link",
+    Desc = "Copy the current server's join link",
+    Icon = "link",
+    Callback = function()
+        local serverLink = getServerLink()
+        pcall(function()
+            setclipboard(serverLink)
+        end)
+        -- Optional: Notify user
+        WindUI:Notify({
+                Icon = "link",
+                Title = "Link Copied",
+                Content = "The server invite link has been copied to your clipborad",
+                Duration = 3
+        })
+    end
+})
+
+-- Existing Server Info
+local numPlayers = #Players:GetPlayers()
+local maxPlayers = Players.MaxPlayers
+
+Tabs.Main:Paragraph({
+    Title = "Current Players",
+    Desc = numPlayers .. " / " .. maxPlayers
+})
+
+Tabs.Main:Paragraph({
+    Title = "Server ID",
+    Desc = jobId
+})
+
+Tabs.Main:Paragraph({
+    Title = "Place ID",
+    Desc = tostring(placeId)
+})
+
+-- Server Tools Section
+Tabs.Main:Section({ Title = "Server Tools", TextSize = 20 })
+Tabs.Main:Divider()
+
+Tabs.Main:Button({
+    Title = "Rejoin",
+    Desc = "Rejoin the current server",
+    Icon = "refresh-cw",
+    Callback = function()
+        rejoinServer()
+    end
+})
+
+Tabs.Main:Button({
+    Title = "Server Hop",
+    Desc = "Hop to a random server",
+    Icon = "shuffle",
+    Callback = function()
+        serverHop()
+    end
+})
+
+Tabs.Main:Button({
+    Title = "Hop to Small Server",
+    Desc = "Hop to the smallest available server",
+    Icon = "minimize",
+    Callback = function()
+        hopToSmallServer()
+    end
+})
+
+local targetPlayerCount = 1
+Tabs.Main:Input({
+    Title = "Target Player Count",
+    Value = "1",
+    Callback = function(value)
+        targetPlayerCount = tonumber(value) or 1
+    end
+})
+
+Tabs.Main:Button({
+    Title = "Hop to Server with X Players",
+    Desc = "Hop to a server with approximately this many players",
+    Icon = "users",
+    Callback = function()
+        hopToServerWithPlayerCount(targetPlayerCount)
+    end
+})
 
     -- Player Tab
     Tabs.Player:Section({ Title = "Player", TextSize = 40 })
