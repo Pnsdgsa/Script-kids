@@ -1175,7 +1175,6 @@ end
 local function startAutoSelfRevive()
     AutoSelfReviveConnection = RunService.Heartbeat:Connect(function()
         if character and character:GetAttribute("Downed") then
-                task.wait(5)
             ReplicatedStorage.Events.Player.ChangePlayerMode:FireServer(true)
         end
     end)
@@ -1670,23 +1669,32 @@ end)
 -- UI Setup with WindUI
 local function setupGui()
 
--- Function to fetch a list of public servers (sorted by player count ascending)
--- Function to fetch a list of public servers (sorted by player count ascending)
+-- Function to fetch a list of public servers
 local function getServers()
-    local servers = {}
-    local cursor = ""
-    repeat
-        local url = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Asc&limit=100"
-        if cursor ~= "" then url = url .. "&cursor=" .. cursor end
-        local response = HttpService:JSONDecode(game:HttpGet(url))
-        for _, server in ipairs(response.data) do
+    local request = request({
+        Url = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Desc&limit=100",
+        Method = "GET",
+    })
+
+    if request.StatusCode == 200 then
+        local serverData = HttpService:JSONDecode(request.Body)
+        local serverList = {}
+
+        for _, server in pairs(serverData.data) do
             if server.id ~= jobId and server.playing < server.maxPlayers then
-                table.insert(servers, server)
+                local serverInfo = {
+                    serverId = server.id or "N/A",
+                    players = server.playing or 0,
+                    maxPlayers = server.maxPlayers or 0,
+                    ping = server.ping or "N/A",
+                }
+                table.insert(serverList, serverInfo)
             end
         end
-        cursor = response.nextPageCursor
-    until not cursor
-    return servers
+        return serverList
+    else
+        return {}
+    end
 end
 
 -- Function for random server hop
@@ -1769,27 +1777,22 @@ module:Teleport(game.PlaceId)
 return module
 end
 
--- Function to hop to the smallest server
-local function hopToSmallServer()
+-- Function to hop to a server with a specific player count (or closest)
+local function hopToServerWithPlayerCount(targetCount)
     local servers = getServers()
-local Http = game:GetService("HttpService")
-local TPS = game:GetService("TeleportService")
-local Api = "https://games.roblox.com/v1/games/"
-
-local _place = game.PlaceId
-local _servers = Api.._place.."/servers/Public?sortOrder=Asc&limit=100"
-function ListServers(cursor)
-  local Raw = game:HttpGet(_servers .. ((cursor and "&cursor="..cursor) or ""))
-  return Http:JSONDecode(Raw)
-end
-
-local Server, Next; repeat
-  local Servers = ListServers(Next)
-  Server = Servers.data[1]
-  Next = Servers.nextPageCursor
-until Server
-
-TPS:TeleportToPlaceInstance(_place,Server.id,game.Players.LocalPlayer)
+    if servers and #servers > 0 then
+        table.sort(servers, function(a, b)
+            return math.abs(a.players - targetCount) < math.abs(b.players - targetCount)
+        end)
+        local targetServer = servers[1]
+        TeleportService:TeleportToPlaceInstance(placeId, targetServer.serverId, player)
+    else
+        Window:Notify({
+            Title = "Error",
+            Desc = "No servers found with approximately " .. targetCount .. " players.",
+            Duration = 4
+        })
+    end
 end
 -- Function to hop to a server with a specific player count (or closest)
 local function hopToServerWithPlayerCount(targetCount)
@@ -1926,7 +1929,6 @@ Tabs.Main:Button({
         hopToServerWithPlayerCount(targetPlayerCount)
     end
 })
-
     -- Player Tab
     Tabs.Player:Section({ Title = "Player", TextSize = 40 })
     Tabs.Player:Divider()
