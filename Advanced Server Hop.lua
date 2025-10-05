@@ -201,6 +201,7 @@ local function createGUI()
     Title.Position = UDim2.new(0, 20, 0, 10)
     Title.BackgroundTransparency = 1
     Title.Text = "Server Hop"
+    Title.Name = "ServerHop"
     Title.TextColor3 = Color3.fromRGB(255, 255, 255)
     Title.TextSize = 24
     Title.Font = Enum.Font.SourceSansBold
@@ -216,6 +217,7 @@ local function createGUI()
     CloseButton.TextSize = 20
     CloseButton.Font = Enum.Font.SourceSansBold
     CloseButton.Text = "X"
+    CloseButton.Name = "CloseButton"
     CloseButton.TextScaled = true
     CloseButton.TextWrapped = true
     CloseButton.Parent = MainFrame
@@ -232,6 +234,7 @@ local function createGUI()
     SortDropdown.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
     SortDropdown.TextColor3 = Color3.fromRGB(255, 255, 255)
     SortDropdown.TextSize = 18
+    SortDropdown.Name = "ServerSortButton"
     SortDropdown.Font = Enum.Font.SourceSans
     SortDropdown.Text = "Sort: " .. sortOption
     SortDropdown.TextScaled = true
@@ -248,6 +251,7 @@ local function createGUI()
     CheckboxFrame.Position = UDim2.new(0, 20, 0, 110) -- Below SortDropdown
     CheckboxFrame.BackgroundTransparency = 1
     CheckboxFrame.Parent = MainFrame
+    CheckboxFrame.Name = "CheckboxFrame"
 
     local Checkbox = Instance.new("TextButton")
     Checkbox.Size = UDim2.new(0, 30, 0, 30)
@@ -260,6 +264,7 @@ local function createGUI()
     Checkbox.TextScaled = true
     Checkbox.TextWrapped = true
     Checkbox.Parent = CheckboxFrame
+    Checkbox.Name = "CheckBox"
 
     local UICornerCheckbox = Instance.new("UICorner")
     UICornerCheckbox.CornerRadius = UDim.new(0, 8)
@@ -277,6 +282,7 @@ local function createGUI()
     CheckboxLabel.TextWrapped = true
     CheckboxLabel.TextXAlignment = Enum.TextXAlignment.Left
     CheckboxLabel.Parent = CheckboxFrame
+    CheckboxLabel.Name = "CheckBoxLable"
 
     -- PlaceIdInput
     local PlaceIdInput = Instance.new("TextBox")
@@ -292,6 +298,7 @@ local function createGUI()
     PlaceIdInput.TextScaled = true
     PlaceIdInput.TextWrapped = true
     PlaceIdInput.Parent = MainFrame
+    PlaceIdInput.Name = "PlaceIDInput"
 
     local UICornerPlaceIdInput = Instance.new("UICorner")
     UICornerPlaceIdInput.CornerRadius = UDim.new(0, 8)
@@ -311,6 +318,7 @@ local function createGUI()
     PlayerCountInput.TextScaled = true
     PlayerCountInput.TextWrapped = true
     PlayerCountInput.Parent = MainFrame
+    PlayerCountInput.Name = "PlayerCountInput"
 
     local UICornerPlayerCountInput = Instance.new("UICorner")
     UICornerPlayerCountInput.CornerRadius = UDim.new(0, 8)
@@ -330,6 +338,7 @@ local function createGUI()
     ServerIdInput.TextScaled = true
     ServerIdInput.TextWrapped = true
     ServerIdInput.Parent = MainFrame
+    ServerIdInput.Name = "ServerIDInput"
 
     local UICornerServerIdInput = Instance.new("UICorner")
     UICornerServerIdInput.CornerRadius = UDim.new(0, 8)
@@ -349,6 +358,7 @@ local function createGUI()
     SearchInput.TextScaled = true
     SearchInput.TextWrapped = true
     SearchInput.Parent = MainFrame
+    SearchInput.Name = "SearchInput"
 
     local UICornerSearchInput = Instance.new("UICorner")
     UICornerSearchInput.CornerRadius = UDim.new(0, 8)
@@ -366,6 +376,7 @@ local function createGUI()
     HopButton.TextScaled = true
     HopButton.TextWrapped = true
     HopButton.Parent = MainFrame
+    HopButton.Name = "HopButton"
 
     local UICornerHopButton = Instance.new("UICorner")
     UICornerHopButton.CornerRadius = UDim.new(0, 8)
@@ -383,6 +394,7 @@ local function createGUI()
     JoinServerButton.TextScaled = true
     JoinServerButton.TextWrapped = true
     JoinServerButton.Parent = MainFrame
+    JoinServerButton.Name = "JoinServerButton"
 
     local UICornerJoinServerButton = Instance.new("UICorner")
     UICornerJoinServerButton.CornerRadius = UDim.new(0, 8)
@@ -400,6 +412,7 @@ local function createGUI()
     RefreshButton.TextScaled = true
     RefreshButton.TextWrapped = true
     RefreshButton.Parent = MainFrame
+    RefreshButton.Name = "RefreshButton"
 
     local UICornerRefreshButton = Instance.new("UICorner")
     UICornerRefreshButton.CornerRadius = UDim.new(0, 8)
@@ -407,8 +420,8 @@ local function createGUI()
 
     -- Status Label
     local Status = Instance.new("TextLabel")
-    Status.Size = UDim2.new(0, 250, 0, 30)
-    Status.Position = UDim2.new(0, 20, 0, 460) -- 410 + 40 + 10
+    Status.Size = UDim2.new(0, 615, 0, 30)
+    Status.Position = UDim2.new(0, 20, 0,527) -- 410 + 40 + 10
     Status.BackgroundTransparency = 1
     Status.Text = ""
     Status.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -417,6 +430,7 @@ local function createGUI()
     Status.TextScaled = true
     Status.TextWrapped = true
     Status.Parent = MainFrame
+    Status.Name = "Status"
 
     -- Right Side: Server List
     local ServerListTitle = Instance.new("TextLabel")
@@ -430,6 +444,7 @@ local function createGUI()
     ServerListTitle.TextScaled = true
     ServerListTitle.TextWrapped = true
     ServerListTitle.Parent = MainFrame
+    ServerListTitle.Name = "ServerListTitel"
 
     local ScrollingFrame = Instance.new("ScrollingFrame")
     ScrollingFrame.Size = UDim2.new(0, 350, 0, 450) -- Increased height to match left side
@@ -629,10 +644,17 @@ local function createGUI()
 
     -- Close button functionality
     CloseButton.MouseButton1Click:Connect(function()
-        guiVisible = not guiVisible
-        MainFrame.Visible = guiVisible
-        CloseButton.Text = guiVisible and "X" or "O"
-        CloseButton.BackgroundColor3 = guiVisible and Color3.fromRGB(200, 50, 50) or Color3.fromRGB(50, 200, 50)
+        local function deleteServerHopGUI()
+    local player = Players.LocalPlayer
+    local playerGui = player.PlayerGui
+    local serverHopGUI = playerGui:WaitForChild("ServerHopGUI")
+
+    if serverHopGUI then
+        serverHopGUI:Destroy()
+    end
+end
+
+deleteServerHopGUI()
     end)
 
     -- Dropdown functionality
