@@ -173,7 +173,7 @@ local function createGUI()
     ScreenGui.Name = "ServerHopGUI"
     ScreenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
     ScreenGui.ResetOnSpawn = false
-    ScreenGui.DisplayOrder = math.huge
+    ScreenGui.DisplayOrder = 99999
 
     -- Add UIScale for DPI scaling
     local UIScale = Instance.new("UIScale")
