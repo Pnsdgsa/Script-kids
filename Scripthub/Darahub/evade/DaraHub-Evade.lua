@@ -1784,36 +1784,6 @@ module:Teleport(game.PlaceId)
 return module
 end
 
--- Function to hop to a server with a specific player count (or closest)
-local function hopToServerWithPlayerCount(targetCount)
-    local servers = getServers()
-    if servers and #servers > 0 then
-        table.sort(servers, function(a, b)
-            return math.abs(a.players - targetCount) < math.abs(b.players - targetCount)
-        end)
-        local targetServer = servers[1]
-        TeleportService:TeleportToPlaceInstance(placeId, targetServer.serverId, player)
-    else
-        Window:Notify({
-            Title = "Error",
-            Desc = "No servers found with approximately " .. targetCount .. " players.",
-            Duration = 4
-        })
-    end
-end
--- Function to hop to a server with a specific player count (or closest)
-local function hopToServerWithPlayerCount(targetCount)
-    local servers = getServers()
-    if #servers > 0 then
-        table.sort(servers, function(a, b)
-            return math.abs(a.playing - targetCount) < math.abs(b.playing - targetCount)
-        end)
-        local targetServer = servers[1]
-        TeleportService:TeleportToPlaceInstance(placeId, targetServer.id)
-    else
-        warn("No servers found with approximately " .. targetCount .. " players.")
-    end
-end
 
 -- Function to rejoin current server
 local function rejoinServer()
@@ -1919,23 +1889,7 @@ Tabs.Main:Button({
     end
 })
 
-local targetPlayerCount = 1
-Tabs.Main:Input({
-    Title = "Target Player Count",
-    Value = "1",
-    Callback = function(value)
-        targetPlayerCount = tonumber(value) or 1
-    end
-})
 
-Tabs.Main:Button({
-    Title = "Hop to Server with X Players",
-    Desc = "Hop to a server with approximately this many players",
-    Icon = "users",
-    Callback = function()
-        hopToServerWithPlayerCount(targetPlayerCount)
-    end
-})
     -- Player Tab
     Tabs.Player:Section({ Title = "Player", TextSize = 40 })
     Tabs.Player:Divider()
