@@ -2186,7 +2186,6 @@ Tabs.Main:Button({
        Icon = "server",
        Callback = function()
            local success, result = pcall(function()
-           pcall(function() Window:Close() end)
                local script = loadstring(game:HttpGet("https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Advanced%20Server%20Hop.lua"))()
            end)
            if not success then
@@ -2204,6 +2203,8 @@ Tabs.Main:Button({
            end
        end
    })
+   Tabs.Player:Section({ Title = "Player", TextSize = 40 })
+    Tabs.Player:Divider()
     local InfiniteJumpToggle = Tabs.Player:Toggle({
         Title = "loc:INFINITE_JUMP",
         Value = false,
@@ -2595,8 +2596,54 @@ local NextbotDistanceESPToggle = Tabs.ESP:Toggle({
 
     -- Auto Tab
     Tabs.Auto:Section({ Title = "Auto", TextSize = 40 })
-    Tabs.Auto:Divider()
 
+-- === Integrated BHop Feature ===
+local _Players = game:GetService("Players")
+local _LocalPlayer = _Players.LocalPlayer
+
+-- Inserted BHop Toggle in Auto Tab
+local BhopToggle = Tabs.Auto:Toggle({
+    Title = "Bhop",
+    Value = false,
+    Callback = function(state)
+        featureStates.Bhop = state
+        if not state then
+            getgenv().autoJumpEnabled = false
+            if jumpGui and jumpToggleBtn then
+                jumpToggleBtn.Text = "Off"
+                jumpToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+                jumpGui.Enabled = isMobile and state
+            end
+        end
+        if _LocalPlayer and _LocalPlayer:FindFirstChild("PlayerGui") then
+            local gui = _LocalPlayer.PlayerGui:FindFirstChild("BhopGui")
+            if gui then
+                gui.Enabled = state
+            end
+        end
+    end
+})
+
+local BhopModeDropdown = Tabs.Auto:Dropdown({
+    Title = "Bhop Mode",
+    Values = {"Acceleration", "No Acceleration"},
+    Value = "Acceleration",
+    Callback = function(value)
+        getgenv().bhopMode = value
+    end
+})
+
+local BhopAccelInput = Tabs.Auto:Input({
+    Title = "Bhop Acceleration (Negative Only)",
+    Placeholder = "-0.5",
+    Numeric = true,
+    Callback = function(value)
+        if tostring(value):sub(1,1) == "-" then
+            local n = tonumber(value)
+            if n then getgenv().bhopAccelValue = n end
+        end
+    end
+})
     local AutoCarryToggle = Tabs.Auto:Toggle({
         Title = "loc:AUTO_CARRY",
         Value = false,
@@ -2944,3 +2991,259 @@ game:GetService("UserInputService").WindowFocused:Connect(function()
     -- Save when window loses focus
     saveKeybind()
 end)
+
+
+-- === BHop Script Integrated ===
+do
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+getgenv().autoJumpEnabled = false
+getgenv().bhopMode = "Acceleration"
+getgenv().bhopAccelValue = -0.1
+local uiToggledViaUI = false 
+local isMobile = UserInputService.TouchEnabled 
+local function makeDraggable(frame)
+    local dragging, dragInput, dragStart, startPos
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
+        end
+    end)
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input == dragInput then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+
+local function createToggleGui(name, varName, yOffset)
+    local gui = playerGui:FindFirstChild(name.."Gui")
+    if gui then gui:Destroy() end
+    gui = Instance.new("ScreenGui", playerGui)
+    gui.Name = name.."Gui"
+    gui.IgnoreGuiInset = true
+    gui.ResetOnSpawn = false
+    gui.Enabled = isMobile
+
+    local frame = Instance.new("Frame", gui)
+    frame.Size = UDim2.new(0, 60, 0, 60) -- Smaller square frame (60x60 pixels)
+    frame.Position = UDim2.new(0.5, -30, 0.12 + yOffset, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    frame.BackgroundTransparency = 0.35
+    frame.BorderSizePixel = 0
+    makeDraggable(frame)
+
+    local corner = Instance.new("UICorner", frame)
+    corner.CornerRadius = UDim.new(0, 6)
+
+    local stroke = Instance.new("UIStroke", frame)
+    stroke.Color = Color3.fromRGB(150, 150, 150)
+    stroke.Thickness = 2
+
+    local label = Instance.new("TextLabel", frame)
+    label.Text = name
+    label.Size = UDim2.new(0.9, 0, 0.4, 0)
+    label.Position = UDim2.new(0.05, 0, 0.05, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Font = Enum.Font.Roboto
+    label.TextSize = 20 
+    label.TextXAlignment = Enum.TextXAlignment.Center
+    label.TextYAlignment = Enum.TextYAlignment.Center
+
+    local toggleBtn = Instance.new("TextButton", frame)
+    toggleBtn.Name = "ToggleButton"
+    toggleBtn.Text = getgenv()[varName] and "On" or "Off"
+    toggleBtn.Size = UDim2.new(0.9, 0, 0.55, 0)
+    toggleBtn.Position = UDim2.new(0.05, 0, 0.4, 0)
+    toggleBtn.BackgroundColor3 = getgenv()[varName] and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(0, 0, 0)
+    toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255) 
+    toggleBtn.Font = Enum.Font.Roboto
+    toggleBtn.TextSize = 20 
+    toggleBtn.TextXAlignment = Enum.TextXAlignment.Center
+    toggleBtn.TextYAlignment = Enum.TextYAlignment.Center
+
+    local buttonCorner = Instance.new("UICorner", toggleBtn)
+    buttonCorner.CornerRadius = UDim.new(0, 4) 
+
+    toggleBtn.MouseButton1Click:Connect(function()
+        getgenv()[varName] = not getgenv()[varName]
+        uiToggledViaUI = true
+        toggleBtn.Text = getgenv()[varName] and "On" or "Off"
+        toggleBtn.BackgroundColor3 = getgenv()[varName] and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(0, 0, 0)
+        gui.Enabled = true
+    end)
+
+    return gui, toggleBtn
+end
+
+local jumpGui, jumpToggleBtn
+local MainTab = {}
+MainTab.Toggle = function(self, config)
+    config.Title = config.Title or "Toggle"
+    config.Callback = config.Callback or function() end
+    config.Value = config.Value or false
+
+    local toggle = {
+        Set = function(self, value)
+            config.Value = value
+            config.Callback(value)
+        end
+    }
+    config.Callback(config.Value)
+    return toggle
+end
+
+MainTab.Dropdown = function(self, config)
+    config.Title = config.Title or "Dropdown"
+    config.Values = config.Values or {}
+    config.Multi = config.Multi or false
+    config.Default = config.Default or (config.Multi and {} or config.Values[1])
+    config.Callback = config.Callback or function() end
+
+    local dropdown = {
+        Select = function(self, value)
+            config.Callback(value)
+        end
+    }
+    config.Callback(config.Default)
+    return dropdown
+end
+
+MainTab.Input = function(self, config)
+    config.Title = config.Title or "Input"
+    config.Placeholder = config.Placeholder or ""
+    config.Value = config.Value or ""
+    config.Callback = config.Callback or function() end
+
+    local input = {
+        Set = function(self, value)
+            config.Callback(value)
+        end
+    }
+    return input
+end
+
+MainTab:Toggle({
+    Title = "Bhop",
+    Value = false,
+    Callback = function(state)
+        if not jumpGui then
+            jumpGui, jumpToggleBtn = createToggleGui("Bhop", "autoJumpEnabled", 0.12)
+        end
+        jumpGui.Enabled = (state and uiToggledViaUI) or isMobile 
+        jumpToggleBtn.Text = state and "On" or "Off"
+        jumpToggleBtn.BackgroundColor3 = state and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(0, 0, 0)
+    end
+})
+
+MainTab:Dropdown({
+    Title = "Bhop Mode",
+    Values = {"Acceleration", "No Acceleration"},
+    Multi = false,
+    Default = "Acceleration",
+    Callback = function(value)
+        getgenv().bhopMode = value
+    end
+})
+
+MainTab:Input({
+    Title = "Bhop Acceleration (Negative Only)",
+    Placeholder = "-0.5",
+    Numeric = true,
+    Callback = function(value)
+        if tostring(value):sub(1, 1) == "-" then
+            getgenv().bhopAccelValue = tonumber(value)
+        end
+    end
+})
+
+-- Keybind for 'B' to toggle Bhop
+UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+    if gameProcessedEvent then return end
+    if input.KeyCode == Enum.KeyCode.B and featureStates.Bhop then  -- Add this check
+        getgenv().autoJumpEnabled = not getgenv().autoJumpEnabled
+        uiToggledViaUI = false
+        if jumpGui and jumpToggleBtn then
+            jumpGui.Enabled = isMobile and getgenv().autoJumpEnabled
+            jumpToggleBtn.Text = getgenv().autoJumpEnabled and "On" or "Off"
+            jumpToggleBtn.BackgroundColor3 = getgenv().autoJumpEnabled and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(0, 0, 0)
+        end
+        MainTab:Toggle({
+            Title = "Bhop",
+            Value = getgenv().autoJumpEnabled,
+            Callback = function(state)
+                if not jumpGui then
+                    jumpGui, jumpToggleBtn = createToggleGui("Bhop", "autoJumpEnabled", 0.12)
+                end
+                getgenv().autoJumpEnabled = state
+                jumpGui.Enabled = (state and uiToggledViaUI) or (isMobile and state)
+                jumpToggleBtn.Text = state and "On" or "Off"
+                jumpToggleBtn.BackgroundColor3 = state and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(0, 0, 0)
+            end
+        }):Set(getgenv().autoJumpEnabled)
+    end
+end)
+task.spawn(function()
+    while true do
+        local friction = 5
+        if getgenv().autoJumpEnabled and getgenv().bhopMode == "Acceleration" then
+            friction = getgenv().bhopAccelValue or -5
+        end
+        if getgenv().autoJumpEnabled == false then
+            friction = 5
+        end
+
+        for _, t in pairs(getgc(true)) do
+            if type(t) == "table" and rawget(t, "Friction") then
+                if getgenv().bhopMode == "No Acceleration" then
+                else
+                    t.Friction = friction
+                end
+            end
+        end
+        task.wait(0.15)
+    end
+end)
+
+task.spawn(function()
+    while true do
+        if getgenv().autoJumpEnabled then
+            local character = LocalPlayer.Character
+            if character and character:FindFirstChild("Humanoid") then
+                local humanoid = character.Humanoid
+                if humanoid:GetState() ~= Enum.HumanoidStateType.Jumping and humanoid:GetState() ~= Enum.HumanoidStateType.Freefall then
+                    humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                end
+            end
+            if getgenv().bhopMode == "No Acceleration" then
+                task.wait(0.05)
+            else
+                task.wait()
+            end
+        else
+            task.wait()
+        end
+    end
+end)
+end
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local BhopGui = LocalPlayer.PlayerGui:FindFirstChild("BhopGui")
+
+if BhopGui then
+    BhopGui.Enabled = false
+end
