@@ -16,7 +16,6 @@ local Localization = WindUI:Localization({
             ["VISUALS_TAB"] = "Visuals",
             ["ESP_TAB"] = "ESP",
             ["SETTINGS_TAB"] = "Settings",
-            ["AUTO_JUMP"] = "Auto Jump",
             ["INFINITE_JUMP"] = "Infinite Jump",
             ["JUMP_METHOD"] = "Infinite Jump Method",
             ["FLY"] = "Fly",
@@ -345,7 +344,6 @@ local jobId = game.JobId
 -- Feature states
 local featureStates = {
     InfiniteJump = false,
-    AutoJump = false,
     Fly = false,
     SpeedHack = false,
     JumpBoost = false,
@@ -405,9 +403,6 @@ local TpwalkConnection
 -- Jump Boost Variables
 local jumpCount = 0
 local MAX_JUMPS = math.huge
-
--- Auto Jump Variables
-local AutoJumpConnection
 
 -- Anti AFK Variables
 local AntiAFKConnection
@@ -1177,27 +1172,6 @@ local function getDistanceFromPlayer(targetPosition)
     return (targetPosition - rootPart.Position).Magnitude
 end
 
--- Auto Jump Functions
-local function startAutoJump()
-    AutoJumpConnection = RunService.Heartbeat:Connect(function()
-        if featureStates.AutoJump and character and humanoid and rootPart and humanoid.Health > 0 then
-            repeat
-    humanoid.Jump = true
-    wait(0.1)
-    humanoid.Jump = false
-    wait(0.1)
-until false
-        end
-    end)
-end
-
-local function stopAutoJump()
-    if AutoJumpConnection then
-        AutoJumpConnection:Disconnect()
-        AutoJumpConnection = nil
-    end
-end
-
 -- Auto Revive Functions
 local function isPlayerDowned(pl)
     if not pl or not pl.Character then return false end
@@ -1804,10 +1778,6 @@ local function reapplyFeatures()
     if featureStates.Fly then
         if flying then stopFlying() end
         startFlying()
-    end
-    if featureStates.AutoJump then
-        if AutoJumpConnection then stopAutoJump() end
-        startAutoJump()
     end
     if featureStates.SpeedHack then
         if ToggleTpwalk then stopTpwalk() end
@@ -2825,7 +2795,6 @@ local NextbotDistanceESPToggle = Tabs.ESP:Toggle({
             Callback = function()
                 configFile = ConfigManager:CreateConfig(configName)
                 configFile:Register("InfiniteJumpToggle", InfiniteJumpToggle)
-                configFile:Register("AutoJumpToggle", AutoJumpToggle)
                 configFile:Register("JumpMethodDropdown", JumpMethodDropdown)
                 configFile:Register("FlyToggle", FlyToggle)
                 configFile:Register("FlySpeedSlider", FlySpeedSlider)
