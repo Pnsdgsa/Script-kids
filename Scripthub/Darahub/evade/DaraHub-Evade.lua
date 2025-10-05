@@ -1675,7 +1675,6 @@ RunService.Heartbeat:Connect(function()
 end)
 -- UI Setup with WindUI
 local function setupGui()
-
 -- Function to fetch a list of public servers
 local function getServers()
     local request = request({
@@ -1793,11 +1792,11 @@ end
     local FeatureSection = Window:Section({ Title = "loc:FEATURES", Opened = true })
 
     local Tabs = {
-    Main = FeatureSection:Tab({ Title = "Main", Icon = "home" }),  -- New Main tab
+    Main = FeatureSection:Tab({ Title = "Main", Icon = "layout-grid" }),
     Player = FeatureSection:Tab({ Title = "loc:Player_TAB", Icon = "user" }),
-    Auto = FeatureSection:Tab({ Title = "loc:AUTO_TAB", Icon = "zap" }),
-    Visuals = FeatureSection:Tab({ Title = "loc:VISUALS_TAB", Icon = "eye" }),
-    ESP = FeatureSection:Tab({ Title = "loc:ESP_TAB", Icon = "scan" }),
+    Auto = FeatureSection:Tab({ Title = "loc:AUTO_TAB", Icon = "repeat-2" }),
+    Visuals = FeatureSection:Tab({ Title = "loc:VISUALS_TAB", Icon = "camera" }),
+    ESP = FeatureSection:Tab({ Title = "loc:ESP_TAB", Icon = "eye" }),
     Settings = FeatureSection:Tab({ Title = "loc:SETTINGS_TAB", Icon = "settings" })
 }
 
@@ -1889,23 +1888,29 @@ Tabs.Main:Button({
     end
 })
 
-
-    -- Player Tab
-    Tabs.Player:Section({ Title = "Player", TextSize = 40 })
-    Tabs.Player:Divider()
-   local AutoJumpToggle = Tabs.Player:Toggle({
-        Title = "loc:AUTO_JUMP",
-        Value = false,
-        Callback = function(state)
-            featureStates.AutoJump = state
-            if state then
-                startAutoJump()
-            else
-                stopAutoJump()
-            end
-        end
-    })
-
+Tabs.Main:Button({
+       Title = "Advanced Server Hop",
+       Desc = "Finding a Server inside your game",
+       Icon = "server",
+       Callback = function()
+           local success, result = pcall(function()
+               local script = loadstring(game:HttpGet("https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Advanced%20Server%20Hop.lua"))()
+           end)
+           if not success then
+               WindUI:Notify({
+                   Title = "Error",
+                   Content = "oopsie Daisy Some thing wrong happening with the Github Repository link, Unfortunately this script no longer exsit: " .. tostring(result),
+                   Duration = 4
+               })
+           else
+               WindUI:Notify({
+                   Title = "Success",
+                   Content = "Script Is Loaded",
+                   Duration = 3
+               })
+           end
+       end
+   })
     local InfiniteJumpToggle = Tabs.Player:Toggle({
         Title = "loc:INFINITE_JUMP",
         Value = false,
