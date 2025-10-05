@@ -629,6 +629,7 @@ local function createGUI()
 
     -- Close button functionality
     CloseButton.MouseButton1Click:Connect(function()
+        pcall(function() Window:Open() end)
         guiVisible = not guiVisible
         MainFrame.Visible = guiVisible
         CloseButton.Text = guiVisible and "X" or "O"
