@@ -171,9 +171,9 @@ end
 local function createGUI()
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "ServerHopGUI"
-    ScreenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+    ScreenGui.Parent = game:GetService("CoreGui")
     ScreenGui.ResetOnSpawn = false
-    ScreenGui.DisplayOrder = math.huge
+    ScreenGui.DisplayOrder = 999999999
 
     -- Add UIScale for DPI scaling
     local UIScale = Instance.new("UIScale")
@@ -645,9 +645,8 @@ local function createGUI()
     -- Close button functionality
     CloseButton.MouseButton1Click:Connect(function()
         local function deleteServerHopGUI()
-    local player = Players.LocalPlayer
-    local playerGui = player.PlayerGui
-    local serverHopGUI = playerGui:WaitForChild("ServerHopGUI")
+    local CoreGui = game:GetService("CoreGui")
+local serverHopGUI = CoreGui:WaitForChild("ServerHopGUI")
 
     if serverHopGUI then
         serverHopGUI:Destroy()
