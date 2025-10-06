@@ -21,8 +21,8 @@ local Localization = WindUI:Localization({
             ["JUMP_METHOD"] = "Infinite Jump Method",
             ["FLY"] = "Fly",
             ["FLY_SPEED"] = "Fly Speed",
-            ["SPEED_HACK"] = "Speed",
-            ["SPEED_HACK_VALUE"] = "Speed",
+            ["TPWALK"] = "TP WALK",
+            ["TPWALK_VALUE"] = "TPWALK VALUE",
             ["JUMP_HEIGHT"] = "Jump Height",
             ["JUMP_POWER"] = "Jump Height",
             ["ANTI_AFK"] = "Anti AFK",
@@ -338,15 +338,131 @@ local workspace = game:GetService("Workspace")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
--- Player reference
 local player = Players.LocalPlayer
 local placeId = game.PlaceId
 local jobId = game.JobId
+local currentSettings = {
+    Speed = "1500",
+    JumpCap = "1",
+    AirStrafeAcceleration = "187"
+}
+local appliedOnce = false
+local playerModelPresent = false
+local gameStatsPath = workspace:WaitForChild("Game"):WaitForChild("Stats")
+getgenv().ApplyMode = "Not Optimized"
+local requiredFields = {
+    Friction = true,
+    AirStrafeAcceleration = true,
+    JumpHeight = true,
+    RunDeaccel = true,
+    JumpSpeedMultiplier = true,
+    JumpCap = true,
+    SprintCap = true,
+    WalkSpeedMultiplier = true,
+    BhopEnabled = true,
+    Speed = true,
+    AirAcceleration = true,
+    RunAccel = true,
+    SprintAcceleration = true
+}
+
+local function hasAllFields(tbl)
+    if type(tbl) ~= "table" then return false end
+    for field, _ in pairs(requiredFields) do
+        if rawget(tbl, field) == nil then return false end
+    end
+    return true
+end
+
+local function getConfigTables()
+    local tables = {}
+    for _, obj in ipairs(getgc(true)) do
+        local success, result = pcall(function()
+            if hasAllFields(obj) then return obj end
+        end)
+        if success and result then
+            table.insert(tables, result)
+        end
+    end
+    return tables
+end
+
+local function applyToTables(callback)
+    local targets = getConfigTables()
+    if #targets == 0 then return end
+    
+    if getgenv().ApplyMode == "Optimized" then
+        task.spawn(function()
+            for i, tableObj in ipairs(targets) do
+                if tableObj and typeof(tableObj) == "table" then
+                    pcall(callback, tableObj)
+                end
+                
+                if i % 3 == 0 then
+                    task.wait()
+                end
+            end
+        end)
+    else
+        for i, tableObj in ipairs(targets) do
+            if tableObj and typeof(tableObj) == "table" then
+                pcall(callback, tableObj)
+            end
+        end
+    end
+end
+
+local function applyStoredSettings()
+    local settings = {
+        {field = "Speed", value = tonumber(currentSettings.Speed)},
+        {field = "JumpCap", value = tonumber(currentSettings.JumpCap)},
+        {field = "AirStrafeAcceleration", value = tonumber(currentSettings.AirStrafeAcceleration)}
+    }
+    
+    for _, setting in ipairs(settings) do
+        if setting.value and tostring(setting.value) ~= "1500" and tostring(setting.value) ~= "1" and tostring(setting.value) ~= "187" then
+            applyToTables(function(obj)
+                obj[setting.field] = setting.value
+            end)
+        end
+    end
+end
+
+local function applySettingsWithDelay()
+    if not playerModelPresent or appliedOnce then
+        return
+    end
+    
+    appliedOnce = true
+    
+    local settings = {
+        {field = "Speed", value = tonumber(currentSettings.Speed), delay = math.random(1, 14)},
+        {field = "JumpCap", value = tonumber(currentSettings.JumpCap), delay = math.random(1, 14)},
+        {field = "AirStrafeAcceleration", value = tonumber(currentSettings.AirStrafeAcceleration), delay = math.random(1, 14)}
+    }
+    
+    for _, setting in ipairs(settings) do
+        if setting.value and tostring(setting.value) ~= "1500" and tostring(setting.value) ~= "1" and tostring(setting.value) ~= "187" then
+            task.spawn(function()
+                task.wait(setting.delay)
+                applyToTables(function(obj)
+                    obj[setting.field] = setting.value
+                end)
+            end)
+        end
+    end
+end
+
+local function isPlayerModelPresent()
+    local GameFolder = workspace:FindFirstChild("Game")
+    local PlayersFolder = GameFolder and GameFolder:FindFirstChild("Players")
+    return PlayersFolder and PlayersFolder:FindFirstChild(player.Name) ~= nil
+end
 -- Feature states
 local featureStates = {
     InfiniteJump = false,
     Fly = false,
-    SpeedHack = false,
+    TPWALK = false,
     JumpBoost = false,
     AntiAFK = false,
     AutoCarry = false,
@@ -398,7 +514,6 @@ local isJumpHeld = false
 local flying = false
 local bodyVelocity, bodyGyro
 
--- Speed Hack Variables
 local ToggleTpwalk = false
 local TpwalkConnection
 
@@ -1266,7 +1381,7 @@ local function updateFly()
     bodyGyro.CFrame = cameraCFrame
 end
 
--- Speed Hack (TP Walk) Functions
+-- TP Walk Functions
 local function Tpwalking()
     if ToggleTpwalk and character and humanoid and rootPart then
         local moveDirection = humanoid.MoveDirection
@@ -1766,7 +1881,7 @@ local function reapplyFeatures()
         if flying then stopFlying() end
         startFlying()
     end
-    if featureStates.SpeedHack then
+    if featureStates.TPWALK then
         if ToggleTpwalk then stopTpwalk() end
         startTpwalk()
     end
@@ -2234,11 +2349,11 @@ Tabs.Main:Button({
         end
     })
 
-    local SpeedHackToggle = Tabs.Player:Toggle({
-        Title = "loc:SPEED_HACK",
+    local TPWALKToggle = Tabs.Player:Toggle({
+        Title = "loc:TPWALK",
         Value = false,
         Callback = function(state)
-            featureStates.SpeedHack = state
+            featureStates.TPWALK = state
             if state then
                 startTpwalk()
             else
@@ -2247,9 +2362,9 @@ Tabs.Main:Button({
         end
     })
 
-    local SpeedHackSlider = Tabs.Player:Slider({
-        Title = "loc:SPEED_HACK_VALUE",
-         Desc = "Adjust speed",
+    local TPWALKSlider = Tabs.Player:Slider({
+        Title = "loc:TPWALK_VALUE",
+         Desc = "Adjust TPWALK speed",
         Value = { Min = 1, Max = 200, Default = 1, Step = 1 },
         Callback = function(value)
             featureStates.TpwalkValue = value
@@ -2295,7 +2410,73 @@ Tabs.Main:Button({
             end
         end
     })
+Tabs.Player:Section({ Title = "Modifications" })
 
+-- Validated input creator (ensures numeric bounds)
+local function createValidatedInput(config)
+    return function(input)
+        local val = tonumber(input)
+        if not val then return end
+        
+        if config.min and val < config.min then return end
+        if config.max and val > config.max then return end
+        
+        currentSettings[config.field] = tostring(val)
+        applyToTables(function(obj)
+            obj[config.field] = val
+        end)
+    end
+end
+
+-- Set Speed Input
+local SpeedInput = Tabs.Player:Input({
+    Title = "Set Speed",
+    Icon = "speedometer",
+    Placeholder = "Default 1500",
+    Value = currentSettings.Speed,
+    Callback = createValidatedInput({
+        field = "Speed",
+        min = 1450,
+        max = 100008888
+    })
+})
+
+-- Set Jump Cap Input
+local JumpCapInput = Tabs.Player:Input({
+    Title = "Set Jump Cap",
+    Icon = "chevrons-up",
+    Placeholder = "Default 1",
+    Value = currentSettings.JumpCap,
+    Callback = createValidatedInput({
+        field = "JumpCap",
+        min = 0.1,
+        max = 5088888
+    })
+})
+
+-- Strafe Acceleration Input
+local StrafeInput = Tabs.Player:Input({
+    Title = "Strafe Acceleration",
+    Icon = "wind",
+    Placeholder = "Default 187",
+    Value = currentSettings.AirStrafeAcceleration,
+    Callback = createValidatedInput({
+        field = "AirStrafeAcceleration",
+        min = 1,
+        max = 1000888888
+    })
+})
+
+-- Apply Method Dropdown
+local ApplyMethodDropdown = Tabs.Player:Dropdown({
+    Title = "Select Apply Method",
+    Values = { "Not Optimized", "Optimized" },
+    Multi = false,
+    Default = getgenv().ApplyMode,
+    Callback = function(value)
+        getgenv().ApplyMode = value
+    end
+})
     -- Visuals Tab
     Tabs.Visuals:Section({ Title = "Visual", TextSize = 20 })
     Tabs.Visuals:Divider()
@@ -2925,8 +3106,8 @@ local BhopAccelInput = Tabs.Auto:Input({
                 configFile:Register("FlyToggle", FlyToggle)
                 configFile:Register("FlySpeedSlider", FlySpeedSlider)
                 configFile:Register("ZoomSlider", ZoomSlider)
-                configFile:Register("SpeedHackToggle", SpeedHackToggle)
-                configFile:Register("SpeedHackSlider", SpeedHackSlider)
+                configFile:Register("TPWALKToggle", TPWALKToggle)
+                configFile:Register("TPWALKSlider", TPWALKSlider)
                 configFile:Register("JumpBoostToggle", JumpBoostToggle)
                 configFile:Register("JumpBoostSlider", JumpBoostSlider)
                 configFile:Register("AntiAFKToggle", AntiAFKToggle)
@@ -2965,6 +3146,10 @@ local BhopAccelInput = Tabs.Auto:Input({
                 configFile:Register("TransparencySlider", TransparencySlider)
                 configFile:Register("ThemeToggle", ThemeToggle)
                 configFile:Set("playerData", MyPlayerData)
+                configFile:Register("SpeedInput", SpeedInput)
+configFile:Register("JumpCapInput", JumpCapInput)
+configFile:Register("StrafeInput", StrafeInput)
+configFile:Register("ApplyMethodDropdown", ApplyMethodDropdown)
                 configFile:Set("lastSave", os.date("%Y-%m-%d %H:%M:%S"))
                 configFile:Save()
             end
@@ -2991,6 +3176,10 @@ local BhopAccelInput = Tabs.Auto:Input({
                     if loadedData.TimerDisplayToggle then
     TimerDisplayToggle:Set(loadedData.TimerDisplayToggle)
 end
+if loadedData.SpeedInput then SpeedInput:Set(loadedData.SpeedInput) end
+if loadedData.JumpCapInput then JumpCapInput:Set(loadedData.JumpCapInput) end
+if loadedData.StrafeInput then StrafeInput:Set(loadedData.StrafeInput) end
+if loadedData.ApplyMethodDropdown then ApplyMethodDropdown:Select(loadedData.ApplyMethodDropdown) end
                 end
             end
         })
@@ -3069,7 +3258,48 @@ end)
 
 Window:UnlockAll()
 
--- Auto-save when script closes
+-- Connections for reapplication (round starts, timers, player presence)
+local roundStartedConnection
+local timerConnection
+
+local function setupAttributeConnections()
+    if roundStartedConnection then roundStartedConnection:Disconnect() end
+    if timerConnection then timerConnection:Disconnect() end
+    
+    if gameStatsPath then
+        roundStartedConnection = gameStatsPath:GetAttributeChangedSignal("RoundStarted"):Connect(function()
+            local roundStarted = gameStatsPath:GetAttribute("RoundStarted")
+            if roundStarted == true then
+                appliedOnce = false
+                applyStoredSettings()  -- Reapply on new round
+            end
+        end)
+        
+        timerConnection = gameStatsPath:GetAttributeChangedSignal("Timer"):Connect(function()
+            if isPlayerModelPresent() and not appliedOnce then
+                applySettingsWithDelay()
+            end
+        end)
+    end
+end
+
+setupAttributeConnections()
+
+-- Monitor player model presence for reapplications
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        local currentlyPresent = isPlayerModelPresent()
+        
+        if currentlyPresent and not playerModelPresent then
+            playerModelPresent = true
+            applyStoredSettings()
+        elseif not currentlyPresent and playerModelPresent then
+            playerModelPresent = false
+        end
+    end
+end)
+
 game:GetService("UserInputService").WindowFocused:Connect(function()
     -- Save when window loses focus
     saveKeybind()
