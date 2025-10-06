@@ -844,25 +844,6 @@ local function stopPlayerESP()
     playerEspElements = {}
 end
 
-local function stopNextbotNameESP()
-    if nextbotEspConnection then
-        nextbotEspConnection:Disconnect()
-        nextbotEspConnection = nil
-    end
-    for _, esp in pairs(nextbotEspElements) do
-        for _, drawing in pairs(esp) do
-            if type(drawing) == "table" then
-                for _, line in ipairs(drawing) do
-                    pcall(function() line:Remove() end)
-                end
-            else
-                pcall(function() drawing:Remove() end)
-            end
-        end
-    end
-    nextbotEspElements = {}
-end
-
 local function startPlayerESP()
     if playerEspConnection then return end
     playerEspConnection = RunService.RenderStepped:Connect(updatePlayerESP)
@@ -1056,19 +1037,23 @@ local function startNextbotNameESP()
     updateNextbotESP()
 end
 
-local function stopNextbotNameESP()
+local function startNextbotESP()
+    if nextbotEspConnection then return end
+    nextbotEspConnection = RunService.RenderStepped:Connect(updateNextbotESP)
+end
+
+local function stopNextbotESP()
     if nextbotEspConnection then
         nextbotEspConnection:Disconnect()
         nextbotEspConnection = nil
     end
     for _, esp in pairs(nextbotEspElements) do
         for _, drawing in pairs(esp) do
-            if type(drawing) == "table" then
-                for _, line in ipairs(drawing) do
-                    pcall(function() line:Remove() end)
-                end
-            else
-                pcall(function() drawing:Remove() end)
+            pcall(function() drawing:Remove() end)
+        end
+        if esp.boxLines then
+            for _, line in ipairs(esp.boxLines) do
+                pcall(function() line:Remove() end)
             end
         end
     end
