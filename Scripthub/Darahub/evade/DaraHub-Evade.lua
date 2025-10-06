@@ -1,3 +1,4 @@
+local script = loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/TimerGUI-NoRepeat'))()
 -- Load WindUI
 local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
 
@@ -313,7 +314,7 @@ keyInputConnection = game:GetService("UserInputService").InputBegan:Connect(hand
 -- Add tags and time tag
 Window:SetIconSize(48)
 Window:Tag({
-    Title = "v1.0.0",
+    Title = "v1.0.1",
     Color = Color3.fromHex("#30ff6a")
 })
 Window:Tag({
@@ -385,7 +386,8 @@ local featureStates = {
     JumpMethod = "Hold",
     SelectedMap = 1,
     DesiredFOV = 70,
-    ZoomValue = 1
+    ZoomValue = 1,
+    TimerDisplay = false
 }
 
 -- Character references
@@ -1829,7 +1831,9 @@ end
         workspace.CurrentCamera.FieldOfView = featureStates.DesiredFOV
     end
 end
-
+if featureStates.TimerDisplay then
+TimerDisplayToggle:Set(true)
+end
 -- Function to handle player joining
 local function onPlayerAdded(plr)
     plr.CharacterAdded:Connect(function(newCharacter)
@@ -2340,7 +2344,97 @@ local NoFogToggle = Tabs.Visuals:Toggle({
         end
     end
 })
-
+local TimerDisplayToggle = Tabs.Visuals:Toggle({
+    Title = "Timer Display",
+    Value = false,
+    Callback = function(state)
+        featureStates.TimerDisplay = state
+        if state then
+            -- Show TimerContainer
+            pcall(function()
+                local Players = game:GetService("Players")
+                local LocalPlayer = Players.LocalPlayer
+                local PlayerGui = LocalPlayer.PlayerGui
+                local MainInterface = PlayerGui:WaitForChild("MainInterface")
+                local TimerContainer = MainInterface:WaitForChild("TimerContainer")
+                TimerContainer.Visible = true
+            end)
+            
+            -- Start the loop to hide roundTimer (runs while featureStates.TimerDisplay is true)
+            task.spawn(function()
+                while featureStates.TimerDisplay do
+                    local success, result = pcall(function()
+                        local Players = game:GetService("Players")
+                        local player = Players.LocalPlayer
+                        
+                        if not player then
+                            return false
+                        end
+                        
+                        local playerGui = player:FindFirstChild("PlayerGui")
+                        if not playerGui then
+                            return false
+                        end
+                        
+                        local shared = playerGui:WaitForChild("Shared", 1)
+                        if not shared then
+                            return false
+                        end
+                        
+                        local hud = shared:WaitForChild("HUD", 1)
+                        if not hud then
+                            return false
+                        end
+                        
+                        local overlay = hud:WaitForChild("Overlay", 1)
+                        if not overlay then
+                            return false
+                        end
+                        
+                        local default = overlay:WaitForChild("Default", 1)
+                        if not default then
+                            return false
+                        end
+                        
+                        local roundOverlay = default:WaitForChild("RoundOverlay", 1)
+                        if not roundOverlay then
+                            return false
+                        end
+                        
+                        local round = roundOverlay:WaitForChild("Round", 1)
+                        if not round then
+                            return false
+                        end
+                        
+                        local roundTimer = round:WaitForChild("RoundTimer", 1)
+                        if not roundTimer then
+                            return false
+                        end
+                        
+                        roundTimer.Visible = false
+                        return true
+                    end)
+                    
+                    if not success or not result then
+                        task.wait(0)
+                    else
+                        task.wait(0)
+                    end
+                end
+            end)
+        else
+            -- Hide TimerContainer
+            pcall(function()
+                local Players = game:GetService("Players")
+                local LocalPlayer = Players.LocalPlayer
+                local PlayerGui = LocalPlayer.PlayerGui
+                local MainInterface = PlayerGui:WaitForChild("MainInterface")
+                local TimerContainer = MainInterface:WaitForChild("TimerContainer")
+                TimerContainer.Visible = false
+            end)
+        end
+    end
+})
 
     -- ESP Tab
     Tabs.ESP:Section({ Title = "ESP", TextSize = 40 })
@@ -2865,6 +2959,7 @@ local BhopAccelInput = Tabs.Auto:Input({
                 configFile:Register("AutoVoteToggle", AutoVoteToggle)
                 configFile:Register("AutoSelfReviveToggle", AutoSelfReviveToggle)
                 configFile:Register("AutoWinToggle", AutoWinToggle)
+                configFile:Register("TimerDisplayToggle", TimerDisplayToggle)
                 configFile:Register("AutoMoneyFarmToggle", AutoMoneyFarmToggle)
                 configFile:Register("ThemeDropdown", ThemeDropdown)
                 configFile:Register("TransparencySlider", TransparencySlider)
@@ -2893,6 +2988,9 @@ local BhopAccelInput = Tabs.Auto:Input({
                             MyPlayerData.level, 
                             table.concat(MyPlayerData.inventory, ", "))
                     })
+                    if loadedData.TimerDisplayToggle then
+    TimerDisplayToggle:Set(loadedData.TimerDisplayToggle)
+end
                 end
             end
         })
