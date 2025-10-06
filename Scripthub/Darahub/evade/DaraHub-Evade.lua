@@ -346,6 +346,21 @@ local currentSettings = {
     JumpCap = "1",
     AirStrafeAcceleration = "187"
 }
+local emoteList = {}
+local success, emotesFolder = pcall(function()
+    return ReplicatedStorage:FindFirstChild("Items") and ReplicatedStorage.Items:FindFirstChild("Emotes")
+end)
+if success and emotesFolder and emotesFolder:IsA("Instance") then
+    for _, emote in ipairs(emotesFolder:GetChildren()) do
+        if emote:IsA("ModuleScript") or emote:IsA("LocalScript") or emote:IsA("Script") then
+            table.insert(emoteList, emote.Name)
+        end
+    end
+end
+table.sort(emoteList)
+
+getgenv().SelectedEmote = nil
+getgenv().EmoteEnabled = false
 local appliedOnce = false
 local playerModelPresent = false
 local gameStatsPath = workspace:WaitForChild("Game"):WaitForChild("Stats")
@@ -1601,7 +1616,7 @@ local function startAutoWin()
                 task.wait(0.5)
             end
             if not character:GetAttribute("Downed") then
-                local securityPart = Instance.new("Part")
+                               local securityPart = Instance.new("Part")
                 securityPart.Name = "SecurityPartTemp"
                 securityPart.Size = Vector3.new(10, 1, 10)
                 securityPart.Position = Vector3.new(0, 500, 0)
@@ -2193,7 +2208,9 @@ end
     Auto = FeatureSection:Tab({ Title = "loc:AUTO_TAB", Icon = "repeat-2" }),
     Visuals = FeatureSection:Tab({ Title = "loc:VISUALS_TAB", Icon = "camera" }),
     ESP = FeatureSection:Tab({ Title = "loc:ESP_TAB", Icon = "eye" }),
+    Utility = FeatureSection:Tab({ Title = "Utility", Icon = "wrench"}),
     Settings = FeatureSection:Tab({ Title = "loc:SETTINGS_TAB", Icon = "settings" })
+    
 }
 
 
@@ -2307,6 +2324,21 @@ Tabs.Main:Button({
            end
        end
    })
+   Tabs.Main:Section({ Title = "Misc", TextSize = 20 })
+   Tabs.Main:Divider()
+       local AntiAFKToggle = Tabs.Main:Toggle({
+        Title = "loc:ANTI_AFK",
+        Value = false,
+        Callback = function(state)
+            featureStates.AntiAFK = state
+            if state then
+                startAntiAFK()
+            else
+                stopAntiAFK()
+            end
+        end
+    })
+   -- Player Tabs
    Tabs.Player:Section({ Title = "Player", TextSize = 40 })
     Tabs.Player:Divider()
     local InfiniteJumpToggle = Tabs.Player:Toggle({
@@ -2326,7 +2358,124 @@ Tabs.Main:Button({
         end
     })
 
- 
+ -- === Infinite Slide Feature ===
+local infiniteSlideEnabled = false
+local slideFrictionValue = -8
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+
+local keys = {
+    "Friction", "AirStrafeAcceleration", "JumpHeight", "RunDeaccel",
+    "JumpSpeedMultiplier", "JumpCap", "SprintCap", "WalkSpeedMultiplier",
+    "BhopEnabled", "Speed", "AirAcceleration", "RunAccel", "SprintAcceleration"
+}
+
+local function hasAll(tbl)
+    if type(tbl) ~= "table" then return false end
+    for _, k in ipairs(keys) do
+        if rawget(tbl, k) == nil then return false end
+    end
+    return true
+end
+
+local cachedTables = nil
+local plrModel = nil
+local slideConnection = nil
+
+local function getConfigTables()
+    local tables = {}
+    for _, obj in ipairs(getgc(true)) do
+        local success, result = pcall(function()
+            if hasAll(obj) then return obj end
+        end)
+        if success and result then
+            table.insert(tables, obj)
+        end
+    end
+    return tables
+end
+
+local function setFriction(value)
+    if not cachedTables then return end
+    for _, t in ipairs(cachedTables) do
+        pcall(function()
+            t.Friction = value
+        end)
+    end
+end
+
+local function updatePlayerModel()
+    local GameFolder = workspace:FindFirstChild("Game")
+    local PlayersFolder = GameFolder and GameFolder:FindFirstChild("Players")
+    if PlayersFolder then
+        plrModel = PlayersFolder:FindFirstChild(LocalPlayer.Name)
+    else
+        plrModel = nil
+    end
+end
+
+local function onHeartbeat()
+    if not plrModel then
+        setFriction(5)
+        return
+    end
+    local success, currentState = pcall(function()
+        return plrModel:GetAttribute("State")
+    end)
+    if success and currentState then
+        if currentState == "Slide" then
+            pcall(function()
+                plrModel:SetAttribute("State", "EmotingSlide")
+            end)
+        elseif currentState == "EmotingSlide" then
+            setFriction(slideFrictionValue)
+        else
+            setFriction(5)
+        end
+    else
+        setFriction(5)
+    end
+end
+
+-- UI: Infinite Slide Toggle
+Tabs.Player:Toggle({
+    Title = "Infinite Slide",
+    Value = false,
+    Callback = function(state)
+        infiniteSlideEnabled = state
+        if slideConnection then
+            slideConnection:Disconnect()
+            slideConnection = nil
+        end
+        if state then
+            cachedTables = getConfigTables()
+            updatePlayerModel()
+            slideConnection = RunService.Heartbeat:Connect(onHeartbeat)
+            LocalPlayer.CharacterAdded:Connect(function()
+                task.wait(0.1)
+                updatePlayerModel()
+            end)
+        else
+            cachedTables = nil
+            plrModel = nil
+            setFriction(5)
+        end
+    end,
+})
+
+-- UI: Slide Speed Input (Negative Only)
+Tabs.Player:Input({
+    Title = "Set Infinite Slide Speed (Negative Only)",
+    Value = tostring(slideFrictionValue),
+    Placeholder = "-8 (negative only)",
+    Callback = function(text)
+        local num = tonumber(text)
+        if num and num < 0 then
+            slideFrictionValue = num
+        end
+    end,
+})
     local FlyToggle = Tabs.Player:Toggle({
         Title = "loc:FLY",
         Value = false,
@@ -2398,21 +2547,8 @@ Tabs.Main:Button({
         end
     })
 
-    local AntiAFKToggle = Tabs.Player:Toggle({
-        Title = "loc:ANTI_AFK",
-        Value = false,
-        Callback = function(state)
-            featureStates.AntiAFK = state
-            if state then
-                startAntiAFK()
-            else
-                stopAntiAFK()
-            end
-        end
-    })
 Tabs.Player:Section({ Title = "Modifications" })
 
--- Validated input creator (ensures numeric bounds)
 local function createValidatedInput(config)
     return function(input)
         local val = tonumber(input)
@@ -2856,12 +2992,8 @@ local NextbotDistanceESPToggle = Tabs.ESP:Toggle({
 
     -- Auto Tab
     Tabs.Auto:Section({ Title = "Auto", TextSize = 40 })
-
--- === Integrated BHop Feature ===
 local _Players = game:GetService("Players")
 local _LocalPlayer = _Players.LocalPlayer
-
--- Inserted BHop Toggle in Auto Tab
 local BhopToggle = Tabs.Auto:Toggle({
     Title = "Bhop",
     Value = false,
@@ -2883,13 +3015,28 @@ local BhopToggle = Tabs.Auto:Toggle({
         end
     end
 })
-
 local BhopModeDropdown = Tabs.Auto:Dropdown({
     Title = "Bhop Mode",
     Values = {"Acceleration", "No Acceleration"},
     Value = "Acceleration",
     Callback = function(value)
         getgenv().bhopMode = value
+    end
+})
+
+local AutoEmoteToggle = Tabs.Auto:Toggle({
+    Title = "Auto Emote",
+    Value = false,
+    Callback = function(state)
+        getgenv().EmoteEnabled = state
+    end
+})
+local EmoteDropdown = Tabs.Auto:Dropdown({
+    Title = "Select Emote",
+    Values = emoteList,
+    Multi = false,
+    Callback = function(option)
+        getgenv().SelectedEmote = option
     end
 })
 
@@ -3011,6 +3158,113 @@ local BhopAccelInput = Tabs.Auto:Input({
         end
     })
 
+-- UI in Utility Tab
+Tabs.Utility:Section({ Title = "Lag Tools", TextSize = 30 })
+Tabs.Utility:Divider()
+-- === Lag Switch Feature ===
+getgenv().lagSwitchEnabled = false
+getgenv().lagDuration = 0.5
+local lagGui = nil
+local lagGuiButton = nil
+
+local function createLagGui()
+    if lagGui then
+        lagGui:Destroy()
+    end
+    lagGui = Instance.new("ScreenGui")
+    lagGui.Name = "LagSwitchGui"
+    lagGui.IgnoreGuiInset = true
+    lagGui.ResetOnSpawn = false
+    lagGui.Enabled = getgenv().lagSwitchEnabled
+    lagGui.Parent = player:WaitForChild("PlayerGui")
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 190, 0, 30)
+    frame.Position = UDim2.new(0.5, -95, 0.35, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(30, 50, 80)
+    frame.BackgroundTransparency = 0.35
+    frame.BorderSizePixel = 0
+    frame.Parent = lagGui
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(1, 0)
+    corner.Parent = frame
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(100, 160, 255)
+    stroke.Thickness = 2
+    stroke.Parent = frame
+
+    local label = Instance.new("TextLabel")
+    label.Text = "Lag Switch"
+    label.Size = UDim2.new(0.55, 0, 1, 0)
+    label.Position = UDim2.new(0, 10, 0, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(220, 240, 255)
+    label.Font = Enum.Font.Roboto
+    label.TextSize = 14
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = frame
+
+    lagGuiButton = Instance.new("TextButton")
+    lagGuiButton.Name = "ToggleButton"
+    lagGuiButton.Text = "Trigger"
+    lagGuiButton.Size = UDim2.new(0.3, 0, 0.75, 0)
+    lagGuiButton.Position = UDim2.new(0.65, 0, 0.13, 0)
+    lagGuiButton.BackgroundColor3 = Color3.fromRGB(0, 120, 80)
+    lagGuiButton.TextColor3 = Color3.new(1, 1, 1)
+    lagGuiButton.Font = Enum.Font.Roboto
+    lagGuiButton.TextSize = 13
+    lagGuiButton.Parent = frame
+
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(1, 0)
+    buttonCorner.Parent = lagGuiButton
+
+    lagGuiButton.MouseButton1Click:Connect(function()
+        task.spawn(function()
+            local start = tick()
+            while tick() - start < (getgenv().lagDuration or 0.5) do
+                local a = math.random(1, 1000000) * math.random(1, 1000000)
+                a = a / math.random(1, 10000)
+            end
+        end)
+    end)
+end
+
+
+local LagSwitchToggle = Tabs.Utility:Toggle({
+    Title = "Lag Switch",
+    Icon = "zap",
+    Value = false,
+    Callback = function(state)
+        getgenv().lagSwitchEnabled = state
+        if state then
+            if not lagGui then
+                createLagGui()
+            else
+                lagGui.Enabled = true
+            end
+        else
+            if lagGui then
+                lagGui.Enabled = false
+            end
+        end
+    end
+})
+
+local LagDurationInput = Tabs.Utility:Input({
+    Title = "Lag Duration (seconds)",
+    Placeholder = "0.5",
+    Value = tostring(getgenv().lagDuration),
+    NumbersOnly = true,
+    Callback = function(text)
+        local n = tonumber(text)
+        if n and n > 0 then
+            getgenv().lagDuration = n
+        end
+    end
+})
     -- Settings Tab
     Tabs.Settings:Section({ Title = "Settings", TextSize = 40 })
     Tabs.Settings:Section({ Title = "Personalize", TextSize = 20 })
@@ -3129,7 +3383,8 @@ local BhopAccelInput = Tabs.Auto:Input({
                 configFile:Register("NextbotRainbowTracersToggle", NextbotRainbowTracersToggle)
                 configFile:Register("DownedBoxESPToggle", DownedBoxESPToggle)
                 configFile:Register("DownedBoxTypeDropdown", DownedBoxTypeDropdown)
-                
+                configFile:Register("EmoteDropdown", EmoteDropdown)
+configFile:Register("AutoEmoteToggle", AutoEmoteToggle)
  configFile:Register("NoFogToggle", NoFogToggle)
                 configFile:Register("DownedTracerToggle", DownedTracerToggle)
                 configFile:Register("DownedNameESPToggle", DownedNameESPToggle)
@@ -3150,6 +3405,10 @@ local BhopAccelInput = Tabs.Auto:Input({
 configFile:Register("JumpCapInput", JumpCapInput)
 configFile:Register("StrafeInput", StrafeInput)
 configFile:Register("ApplyMethodDropdown", ApplyMethodDropdown)
+configFile:Register("InfiniteSlideToggle", InfiniteSlideToggle)
+configFile:Register("InfiniteSlideSpeedInput", InfiniteSlideSpeedInput)
+configFile:Register("LagSwitchToggle", LagSwitchToggle)
+configFile:Register("LagDurationInput", LagDurationInput)
                 configFile:Set("lastSave", os.date("%Y-%m-%d %H:%M:%S"))
                 configFile:Save()
             end
@@ -3180,6 +3439,12 @@ if loadedData.SpeedInput then SpeedInput:Set(loadedData.SpeedInput) end
 if loadedData.JumpCapInput then JumpCapInput:Set(loadedData.JumpCapInput) end
 if loadedData.StrafeInput then StrafeInput:Set(loadedData.StrafeInput) end
 if loadedData.ApplyMethodDropdown then ApplyMethodDropdown:Select(loadedData.ApplyMethodDropdown) end
+if loadedData.InfiniteSlideToggle then InfiniteSlideToggle:Set(loadedData.InfiniteSlideToggle) end
+if loadedData.InfiniteSlideSpeedInput then InfiniteSlideSpeedInput:Set(loadedData.InfiniteSlideSpeedInput) end
+if loadedData.EmoteDropdown then EmoteDropdown:Select(loadedData.EmoteDropdown) end
+if loadedData.AutoEmoteToggle then AutoEmoteToggle:Set(loadedData.AutoEmoteToggle) end
+if loadedData.LagSwitchToggle then LagSwitchToggle:Set(loadedData.LagSwitchToggle) end
+if loadedData.LagDurationInput then LagDurationInput:Set(loadedData.LagDurationInput) end
                 end
             end
         })
@@ -3341,7 +3606,6 @@ local function makeDraggable(frame)
         end
     end)
 end
-
 local function createToggleGui(name, varName, yOffset)
     local gui = playerGui:FindFirstChild(name.."Gui")
     if gui then gui:Destroy() end
@@ -3552,6 +3816,21 @@ task.spawn(function()
         end
     end
 end)
+task.spawn(function()
+    while true do
+        if getgenv().EmoteEnabled and getgenv().SelectedEmote and player.Character then
+            local emoteEvent = ReplicatedStorage:FindFirstChild("Events")
+                and ReplicatedStorage.Events:FindFirstChild("Character")
+                and ReplicatedStorage.Events.Character:FindFirstChild("Emote")
+            if emoteEvent then
+                pcall(function()
+                    emoteEvent:FireServer(getgenv().SelectedEmote)
+                end)
+            end
+        end
+        task.wait(3) -- Emote every 3 seconds (adjust as needed)
+    end
+end)
 end
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -3561,3 +3840,11 @@ if BhopGui then
     BhopGui.Enabled = false
 end
 local script = loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/TimerGUI-NoRepeat'))()
+                local securityPart = Instance.new("Part")
+                securityPart.Name = "SecurityPart"
+                securityPart.Size = Vector3.new(10, 1, 10)
+                securityPart.Position = Vector3.new(0, 500, 0)
+                securityPart.Anchored = true
+                securityPart.CanCollide = true
+                securityPart.Parent = workspace
+                rootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
