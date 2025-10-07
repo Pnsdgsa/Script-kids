@@ -1,4 +1,3 @@
-
 -- Load WindUI
 local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
 
@@ -340,6 +339,7 @@ local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 local placeId = game.PlaceId
 local jobId = game.JobId
 local currentSettings = {
@@ -477,10 +477,9 @@ local function isPlayerModelPresent()
 end
 -- Feature states
 local featureStates = {
+    AutoWhistle = false,
     CustomGravity = false,
-    CustomGravity = false,
-GravityValue = originalGameGravity,
-    GravityValue = 50,
+    GravityValue = originalGameGravity,
     InfiniteJump = false,
     Fly = false,
     TPWALK = false,
@@ -970,30 +969,6 @@ local function stopPlayerESP()
     end
     for _, esp in pairs(playerEspElements) do
         for _, drawing in pairs(esp) do
-            if type(drawing) == "table" then
-                for _, line in ipairs(drawing) do
-                    pcall(function() line:Remove() end)
-                end
-            else
-                pcall(function() drawing:Remove() end)
-            end
-        end
-    end
-    playerEspElements = {}
-end
-
-local function startPlayerESP()
-    if playerEspConnection then return end
-    playerEspConnection = RunService.RenderStepped:Connect(updatePlayerESP)
-end
-
-local function stopPlayerESP()
-    if playerEspConnection then
-        playerEspConnection:Disconnect()
-        playerEspConnection = nil
-    end
-    for _, esp in pairs(playerEspElements) do
-        for _, drawing in pairs(esp) do
             pcall(function() drawing:Remove() end)
         end
         if esp.boxLines then
@@ -1003,6 +978,11 @@ local function stopPlayerESP()
         end
     end
     playerEspElements = {}
+end
+
+local function startPlayerESP()
+    if playerEspConnection then return end
+    playerEspConnection = RunService.RenderStepped:Connect(updatePlayerESP)
 end
 
 -- Nextbot Name ESP
@@ -1475,7 +1455,10 @@ local function reapplyFeatures()
         startFlying()
     end
 end
-
+if featureStates.AutoWhistle then
+    stopAutoWhistle()
+    startAutoWhistle()
+end
 local function startJumpBoost()
     if humanoid then
         humanoid.JumpPower = featureStates.JumpPower
@@ -1689,7 +1672,27 @@ local function stopAutoMoneyFarm()
         AutoMoneyFarmConnection = nil
     end
 end
+local autoWhistleHandle = nil
 
+local function startAutoWhistle()
+    if autoWhistleHandle then return end  -- Already running
+    autoWhistleHandle = task.spawn(function()
+        while featureStates.AutoWhistle do
+            pcall(function()  -- Wrap in pcall to prevent errors from breaking the loop
+                game:GetService("ReplicatedStorage").Events.Character.Whistle:FireServer()
+            end)
+            task.wait(1)  --
+        end
+    end)
+end
+
+local function stopAutoWhistle()
+    featureStates.AutoWhistle = false
+    if autoWhistleHandle then
+        task.cancel(autoWhistleHandle)
+        autoWhistleHandle = nil
+    end
+end
 -- Manual Revive Function
 local function manualRevive()
     if character and character:GetAttribute("Downed") then
@@ -2486,7 +2489,7 @@ local function onHeartbeat()
 end
 
 -- UI: Infinite Slide Toggle
-Tabs.Player:Toggle({
+local InfiniteSlideToggle = Tabs.Player:Toggle({
     Title = "Infinite Slide",
     Value = false,
     Callback = function(state)
@@ -2512,7 +2515,7 @@ Tabs.Player:Toggle({
 })
 
 -- UI: Slide Speed Input (Negative Only)
-Tabs.Player:Input({
+local InfiniteSlideSpeedInput = Tabs.Player:Input({
     Title = "Set Infinite Slide Speed (Negative Only)",
     Value = tostring(slideFrictionValue),
     Placeholder = "-8 (negative only)",
@@ -3187,6 +3190,18 @@ local EmoteDropdown = Tabs.Auto:Dropdown({
             end
         end
     })
+    local AutoWhistleToggle = Tabs.Auto:Toggle({
+    Title = "Auto Whistle",
+    Value = false,
+    Callback = function(state)
+        featureStates.AutoWhistle = state
+        if state then
+            startAutoWhistle()
+        else
+            stopAutoWhistle()
+        end
+    end
+})
 
     local AutoMoneyFarmToggle = Tabs.Auto:Toggle({
         Title = "loc:AUTO_MONEY_FARM",
@@ -3207,6 +3222,177 @@ local EmoteDropdown = Tabs.Auto:Dropdown({
 -- Utility Tab
 Tabs.Utility:Section({ Title = "Lag Tools", TextSize = 30 })
 Tabs.Utility:Divider()
+
+-- === Lag Switch Feature ===
+getgenv().lagSwitchEnabled = false
+getgenv().lagDuration = 0.5
+local lagGui = nil
+local lagGuiButton = nil
+local lagInputConnection = nil
+local isLagActive = false
+
+local function makeDraggable(frame)
+    local dragging = false
+    local dragStart = nil
+    local startPos = nil
+    
+    local function updateInput(input)
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+    
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            if dragging then
+                updateInput(input)
+            end
+        end
+    end)
+end
+
+local function createLagGui(yOffset)
+    local lagGuiOld = playerGui:FindFirstChild("LagSwitchGui")
+    if lagGuiOld then lagGuiOld:Destroy() end
+    lagGui = Instance.new("ScreenGui")
+    lagGui.Name = "LagSwitchGui"
+    lagGui.IgnoreGuiInset = true
+    lagGui.ResetOnSpawn = false
+    lagGui.Enabled = getgenv().lagSwitchEnabled
+    lagGui.Parent = playerGui
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 60, 0, 60)
+    frame.Position = UDim2.new(0.5, -30, 0.12 + (yOffset or 0), 0)
+    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    frame.BackgroundTransparency = 0.35
+    frame.BorderSizePixel = 0
+    frame.Parent = lagGui
+    makeDraggable(frame)
+
+    local corner = Instance.new("UICorner", frame)
+    corner.CornerRadius = UDim.new(0, 6)
+
+    local stroke = Instance.new("UIStroke", frame)
+    stroke.Color = Color3.fromRGB(150, 150, 150)
+    stroke.Thickness = 2
+
+    local label = Instance.new("TextLabel", frame)
+    label.Text = "Lag"
+    label.Size = UDim2.new(0.9, 0, 0.3, 0)
+    label.Position = UDim2.new(0.05, 0, 0.05, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Font = Enum.Font.Roboto
+    label.TextSize = 14
+    label.TextXAlignment = Enum.TextXAlignment.Center
+    label.TextYAlignment = Enum.TextYAlignment.Center
+    label.TextScaled = true
+
+    local subLabel = Instance.new("TextLabel", frame)
+    subLabel.Text = "Switch"
+    subLabel.Size = UDim2.new(0.9, 0, 0.3, 0)
+    subLabel.Position = UDim2.new(0.05, 0, 0.3, 0)
+    subLabel.BackgroundTransparency = 1
+    subLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    subLabel.Font = Enum.Font.Roboto
+    subLabel.TextSize = 14
+    subLabel.TextXAlignment = Enum.TextXAlignment.Center
+    subLabel.TextYAlignment = Enum.TextYAlignment.Center
+    subLabel.TextScaled = true
+
+    lagGuiButton = Instance.new("TextButton", frame)
+    lagGuiButton.Name = "TriggerButton"
+    lagGuiButton.Text = "Trigger"
+    lagGuiButton.Size = UDim2.new(0.9, 0, 0.35, 0)
+    lagGuiButton.Position = UDim2.new(0.05, 0, 0.6, 0)
+    lagGuiButton.BackgroundColor3 = Color3.fromRGB(0, 120, 80)
+    lagGuiButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    lagGuiButton.Font = Enum.Font.Roboto
+    lagGuiButton.TextSize = 12
+    lagGuiButton.TextXAlignment = Enum.TextXAlignment.Center
+    lagGuiButton.TextYAlignment = Enum.TextYAlignment.Center
+    lagGuiButton.TextScaled = true
+
+    local buttonCorner = Instance.new("UICorner", lagGuiButton)
+    buttonCorner.CornerRadius = UDim.new(0, 4)
+
+    lagGuiButton.MouseButton1Click:Connect(function()
+        task.spawn(function()
+            local start = tick()
+            while tick() - start < (getgenv().lagDuration or 0.5) do
+                local a = math.random(1, 1000000) * math.random(1, 1000000)
+                a = a / math.random(1, 10000)
+            end
+        end)
+    end)
+end
+
+-- Connect keyboard lag trigger once
+if not lagInputConnection then
+    lagInputConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        if input.KeyCode == Enum.KeyCode.L and getgenv().lagSwitchEnabled and not isLagActive then
+            isLagActive = true
+            task.spawn(function()
+                local duration = getgenv().lagDuration or 0.5
+                local start = tick()
+                while tick() - start < duration do
+                    local a = math.random(1, 1000000) * math.random(1, 1000000)
+                    a = a / math.random(1, 10000)
+                end
+                isLagActive = false
+            end)
+        end
+    end)
+end
+
+local LagSwitchToggle = Tabs.Utility:Toggle({
+    Title = "Lag Switch",
+    Icon = "zap",
+    Value = false,
+    Callback = function(state)
+        getgenv().lagSwitchEnabled = state
+        if state then
+            if not lagGui then
+                createLagGui(0)
+            else
+                lagGui.Enabled = true
+            end
+        else
+            if lagGui then
+                lagGui.Enabled = false
+            end
+        end
+    end
+})
+
+local LagDurationInput = Tabs.Utility:Input({
+    Title = "Lag Duration (seconds)",
+    Placeholder = "0.5",
+    Value = tostring(getgenv().lagDuration),
+    NumbersOnly = true,
+    Callback = function(text)
+        local n = tonumber(text)
+        if n and n > 0 then
+            getgenv().lagDuration = n
+        end
+    end
+})
+
 local GravityToggle = Tabs.Utility:Toggle({
     Title = "Custom Gravity",
     Value = false,
@@ -3235,144 +3421,6 @@ local GravityInput = Tabs.Utility:Input({
     end
 })
 
--- === Lag Switch Feature ===
-getgenv().lagSwitchEnabled = false
-getgenv().lagDuration = 0.5
-local lagGui = nil
-local lagGuiButton = nil
-
-local function createLagGui()
-    if lagGui then
-        lagGui:Destroy()
-    end
-     lagGui = Instance.new("ScreenGui")
-    lagGui.Name = "LagSwitchGui"
-    lagGui.IgnoreGuiInset = true
-    lagGui.ResetOnSpawn = false
-    lagGui.Enabled = getgenv().lagSwitchEnabled
-    lagGui.Parent = playerGui
-
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 60, 0, 60)
-    frame.Position = UDim2.new(0.5, -30, 0.12 + (yOffset or 0), 0)
-    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    frame.BackgroundTransparency = 0.35
-    frame.BorderSizePixel = 0
-    frame.Parent = lagGui
-
-    makeDraggable(frame)
-
-    local corner = Instance.new("UICorner", frame)
-    corner.CornerRadius = UDim.new(0, 6)
-
-    local stroke = Instance.new("UIStroke", frame)
-    stroke.Color = Color3.fromRGB(150, 150, 150)
-    stroke.Thickness = 2
-
-    local label = Instance.new("TextLabel", frame)
-    label.Text = "Lag"
-    label.Size = UDim2.new(0.9, 0, 0.3, 0)
-    label.Position = UDim2.new(0.05, 0, 0.05, 0)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.Font = Enum.Font.Roboto
-    label.TextSize = 14
-    label.TextXAlignment = Enum.TextXAlignment.Center
-    label.TextYAlignment = Enum.TextYAlignment.Center
-
-    local subLabel = Instance.new("TextLabel", frame)
-    subLabel.Text = "Switch"
-    subLabel.Size = UDim2.new(0.9, 0, 0.3, 0)
-    subLabel.Position = UDim2.new(0.05, 0, 0.3, 0)
-    subLabel.BackgroundTransparency = 1
-    subLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    subLabel.Font = Enum.Font.Roboto
-    subLabel.TextSize = 14
-    subLabel.TextXAlignment = Enum.TextXAlignment.Center
-    subLabel.TextYAlignment = Enum.TextYAlignment.Center
-
-    lagGuiButton = Instance.new("TextButton", frame)
-    lagGuiButton.Name = "TriggerButton"
-    lagGuiButton.Text = "Trigger"
-    lagGuiButton.Size = UDim2.new(0.9, 0, 0.35, 0)
-    lagGuiButton.Position = UDim2.new(0.05, 0, 0.6, 0)
-    lagGuiButton.BackgroundColor3 = Color3.fromRGB(0, 120, 80)
-    lagGuiButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    lagGuiButton.Font = Enum.Font.Roboto
-    lagGuiButton.TextSize = 12
-    lagGuiButton.TextXAlignment = Enum.TextXAlignment.Center
-    lagGuiButton.TextYAlignment = Enum.TextYAlignment.Center
-
-    local buttonCorner = Instance.new("UICorner", lagGuiButton)
-    buttonCorner.CornerRadius = UDim.new(0, 4)
-
-    lagGuiButton.MouseButton1Click:Connect(function()
-        task.spawn(function()
-            local start = tick()
-            while tick() - start < (getgenv().lagDuration or 0.5) do
-                local a = math.random(1, 1000000) * math.random(1, 1000000)
-                a = a / math.random(1, 10000)
-            end
-        end)
-    end)
-end
-
-
-local LagSwitchToggle = Tabs.Utility:Toggle({
-
--- Gravity Toggle
-    Title = "Lag Switch",
-    Icon = "zap",
-    Value = false,
-    Callback = function(state)
-        getgenv().lagSwitchEnabled = state
-		local UserInputService = game:GetService("UserInputService")
-local isLagActive = false
-
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-
-    if input.KeyCode == Enum.KeyCode.L and getgenv().lagSwitchEnabled and not isLagActive then
-        isLagActive = true
-
-        task.spawn(function()
-            local duration = getgenv().lagDuration or 0.5
-            local start = tick()
-            while tick() - start < duration do
-                -- CPU-intensive busy loop to simulate lag
-                local a = math.random() * math.random()
-                a = a / (math.random() + 0.1)
-            end
-            isLagActive = false
-        end)
-    end
-end)
-        if state then
-            if not lagGui then
-                createLagGui()
-            else
-                lagGui.Enabled = true
-            end
-        else
-            if lagGui then
-                lagGui.Enabled = false
-            end
-        end
-    end
-})
-
-local LagDurationInput = Tabs.Utility:Input({
-    Title = "Lag Duration (seconds)",
-    Placeholder = "0.5",
-    Value = tostring(getgenv().lagDuration),
-    NumbersOnly = true,
-    Callback = function(text)
-        local n = tonumber(text)
-        if n and n > 0 then
-            getgenv().lagDuration = n
-        end
-    end
-})
     -- Settings Tab
     Tabs.Settings:Section({ Title = "Settings", TextSize = 40 })
     Tabs.Settings:Section({ Title = "Personalize", TextSize = 20 })
@@ -3508,17 +3556,18 @@ configFile:Register("AutoEmoteToggle", AutoEmoteToggle)
                 configFile:Register("ThemeDropdown", ThemeDropdown)
                 configFile:Register("TransparencySlider", TransparencySlider)
                 configFile:Register("ThemeToggle", ThemeToggle)
-                configFile:Set("playerData", MyPlayerData)
                 configFile:Register("SpeedInput", SpeedInput)
-configFile:Register("JumpCapInput", JumpCapInput)
-configFile:Register("StrafeInput", StrafeInput)
-configFile:Register("ApplyMethodDropdown", ApplyMethodDropdown)
-configFile:Register("InfiniteSlideToggle", InfiniteSlideToggle)
-configFile:Register("GravityToggle", GravityToggle)
-configFile:Register("GravityInput", GravityInput)
-configFile:Register("InfiniteSlideSpeedInput", InfiniteSlideSpeedInput)
-configFile:Register("LagSwitchToggle", LagSwitchToggle)
-configFile:Register("LagDurationInput", LagDurationInput)
+                configFile:Register("AutoWhistleToggle", AutoWhistleToggle)
+                configFile:Register("JumpCapInput", JumpCapInput)
+                configFile:Register("StrafeInput", StrafeInput)
+                configFile:Register("ApplyMethodDropdown", ApplyMethodDropdown)
+                configFile:Register("InfiniteSlideToggle", InfiniteSlideToggle)
+                configFile:Register("GravityToggle", GravityToggle)
+                configFile:Register("GravityInput", GravityInput)
+                configFile:Register("InfiniteSlideSpeedInput", InfiniteSlideSpeedInput)
+                configFile:Register("LagSwitchToggle", LagSwitchToggle)
+                configFile:Register("LagDurationInput", LagDurationInput)
+                configFile:Set("playerData", MyPlayerData)
                 configFile:Set("lastSave", os.date("%Y-%m-%d %H:%M:%S"))
                 configFile:Save()
             end
@@ -3545,6 +3594,7 @@ configFile:Register("LagDurationInput", LagDurationInput)
                     if loadedData.TimerDisplayToggle then
     TimerDisplayToggle:Set(loadedData.TimerDisplayToggle)
 end
+if loadedData.AutoWhistleToggle then AutoWhistleToggle:Set(loadedData.AutoWhistleToggle) end
 if loadedData.GravityToggle then GravityToggle:Set(loadedData.GravityToggle) end
 if loadedData.GravityInput then GravityInput:Set(loadedData.GravityInput) end
 if loadedData.SpeedInput then SpeedInput:Set(loadedData.SpeedInput) end
