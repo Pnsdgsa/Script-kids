@@ -2341,6 +2341,43 @@ Tabs.Main:Button({
    -- Player Tabs
    Tabs.Player:Section({ Title = "Player", TextSize = 40 })
     Tabs.Player:Divider()
+    -- Modify Infinite Slide toggle to force low friction via Humanoid.PlatformStand + BodyVelocity
+Tabs.Player:Toggle({
+    Title = "bouncing height",
+    Value = false,
+    Callback = function(state)
+        if state then
+            -- Reduce friction by disabling gravity + using velocity
+            if player.Character and player.Character:FindFirstChild("Humanoid") then
+                local hum = player.Character.Humanoid
+                hum.PlatformStand = true
+                hum.WalkSpeed = 50 -- or higher
+                -- Optional: add BodyVelocity to maintain momentum
+            end
+        else
+            if player.Character and player.Character:FindFirstChild("Humanoid") then
+                player.Character.Humanoid.PlatformStand = false
+            end
+        end
+    end
+})
+-- Add this near the top with other services
+local player = game:GetService("Players").LocalPlayer
+
+SpeedInput = Tabs.Player:Input({
+    Title = "bouncing height i guess?",
+		Desc = "i trynna make speed modifyer speed work on pc but trun out i got this bug, it's seem cool lol Turn out it's just my cheap ass executeor",
+    Placeholder = "Default 16",
+    Value = "16",
+    Callback = function(text)
+        local speed = tonumber(text)
+        if speed and speed >= 0 then
+            if player.Character and player.Character:FindFirstChild("Humanoid") then
+                player.Character.Humanoid.WalkSpeed = speed
+            end
+        end
+    end
+})
     local InfiniteJumpToggle = Tabs.Player:Toggle({
         Title = "loc:INFINITE_JUMP",
         Value = false,
@@ -3158,7 +3195,7 @@ local BhopAccelInput = Tabs.Auto:Input({
         end
     })
 
--- UI in Utility Tab
+-- Utility Tab
 Tabs.Utility:Section({ Title = "Lag Tools", TextSize = 30 })
 Tabs.Utility:Divider()
 -- === Lag Switch Feature ===
@@ -3171,55 +3208,66 @@ local function createLagGui()
     if lagGui then
         lagGui:Destroy()
     end
-    lagGui = Instance.new("ScreenGui")
+     lagGui = Instance.new("ScreenGui")
     lagGui.Name = "LagSwitchGui"
     lagGui.IgnoreGuiInset = true
     lagGui.ResetOnSpawn = false
     lagGui.Enabled = getgenv().lagSwitchEnabled
-    lagGui.Parent = player:WaitForChild("PlayerGui")
+    lagGui.Parent = playerGui
 
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 190, 0, 30)
-    frame.Position = UDim2.new(0.5, -95, 0.35, 0)
-    frame.BackgroundColor3 = Color3.fromRGB(30, 50, 80)
+    frame.Size = UDim2.new(0, 60, 0, 60)
+    frame.Position = UDim2.new(0.5, -30, 0.12 + (yOffset or 0), 0)
+    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     frame.BackgroundTransparency = 0.35
     frame.BorderSizePixel = 0
     frame.Parent = lagGui
 
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(1, 0)
-    corner.Parent = frame
+    makeDraggable(frame)
 
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(100, 160, 255)
+    local corner = Instance.new("UICorner", frame)
+    corner.CornerRadius = UDim.new(0, 6)
+
+    local stroke = Instance.new("UIStroke", frame)
+    stroke.Color = Color3.fromRGB(150, 150, 150)
     stroke.Thickness = 2
-    stroke.Parent = frame
 
-    local label = Instance.new("TextLabel")
-    label.Text = "Lag Switch"
-    label.Size = UDim2.new(0.55, 0, 1, 0)
-    label.Position = UDim2.new(0, 10, 0, 0)
+    local label = Instance.new("TextLabel", frame)
+    label.Text = "Lag"
+    label.Size = UDim2.new(0.9, 0, 0.3, 0)
+    label.Position = UDim2.new(0.05, 0, 0.05, 0)
     label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.fromRGB(220, 240, 255)
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
     label.Font = Enum.Font.Roboto
     label.TextSize = 14
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
+    label.TextXAlignment = Enum.TextXAlignment.Center
+    label.TextYAlignment = Enum.TextYAlignment.Center
 
-    lagGuiButton = Instance.new("TextButton")
-    lagGuiButton.Name = "ToggleButton"
+    local subLabel = Instance.new("TextLabel", frame)
+    subLabel.Text = "Switch"
+    subLabel.Size = UDim2.new(0.9, 0, 0.3, 0)
+    subLabel.Position = UDim2.new(0.05, 0, 0.3, 0)
+    subLabel.BackgroundTransparency = 1
+    subLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    subLabel.Font = Enum.Font.Roboto
+    subLabel.TextSize = 14
+    subLabel.TextXAlignment = Enum.TextXAlignment.Center
+    subLabel.TextYAlignment = Enum.TextYAlignment.Center
+
+    lagGuiButton = Instance.new("TextButton", frame)
+    lagGuiButton.Name = "TriggerButton"
     lagGuiButton.Text = "Trigger"
-    lagGuiButton.Size = UDim2.new(0.3, 0, 0.75, 0)
-    lagGuiButton.Position = UDim2.new(0.65, 0, 0.13, 0)
+    lagGuiButton.Size = UDim2.new(0.9, 0, 0.35, 0)
+    lagGuiButton.Position = UDim2.new(0.05, 0, 0.6, 0)
     lagGuiButton.BackgroundColor3 = Color3.fromRGB(0, 120, 80)
-    lagGuiButton.TextColor3 = Color3.new(1, 1, 1)
+    lagGuiButton.TextColor3 = Color3.fromRGB(255, 255, 255)
     lagGuiButton.Font = Enum.Font.Roboto
-    lagGuiButton.TextSize = 13
-    lagGuiButton.Parent = frame
+    lagGuiButton.TextSize = 12
+    lagGuiButton.TextXAlignment = Enum.TextXAlignment.Center
+    lagGuiButton.TextYAlignment = Enum.TextYAlignment.Center
 
-    local buttonCorner = Instance.new("UICorner")
-    buttonCorner.CornerRadius = UDim.new(1, 0)
-    buttonCorner.Parent = lagGuiButton
+    local buttonCorner = Instance.new("UICorner", lagGuiButton)
+    buttonCorner.CornerRadius = UDim.new(0, 4)
 
     lagGuiButton.MouseButton1Click:Connect(function()
         task.spawn(function()
@@ -3239,6 +3287,27 @@ local LagSwitchToggle = Tabs.Utility:Toggle({
     Value = false,
     Callback = function(state)
         getgenv().lagSwitchEnabled = state
+		local UserInputService = game:GetService("UserInputService")
+local isLagActive = false
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    if input.KeyCode == Enum.KeyCode.L and getgenv().lagSwitchEnabled and not isLagActive then
+        isLagActive = true
+
+        task.spawn(function()
+            local duration = getgenv().lagDuration or 0.5
+            local start = tick()
+            while tick() - start < duration do
+                -- CPU-intensive busy loop to simulate lag
+                local a = math.random() * math.random()
+                a = a / (math.random() + 0.1)
+            end
+            isLagActive = false
+        end)
+    end
+end)
         if state then
             if not lagGui then
                 createLagGui()
