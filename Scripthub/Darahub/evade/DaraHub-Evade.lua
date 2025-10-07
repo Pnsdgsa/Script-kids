@@ -347,17 +347,18 @@ local currentSettings = {
     AirStrafeAcceleration = "187"
 }
 local emoteList = {}
+
 local success, emotesFolder = pcall(function()
-    return ReplicatedStorage:FindFirstChild("Items") and ReplicatedStorage.Items:FindFirstChild("Emotes")
+    return game:GetService("ReplicatedStorage").Items.Emotes
 end)
-if success and emotesFolder and emotesFolder:IsA("Instance") then
+
+if success and typeof(emotesFolder) == "Instance" then
     for _, emote in ipairs(emotesFolder:GetChildren()) do
         if emote:IsA("ModuleScript") or emote:IsA("LocalScript") or emote:IsA("Script") then
             table.insert(emoteList, emote.Name)
         end
     end
 end
-table.sort(emoteList)
 
 getgenv().SelectedEmote = nil
 getgenv().EmoteEnabled = false
@@ -3060,9 +3061,19 @@ local BhopModeDropdown = Tabs.Auto:Dropdown({
         getgenv().bhopMode = value
     end
 })
-
+local BhopAccelInput = Tabs.Auto:Input({
+    Title = "Bhop Acceleration (Negative Only)",
+    Placeholder = "-0.5",
+    Numeric = true,
+    Callback = function(value)
+        if tostring(value):sub(1,1) == "-" then
+            local n = tonumber(value)
+            if n then getgenv().bhopAccelValue = n end
+        end
+    end
+})
 local AutoEmoteToggle = Tabs.Auto:Toggle({
-    Title = "Auto Emote",
+    Title = "Auto Emote (Hold Crouch Button)",
     Value = false,
     Callback = function(state)
         getgenv().EmoteEnabled = state
@@ -3077,17 +3088,6 @@ local EmoteDropdown = Tabs.Auto:Dropdown({
     end
 })
 
-local BhopAccelInput = Tabs.Auto:Input({
-    Title = "Bhop Acceleration (Negative Only)",
-    Placeholder = "-0.5",
-    Numeric = true,
-    Callback = function(value)
-        if tostring(value):sub(1,1) == "-" then
-            local n = tonumber(value)
-            if n then getgenv().bhopAccelValue = n end
-        end
-    end
-})
     local AutoCarryToggle = Tabs.Auto:Toggle({
         Title = "loc:AUTO_CARRY",
         Value = false,
@@ -3592,7 +3592,6 @@ end)
 
 Window:UnlockAll()
 
--- Connections for reapplication (round starts, timers, player presence)
 local roundStartedConnection
 local timerConnection
 
@@ -3605,7 +3604,7 @@ local function setupAttributeConnections()
             local roundStarted = gameStatsPath:GetAttribute("RoundStarted")
             if roundStarted == true then
                 appliedOnce = false
-                applyStoredSettings()  -- Reapply on new round
+                applyStoredSettings()
             end
         end)
         
@@ -3619,7 +3618,6 @@ end
 
 setupAttributeConnections()
 
--- Monitor player model presence for reapplications
 task.spawn(function()
     while true do
         task.wait(0.5)
@@ -3635,12 +3633,10 @@ task.spawn(function()
 end)
 
 game:GetService("UserInputService").WindowFocused:Connect(function()
-    -- Save when window loses focus
     saveKeybind()
 end)
 
 
--- === BHop Script Integrated ===
 do
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -3886,18 +3882,49 @@ task.spawn(function()
     end
 end)
 task.spawn(function()
-    while true do
-        if getgenv().EmoteEnabled and getgenv().SelectedEmote and player.Character then
-            local emoteEvent = ReplicatedStorage:FindFirstChild("Events")
-                and ReplicatedStorage.Events:FindFirstChild("Character")
-                and ReplicatedStorage.Events.Character:FindFirstChild("Emote")
-            if emoteEvent then
-                pcall(function()
-                    emoteEvent:FireServer(getgenv().SelectedEmote)
-                end)
-            end
+    local Players = game:GetService("Players")
+    local player = Players.LocalPlayer
+    local guiPath = { "PlayerGui", "Shared", "HUD", "Mobile", "Right", "Mobile", "CrouchButton" }
+
+    local function waitForDescendant(parent, name)
+        local found = parent:FindFirstChild(name, true)
+        while not found do
+            parent.DescendantAdded:Wait()
+            found = parent:FindFirstChild(name, true)
         end
-        task.wait(3) -- Emote every 3 seconds (adjust as needed)
+        return found
+    end
+
+    local function connectCrouchButton()
+        local gui = player:WaitForChild(guiPath[1])
+        for i = 2, #guiPath do
+            gui = waitForDescendant(gui, guiPath[i])
+        end
+        local button = gui
+
+        local holding = false
+        local validHold = false
+
+        button.MouseButton1Down:Connect(function()
+            holding = true
+            validHold = true
+            task.delay(0.5, function()
+                if holding and validHold and getgenv().EmoteEnabled and getgenv().SelectedEmote then
+                    local args = { [1] = getgenv().SelectedEmote }
+                    game:GetService("ReplicatedStorage"):WaitForChild("Events", 9e9):WaitForChild("Character", 9e9):WaitForChild("Emote", 9e9):FireServer(unpack(args))
+                end
+            end)
+        end)
+
+        button.MouseButton1Up:Connect(function()
+            holding = false
+            validHold = false
+        end)
+    end
+
+    while true do
+        pcall(connectCrouchButton)
+        task.wait(1)
     end
 end)
 end
