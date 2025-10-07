@@ -335,6 +335,7 @@ local VirtualUser = game:GetService("VirtualUser")
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local workspace = game:GetService("Workspace")
+local originalGameGravity = workspace.Gravity
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
@@ -476,6 +477,10 @@ local function isPlayerModelPresent()
 end
 -- Feature states
 local featureStates = {
+    CustomGravity = false,
+    CustomGravity = false,
+GravityValue = originalGameGravity,
+    GravityValue = 50,
     InfiniteJump = false,
     Fly = false,
     TPWALK = false,
@@ -1459,7 +1464,11 @@ local function setupJumpBoost()
         end
     end)
 end
-
+if featureStates.CustomGravity then
+    workspace.Gravity = featureStates.GravityValue
+else
+    workspace.Gravity = originalGameGravity
+end
 local function reapplyFeatures()
     if featureStates.Fly then
         if flying then stopFlying() end
@@ -3198,6 +3207,34 @@ local EmoteDropdown = Tabs.Auto:Dropdown({
 -- Utility Tab
 Tabs.Utility:Section({ Title = "Lag Tools", TextSize = 30 })
 Tabs.Utility:Divider()
+local GravityToggle = Tabs.Utility:Toggle({
+    Title = "Custom Gravity",
+    Value = false,
+    Callback = function(state)
+        featureStates.CustomGravity = state
+        if state then
+            workspace.Gravity = featureStates.GravityValue
+        else
+            workspace.Gravity = originalGameGravity
+        end
+    end
+})
+
+local GravityInput = Tabs.Utility:Input({
+    Title = "Gravity Value",
+    Placeholder = tostring(originalGameGravity),
+    Value = tostring(featureStates.GravityValue),
+    Callback = function(text)
+        local num = tonumber(text)
+        if num then
+            featureStates.GravityValue = num
+            if featureStates.CustomGravity then
+                workspace.Gravity = num
+            end
+        end
+    end
+})
+
 -- === Lag Switch Feature ===
 getgenv().lagSwitchEnabled = false
 getgenv().lagDuration = 0.5
@@ -3282,6 +3319,8 @@ end
 
 
 local LagSwitchToggle = Tabs.Utility:Toggle({
+
+-- Gravity Toggle
     Title = "Lag Switch",
     Icon = "zap",
     Value = false,
@@ -3475,6 +3514,8 @@ configFile:Register("JumpCapInput", JumpCapInput)
 configFile:Register("StrafeInput", StrafeInput)
 configFile:Register("ApplyMethodDropdown", ApplyMethodDropdown)
 configFile:Register("InfiniteSlideToggle", InfiniteSlideToggle)
+configFile:Register("GravityToggle", GravityToggle)
+configFile:Register("GravityInput", GravityInput)
 configFile:Register("InfiniteSlideSpeedInput", InfiniteSlideSpeedInput)
 configFile:Register("LagSwitchToggle", LagSwitchToggle)
 configFile:Register("LagDurationInput", LagDurationInput)
@@ -3504,6 +3545,8 @@ configFile:Register("LagDurationInput", LagDurationInput)
                     if loadedData.TimerDisplayToggle then
     TimerDisplayToggle:Set(loadedData.TimerDisplayToggle)
 end
+if loadedData.GravityToggle then GravityToggle:Set(loadedData.GravityToggle) end
+if loadedData.GravityInput then GravityInput:Set(loadedData.GravityInput) end
 if loadedData.SpeedInput then SpeedInput:Set(loadedData.SpeedInput) end
 if loadedData.JumpCapInput then JumpCapInput:Set(loadedData.JumpCapInput) end
 if loadedData.StrafeInput then StrafeInput:Set(loadedData.StrafeInput) end
