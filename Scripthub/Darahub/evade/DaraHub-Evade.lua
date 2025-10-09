@@ -99,39 +99,30 @@ local function updateWindowOpenState()
     isWindowOpen = isWindowOpen or false
 end
 
--- Try initial update (non-fatal)
 pcall(updateWindowOpenState)
 
--- Key system variables
 local currentKey = Enum.KeyCode.RightControl -- Default key
 local keyConnection = nil
 local isListeningForInput = false
 local keyInputConnection = nil
 
--- Expose keyBindButton variable so we can update its description later
 local keyBindButton = nil
 
--- File path for saving keybind
 local keybindFile = "keybind_config.txt"
 
--- Function to get clean key name (remove "Enum.KeyCode." prefix)
 local function getCleanKeyName(keyCode)
     local keyString = tostring(keyCode)
-    -- Remove "Enum.KeyCode." prefix if it exists
     return keyString:gsub("Enum%.KeyCode%.", "")
 end
 
--- Function to save keybind to file
 local function saveKeybind()
     local keyString = tostring(currentKey)
     writefile(keybindFile, keyString)
 end
 
--- Function to load keybind from file
 local function loadKeybind()
     if isfile(keybindFile) then
         local savedKey = readfile(keybindFile)
-        -- Convert string back to KeyCode
         for _, key in pairs(Enum.KeyCode:GetEnumItems()) do
             if tostring(key) == savedKey then
                 currentKey = key
@@ -142,45 +133,43 @@ local function loadKeybind()
     return false
 end
 
--- Load keybind when script starts
 loadKeybind()
 
--- Helper: robustly update the keybind button description (tries several APIs)
 local function updateKeybindButtonDesc()
     if not keyBindButton then return false end
     local desc = "Current Key: " .. getCleanKeyName(currentKey)
     local success = false
 
     local methods = {
-        function() -- common SetDesc
+        function()
             if type(keyBindButton.SetDesc) == "function" then
                 keyBindButton:SetDesc(desc)
             else
                 error("no SetDesc")
             end
         end,
-        function() -- some widgets use :Set("Desc", value)
+        function()
             if type(keyBindButton.Set) == "function" then
                 keyBindButton:Set("Desc", desc)
             else
                 error("no Set")
             end
         end,
-        function() -- direct property set
+        function()
             if keyBindButton.Desc ~= nil then
                 keyBindButton.Desc = desc
             else
                 error("no Desc property")
             end
         end,
-        function() -- alternate name
+        function()
             if type(keyBindButton.SetDescription) == "function" then
                 keyBindButton:SetDescription(desc)
             else
                 error("no SetDescription")
             end
         end,
-        function() -- fallback: attempt to call SetValue (some libs)
+        function()
             if type(keyBindButton.SetValue) == "function" then
                 keyBindButton:SetValue(desc)
             else
@@ -210,13 +199,10 @@ local function updateKeybindButtonDesc()
     return success
 end
 
--- Function to handle key binding
 local function bindKey(keyBindButtonParam)
-    -- Prefer parameter if provided
     local targetButton = keyBindButtonParam or keyBindButton
 
     if isListeningForInput then 
-        -- If already listening, cancel it
         isListeningForInput = false
         if keyConnection then
             keyConnection:Disconnect()
@@ -237,7 +223,6 @@ local function bindKey(keyBindButtonParam)
         Duration = 3
     })
     
-    -- Listen for key input
     keyConnection = game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
         if gameProcessed then return end
         
@@ -249,7 +234,6 @@ local function bindKey(keyBindButtonParam)
                 keyConnection = nil
             end
             
-            -- Save the new keybind
             saveKeybind()
             
             WindUI:Notify({
@@ -257,21 +241,17 @@ local function bindKey(keyBindButtonParam)
                 Content = "Key bound to: " .. getCleanKeyName(currentKey),
                 Duration = 3
             })
-            -- Try to update the displayed description on the button
             pcall(function()
-                -- updateKeybindButtonDesc uses the global keyBindButton if present
                 updateKeybindButtonDesc()
             end)
         end
     end)
 end
 
--- Function to handle key press functionality (robust against missing IsOpen)
 local function handleKeyPress(input, gameProcessed)
     if gameProcessed then return end
     
     if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == currentKey then
-        -- Determine visibility robustly
         local success, isVisible = pcall(function()
             if Window and type(Window.IsOpen) == "function" then
                 return Window:IsOpen()
@@ -289,7 +269,6 @@ local function handleKeyPress(input, gameProcessed)
             if Window and type(Window.Close) == "function" then
                 pcall(function() Window:Close() end)
             else
-                -- Fallback: mark state and call OnClose callback if available
                 isWindowOpen = false
                 if Window and type(Window.OnClose) == "function" then
                     pcall(function() Window:OnClose() end)
@@ -308,9 +287,7 @@ local function handleKeyPress(input, gameProcessed)
     end
 end
 
--- Connect the key functionality
 keyInputConnection = game:GetService("UserInputService").InputBegan:Connect(handleKeyPress)
--- Add tags and time tag
 Window:SetIconSize(48)
 Window:Tag({
     Title = "v1.0.1",
@@ -321,7 +298,6 @@ Window:Tag({
     Color = Color3.fromHex("#315dff")
 })
 
--- Theme switcher button
 Window:CreateTopbarButton("theme-switcher", "moon", function()
     WindUI:SetTheme(WindUI:GetCurrentTheme() == "Dark" and "Light" or "Dark")
 end, 990)
@@ -342,7 +318,6 @@ local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local placeId = game.PlaceId
 local jobId = game.JobId
--- Free Cam Variables (Add these)
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -359,9 +334,9 @@ local FOV_SPEED = 5
 local MIN_FOV = 10
 local MAX_FOV = 120
 local DEFAULT_FOV = 70
-local SPAWN_POSITION = Vector3.new(0, 10, 0) -- Fixed spawn position for player
+local SPAWN_POSITION = Vector3.new(0, 10, 0)
 local isFreecamEnabled = false
-local isFreecamMovementEnabled = true -- Flag for controlling freecam movement
+local isFreecamMovementEnabled = true
 local cameraPosition = Vector3.new(0, 10, 0)
 local cameraRotation = Vector2.new(0, 0)
 local JUMP_FORCE = 50
@@ -374,15 +349,11 @@ local isAltHeld = false
 local heartbeatConnection
 local inputChangedConnection
 local characterAddedConnection
-local dragging = false -- Flag to track if FOV slider is being dragged
-
--- Free Cam GUI (Create but hide initially)
+local dragging = false
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "FreecamGui"
 screenGui.Parent = player.PlayerGui
 screenGui.ResetOnSpawn = false
-
--- Create a main Frame for controls
 local controlFrame = Instance.new("Frame")
 controlFrame.Name = "ControlFrame"
 controlFrame.Size = UDim2.new(0, 140, 0, 150)
@@ -391,9 +362,8 @@ controlFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 controlFrame.BackgroundTransparency = 1
 controlFrame.BorderSizePixel = 2
 controlFrame.BorderColor3 = Color3.fromRGB(100, 100, 100)
-controlFrame.Visible = false  -- Hidden by default
+controlFrame.Visible = false 
 controlFrame.Parent = screenGui
--- Create a TextButton for toggling freecam
 local freecamButton = Instance.new("TextButton")
 freecamButton.Name = "FreecamButton"
 freecamButton.Text = "Enable Freecam"
@@ -405,7 +375,6 @@ freecamButton.Font = Enum.Font.SourceSans
 freecamButton.TextSize = 14
 freecamButton.Parent = controlFrame
 
--- Create a TextButton for toggling player movement control
 local movementButton = Instance.new("TextButton")
 movementButton.Name = "MovementButton"
 movementButton.Text = "Control Player "
@@ -415,10 +384,9 @@ movementButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 movementButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 movementButton.Font = Enum.Font.SourceSans
 movementButton.TextSize = 14
-movementButton.Visible = false -- Hidden by default
+movementButton.Visible = false
 movementButton.Parent = controlFrame
 
--- Create a Frame for the FOV Slider
 local sliderFrame = Instance.new("Frame")
 sliderFrame.Name = "FOVSliderFrame"
 sliderFrame.Size = UDim2.new(0, 120, 0, 60)
@@ -427,8 +395,6 @@ sliderFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 sliderFrame.BorderSizePixel = 0
 sliderFrame.Visible = false
 sliderFrame.Parent = controlFrame
-
--- Create a TextLabel for FOV display
 local fovLabel = Instance.new("TextLabel")
 fovLabel.Name = "FOVLabel"
 fovLabel.Size = UDim2.new(1, 0, 0, 15)
@@ -440,7 +406,6 @@ fovLabel.TextSize = 12
 fovLabel.Text = "FOV: " .. DEFAULT_FOV
 fovLabel.Parent = sliderFrame
 
--- Create a Slider (using a Frame and a draggable Button)
 local sliderBar = Instance.new("Frame")
 sliderBar.Name = "SliderBar"
 sliderBar.Size = UDim2.new(0, 100, 0, 8)
@@ -455,7 +420,6 @@ sliderHandle.Position = UDim2.new(0, (DEFAULT_FOV - MIN_FOV) / (MAX_FOV - MIN_FO
 sliderHandle.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
 sliderHandle.Text = ""
 sliderHandle.Parent = sliderBar
--- Function to update FOV based on slider position
 local function updateFOV()
     local sliderPos = sliderHandle.Position.X.Offset
     local normalizedValue = math.clamp((sliderPos + 8) / 100, 0, 1)
@@ -464,7 +428,6 @@ local function updateFOV()
     fovLabel.Text = "FOV: " .. math.floor(camera.FieldOfView + 0.5)
 end
 
--- Slider dragging logic
 sliderHandle.MouseButton1Down:Connect(function()
     dragging = true
 end)
@@ -506,7 +469,6 @@ local function freezePlayer(character)
             if rootPart then rootPart.Anchored = false end
             return
         end
-        -- Only apply gravity and update position if movement is enabled
         if isFreecamMovementEnabled then
             local currentY = rootPart.Position.Y
             if humanoid.FloorMaterial == Enum.Material.Air and not isJumping then
@@ -630,7 +592,7 @@ local function reloadFreecam()
         local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
         if rootPart then
             rootPart.Anchored = false
-            rootPart.Position = SPAWN_POSITION -- Reset player position
+            rootPart.Position = SPAWN_POSITION
         end
     end
     
@@ -714,7 +676,6 @@ local function deactivateFreecam()
     if touchConnection then touchConnection:Disconnect() end
 end
 
--- Connect the freecam toggle button
 freecamButton.MouseButton1Click:Connect(function()
     if isFreecamEnabled then
         deactivateFreecam()
@@ -723,11 +684,10 @@ freecamButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- Connect the movement toggle button
+
 movementButton.MouseButton1Click:Connect(function()
     isFreecamMovementEnabled = not isFreecamMovementEnabled
     movementButton.Text = isFreecamMovementEnabled and "Control Player " or "Control Freecam"
-    -- Update player anchored state
     if player.Character then
         local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
         if rootPart then
@@ -756,7 +716,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         end
     end
 end)
-
 UserInputService.InputEnded:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Enum.KeyCode.LeftAlt or input.KeyCode == Enum.KeyCode.RightAlt then
@@ -910,7 +869,6 @@ local function isPlayerModelPresent()
     local PlayersFolder = GameFolder and GameFolder:FindFirstChild("Players")
     return PlayersFolder and PlayersFolder:FindFirstChild(player.Name) ~= nil
 end
--- Feature states
 local featureStates = {
     AutoWhistle = false,
     CustomGravity = false,
@@ -960,35 +918,28 @@ local featureStates = {
     ZoomValue = 1,
     TimerDisplay = false
 }
-
--- Character references
+-- Variables
 local character, humanoid, rootPart
 local isJumpHeld = false
 
--- Fly Variables
 local flying = false
 local bodyVelocity, bodyGyro
 
 local ToggleTpwalk = false
 local TpwalkConnection
 
--- Jump Boost Variables
 local jumpCount = 0
 local MAX_JUMPS = math.huge
 
--- Anti AFK Variables
 local AntiAFKConnection
 
--- Auto Carry Variables
 local AutoCarryConnection
 
--- Auto Revive Variables
 local reviveRange = 10
 local loopDelay = 0.15
 local reviveLoopHandle = nil
 local interactEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Character"):WaitForChild("Interact")
 
--- ESP Variables
 local playerEspElements = {}
 local playerEspConnection = nil
 local nextbotESPThread = nil
@@ -996,8 +947,6 @@ local downedTracerConnection
 local downedNameESPConnection
 local downedTracerLines = {}
 local downedNameESPLabels = {}
-
--- Function 3D box Esp
 local function draw3DBox(esp, hrp, camera, boxColor, boxSize)
     if not hrp or not camera then
         warn("draw3DBox: Missing hrp or camera")
@@ -1051,7 +1000,6 @@ local function draw3DBox(esp, hrp, camera, boxColor, boxSize)
         end
     end
 
-    -- Define edges for the 3D box
     local edges = {
         {1, 2}, {1, 3}, {1, 5},
         {2, 4}, {2, 6},
@@ -1420,7 +1368,6 @@ local function startPlayerESP()
     playerEspConnection = RunService.RenderStepped:Connect(updatePlayerESP)
 end
 
--- Nextbot Name ESP
 local nextBotNames = {}
 if ReplicatedStorage:FindFirstChild("NPCs") then
     for _, npc in ipairs(ReplicatedStorage.NPCs:GetChildren()) do
@@ -1436,11 +1383,8 @@ local function isNextbotModel(model)
     return false
 end
 
--- Nextbot ESP Variables
 local nextbotEspElements = {}
 local nextbotEspConnection = nil
-
--- Nextbot ESP Function
 local function updateNextbotESP()
     local camera = workspace.CurrentCamera
     if not camera then return end
@@ -1664,7 +1608,6 @@ local originalGlobalShadows = Lighting.GlobalShadows
 local originalFOV = workspace.CurrentCamera and workspace.CurrentCamera.FieldOfView or 70
 local originalAtmospheres = {}
 
--- Store existing Atmosphere objects
 for _, v in pairs(Lighting:GetDescendants()) do
     if v:IsA("Atmosphere") then
         table.insert(originalAtmospheres, v)
@@ -1679,7 +1622,6 @@ local function startNoFog()
         end
     end
 end
--- Function to check if player is grounded
 local function isPlayerGrounded()
     if not character or not humanoid or not rootPart then
         return false
@@ -1693,7 +1635,6 @@ local function isPlayerGrounded()
     return raycastResult ~= nil
 end
 
--- Function to make player jump
 local function bouncePlayer()
     if character and humanoid and rootPart and humanoid.Health > 0 then
         if not isPlayerGrounded() then
@@ -1704,13 +1645,11 @@ local function bouncePlayer()
     end
 end
 
--- Function to get distance from local player
 local function getDistanceFromPlayer(targetPosition)
     if not character or not rootPart then return 0 end
     return (targetPosition - rootPart.Position).Magnitude
 end
 
--- Auto Revive Functions
 local function isPlayerDowned(pl)
     if not pl or not pl.Character then return false end
     local char = pl.Character
@@ -1764,7 +1703,6 @@ local function stopAutoRevive()
     end
 end
 
--- Fly Functions
 local function startFlying()
     if not character or not humanoid or not rootPart then return end
     flying = true
@@ -1817,7 +1755,6 @@ local function updateFly()
     bodyGyro.CFrame = cameraCFrame
 end
 
--- TP Walk Functions
 local function Tpwalking()
     if ToggleTpwalk and character and humanoid and rootPart then
         local moveDirection = humanoid.MoveDirection
@@ -1860,8 +1797,6 @@ local function stopTpwalk()
     end
 end
 
--- Jump Boost Functions
--- Define critical functions at the top
 local function setupJumpBoost()
     if not character or not humanoid then return end
     humanoid.StateChanged:Connect(function(oldState, newState)
@@ -1883,6 +1818,9 @@ if featureStates.CustomGravity then
     workspace.Gravity = featureStates.GravityValue
 else
     workspace.Gravity = originalGameGravity
+end
+if not featureStates.GravityValue or type(featureStates.GravityValue) ~= "number" then
+    featureStates.GravityValue = originalGameGravity
 end
 local function reapplyFeatures()
     if featureStates.Fly then
@@ -1907,7 +1845,6 @@ local function stopJumpBoost()
     end
 end
 
--- Anti AFK Functions
 local function startAntiAFK()
     AntiAFKConnection = player.Idled:Connect(function()
         VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
@@ -1923,7 +1860,6 @@ local function stopAntiAFK()
     end
 end
 
--- Auto Carry Functions
 local function startAutoCarry()
     AutoCarryConnection = RunService.Heartbeat:Connect(function()
         if not featureStates.AutoCarry then return end
@@ -1953,7 +1889,6 @@ local function stopAutoCarry()
     end
 end
 
--- FullBright Functions
 local function startFullBright()
     originalBrightness = Lighting.Brightness
     originalOutdoorAmbient = Lighting.OutdoorAmbient
@@ -1991,7 +1926,6 @@ local function stopNoFog()
         end
     end
 end
--- Auto Vote Functions
 local function fireVoteServer(mapNumber)
     local eventsFolder = ReplicatedStorage:WaitForChild("Events", 10)
     if eventsFolder then
@@ -2019,7 +1953,6 @@ local function stopAutoVote()
     end
 end
 
--- Auto Self Revive Functions
 local function startAutoSelfRevive()
     AutoSelfReviveConnection = RunService.Heartbeat:Connect(function()
         if character and character:GetAttribute("Downed") then
@@ -2035,7 +1968,6 @@ local function stopAutoSelfRevive()
     end
 end
 
--- Auto Win Functions
 local function startAutoWin()
     AutoWinConnection = RunService.Heartbeat:Connect(function()
         if character and rootPart then
@@ -2067,7 +1999,6 @@ local function stopAutoWin()
     end
 end
 
--- Auto Money Farm Functions
 local function startAutoMoneyFarm()
     AutoMoneyFarmConnection = RunService.Heartbeat:Connect(function()
         if character and rootPart then
@@ -2110,13 +2041,13 @@ end
 local autoWhistleHandle = nil
 
 local function startAutoWhistle()
-    if autoWhistleHandle then return end  -- Already running
+    if autoWhistleHandle then return end  
     autoWhistleHandle = task.spawn(function()
         while featureStates.AutoWhistle do
-            pcall(function()  -- Wrap in pcall to prevent errors from breaking the loop
+            pcall(function() 
                 game:GetService("ReplicatedStorage").Events.Character.Whistle:FireServer()
             end)
-            task.wait(1)  --
+            task.wait(1)
         end
     end)
 end
@@ -2128,14 +2059,12 @@ local function stopAutoWhistle()
         autoWhistleHandle = nil
     end
 end
--- Manual Revive Function
 local function manualRevive()
     if character and character:GetAttribute("Downed") then
         ReplicatedStorage.Events.Player.ChangePlayerMode:FireServer(true)
     end
 end
 
--- Downed Tracer and Box ESP Functions
 local function cleanupTracers(tracerTable)
     for _, drawing in ipairs(tracerTable) do
         if drawing and drawing.Remove then 
@@ -2162,7 +2091,6 @@ local function startDownedTracer()
                         if hrp and workspace.CurrentCamera then
                             local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
                             if onScreen then
-                                -- Tracer
                                 if featureStates.DownedTracer then
                                     local tracer = Drawing.new("Line")
                                     tracer.Color = Color3.fromRGB(255, 165, 0)
@@ -2173,7 +2101,6 @@ local function startDownedTracer()
                                     tracer.Visible = true
                                     table.insert(downedTracerLines, tracer)
                                 end
-                                -- Box
                                 if featureStates.DownedBoxESP then
                                     local boxColor = Color3.fromRGB(255, 255, 0)
                                     if featureStates.DownedBoxType == "2D" then
@@ -2190,7 +2117,6 @@ local function startDownedTracer()
                                         box.Visible = true
                                         table.insert(downedTracerLines, box)
                                     else
-                                        -- 3D Box
                                         local size = Vector3.new(3, 5, 2)
                                         local offsets = {
                                             Vector3.new( size.X/2,  size.Y/2,  size.Z/2),
@@ -2248,7 +2174,6 @@ local function stopDownedTracer()
     downedTracerLines = {}
 end
 
--- Downed Name ESP Functions
 local function cleanupNameESPLabels(labelTable)
     for _, label in ipairs(labelTable) do
         if label and label.Remove then 
@@ -2308,7 +2233,6 @@ local function stopDownedNameESP()
     downedNameESPLabels = {}
 end
 
--- Function to handle character loading
 local function onCharacterAdded(newCharacter, plr)
     if plr == player then
         character = newCharacter
@@ -2338,7 +2262,6 @@ if featureStates.ZoomValue then
         zoomObj.Value = featureStates.ZoomValue
     end
 end
--- Function to reapply all active features after respawn
 local function reapplyFeatures()
     if featureStates.Fly then
         if flying then stopFlying() end
@@ -2412,7 +2335,6 @@ end
 if featureStates.TimerDisplay then
 TimerDisplayToggle:Set(true)
 end
--- Function to handle player joining
 local function onPlayerAdded(plr)
     plr.CharacterAdded:Connect(function(newCharacter)
         onCharacterAdded(newCharacter, plr)
@@ -2422,15 +2344,12 @@ local function onPlayerAdded(plr)
     end
 end
 
--- Connect player added event
 Players.PlayerAdded:Connect(onPlayerAdded)
 
--- Handle existing players
 for _, plr in ipairs(Players:GetPlayers()) do
     onPlayerAdded(plr)
 end
 
--- Input handling for infinite jump (keyboard)
 UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
     if not gameProcessedEvent and input.KeyCode == Enum.KeyCode.Space then
         if featureStates.InfiniteJump then
@@ -2459,7 +2378,6 @@ UserInputService.InputEnded:Connect(function(input, gameProcessedEvent)
     end
 end)
 
--- Handle mobile jump button tap and hold
 local function setupMobileJumpButton()
     local success, result = pcall(function()
         local touchGui = player.PlayerGui:WaitForChild("TouchGui", 5)
@@ -2469,10 +2387,8 @@ local function setupMobileJumpButton()
         jumpButton.Activated:Connect(function()
             if featureStates.InfiniteJump then
                 if featureStates.JumpMethod == "Spam" then
-                    -- Trigger a single jump on tap
                     bouncePlayer()
                 elseif featureStates.JumpMethod == "Hold" then
-                    -- Trigger a single jump on tap for consistency
                     bouncePlayer()
                 end
             end
@@ -2501,7 +2417,6 @@ local function setupMobileJumpButton()
     end
 end
 
--- Initialize character
 if player.Character then
     onCharacterAdded(player.Character, player)
 else
@@ -2510,10 +2425,8 @@ else
     end)
 end
 
--- Connect fly update
 RunService.RenderStepped:Connect(updateFly)
 
--- Connect FOV enforcement
 RunService.Heartbeat:Connect(function()
     if workspace.CurrentCamera and featureStates.DesiredFOV then
         workspace.CurrentCamera.FieldOfView = featureStates.DesiredFOV
@@ -2532,9 +2445,7 @@ RunService.Heartbeat:Connect(function()
         end
     end
 end)
--- UI Setup with WindUI
 local function setupGui()
--- Function to fetch a list of public servers
 local function getServers()
     local request = request({
         Url = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Desc&limit=100",
@@ -2562,7 +2473,6 @@ local function getServers()
     end
 end
 
--- Function for random server hop
 local function serverHop()
 
 local AllIDs = {}
@@ -2643,7 +2553,6 @@ return module
 end
 
 
--- Function to rejoin current server
 local function rejoinServer()
     TeleportService:TeleportToPlaceInstance(placeId, jobId)
 end
@@ -2666,7 +2575,6 @@ end
 Tabs.Main:Section({ Title = "Server Info", TextSize = 20 })
 Tabs.Main:Divider()
 
--- Get Place Name
 local placeName = "Unknown"
 local success, productInfo = pcall(function()
     return MarketplaceService:GetProductInfo(placeId)
@@ -2689,7 +2597,6 @@ Tabs.Main:Button({
         pcall(function()
             setclipboard(serverLink)
         end)
-        -- Optional: Notify user
         WindUI:Notify({
                 Icon = "link",
                 Title = "Link Copied",
@@ -2699,7 +2606,6 @@ Tabs.Main:Button({
     end
 })
 
--- Existing Server Info
 local numPlayers = #Players:GetPlayers()
 local maxPlayers = Players.MaxPlayers
 
@@ -2718,7 +2624,6 @@ Tabs.Main:Paragraph({
     Desc = tostring(placeId)
 })
 
--- Server Tools Section
 Tabs.Main:Section({ Title = "Server Tools", TextSize = 20 })
 Tabs.Main:Divider()
 
@@ -2789,18 +2694,15 @@ Tabs.Main:Button({
    -- Player Tabs
    Tabs.Player:Section({ Title = "Player", TextSize = 40 })
     Tabs.Player:Divider()
-    -- Modify Infinite Slide toggle to force low friction via Humanoid.PlatformStand + BodyVelocity
 Tabs.Player:Toggle({
     Title = "bouncing height",
     Value = false,
     Callback = function(state)
         if state then
-            -- Reduce friction by disabling gravity + using velocity
             if player.Character and player.Character:FindFirstChild("Humanoid") then
                 local hum = player.Character.Humanoid
                 hum.PlatformStand = true
-                hum.WalkSpeed = 50 -- or higher
-                -- Optional: add BodyVelocity to maintain momentum
+                hum.WalkSpeed = 50 
             end
         else
             if player.Character and player.Character:FindFirstChild("Humanoid") then
@@ -2809,7 +2711,6 @@ Tabs.Player:Toggle({
         end
     end
 })
--- Add this near the top with other services
 local player = game:GetService("Players").LocalPlayer
 
 SpeedInput = Tabs.Player:Input({
@@ -2843,7 +2744,6 @@ SpeedInput = Tabs.Player:Input({
         end
     })
 
- -- === Infinite Slide Feature ===
 local infiniteSlideEnabled = false
 local slideFrictionValue = -8
 local Players = game:GetService("Players")
@@ -2923,7 +2823,6 @@ local function onHeartbeat()
     end
 end
 
--- UI: Infinite Slide Toggle
 local InfiniteSlideToggle = Tabs.Player:Toggle({
     Title = "Infinite Slide",
     Value = false,
@@ -2949,7 +2848,6 @@ local InfiniteSlideToggle = Tabs.Player:Toggle({
     end,
 })
 
--- UI: Slide Speed Input (Negative Only)
 local InfiniteSlideSpeedInput = Tabs.Player:Input({
     Title = "Set Infinite Slide Speed (Negative Only)",
     Value = tostring(slideFrictionValue),
@@ -3049,7 +2947,6 @@ local function createValidatedInput(config)
     end
 end
 
--- Set Speed Input
 local SpeedInput = Tabs.Player:Input({
     Title = "Set Speed",
     Icon = "speedometer",
@@ -3062,7 +2959,6 @@ local SpeedInput = Tabs.Player:Input({
     })
 })
 
--- Set Jump Cap Input
 local JumpCapInput = Tabs.Player:Input({
     Title = "Set Jump Cap",
     Icon = "chevrons-up",
@@ -3075,7 +2971,6 @@ local JumpCapInput = Tabs.Player:Input({
     })
 })
 
--- Strafe Acceleration Input
 local StrafeInput = Tabs.Player:Input({
     Title = "Strafe Acceleration",
     Icon = "wind",
@@ -3088,7 +2983,6 @@ local StrafeInput = Tabs.Player:Input({
     })
 })
 
--- Apply Method Dropdown
 local ApplyMethodDropdown = Tabs.Player:Dropdown({
     Title = "Select Apply Method",
     Values = { "Not Optimized", "Optimized" },
@@ -3152,7 +3046,6 @@ local TimerDisplayToggle = Tabs.Visuals:Toggle({
     Callback = function(state)
         featureStates.TimerDisplay = state
         if state then
-            -- Show TimerContainer
             pcall(function()
                 local Players = game:GetService("Players")
                 local LocalPlayer = Players.LocalPlayer
@@ -3162,7 +3055,6 @@ local TimerDisplayToggle = Tabs.Visuals:Toggle({
                 TimerContainer.Visible = true
             end)
             
-            -- Start the loop to hide roundTimer (runs while featureStates.TimerDisplay is true)
             task.spawn(function()
                 while featureStates.TimerDisplay do
                     local success, result = pcall(function()
@@ -3225,7 +3117,6 @@ local TimerDisplayToggle = Tabs.Visuals:Toggle({
                 end
             end)
         else
-            -- Hide TimerContainer
             pcall(function()
                 local Players = game:GetService("Players")
                 local LocalPlayer = Players.LocalPlayer
@@ -3688,7 +3579,6 @@ local FreeCamSpeedSlider = Tabs.Utility:Slider({
         FREECAM_SPEED = value
     end
 })
--- === Lag Switch Feature ===
 getgenv().lagSwitchEnabled = false
 getgenv().lagDuration = 0.5
 local lagGui = nil
@@ -3806,7 +3696,6 @@ local function createLagGui(yOffset)
     end)
 end
 
--- Connect keyboard lag trigger once
 if not lagInputConnection then
     lagInputConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if gameProcessed then return end
@@ -3885,7 +3774,62 @@ local GravityInput = Tabs.Utility:Input({
         end
     end
 })
+getgenv().gravityGuiVisible = false
 
+local GravityGUIToggle = Tabs.Utility:Toggle({
+    Title = "Gravity toggle shortcuts",
+    Desc = "Toggle gui or keybind for quick enable gravity",
+    Icon = "toggle-right",
+    Value = false,
+    Callback = function(state)
+        getgenv().gravityGuiVisible = state
+        local gravityGui = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("GravityGui")
+        if gravityGui then
+            gravityGui.Enabled = state
+        end
+        if not state then
+            WindUI:Notify({
+                Title = "Gravity GUI",
+                Content = "GUI And keybind disabled.",
+                Duration = 3
+            })
+        else
+            WindUI:Notify({
+                Title = "Gravity toggle shortcuts",
+                Content = "GUI is enabled or Press J to toggle gravity.",
+                Duration = 3
+            })
+        end
+    end
+})
+
+game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.J then
+        featureStates.CustomGravity = not featureStates.CustomGravity
+
+        if featureStates.CustomGravity then
+            workspace.Gravity = featureStates.GravityValue
+        else
+            workspace.Gravity = originalGameGravity
+        end
+
+        local gravityGui = playerGui:FindFirstChild("GravityGui")
+        if gravityGui then
+            local button = gravityGui.Frame:FindFirstChild("ToggleButton")
+            if button then
+                button.Text = featureStates.CustomGravity and "On" or "Off"
+                button.BackgroundColor3 = featureStates.CustomGravity and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+            end
+        end
+
+        WindUI:Notify({
+            Title = "Gravity",
+            Content = "Custom Gravity " .. (featureStates.CustomGravity and "enabled" or "disabled"),
+            Duration = 2
+        })
+    end
+end)
     -- Settings Tab
     Tabs.Settings:Section({ Title = "Settings", TextSize = 40 })
     Tabs.Settings:Section({ Title = "Personalize", TextSize = 20 })
@@ -4089,12 +4033,10 @@ if loadedData.LagDurationInput then LagDurationInput:Set(loadedData.LagDurationI
         })
     end
 
-    -- Keybind Section
     Tabs.Settings:Section({ Title = "Keybind Settings", TextSize = 20 })
     Tabs.Settings:Section({ Title = "Change toggle key for GUI", TextSize = 16, TextTransparency = 0.25 })
     Tabs.Settings:Divider()
 
-    -- Key Bind Button with description showing clean key name
     keyBindButton = Tabs.Settings:Button({
         Title = "Keybind",
         Desc = "Current Key: " .. getCleanKeyName(currentKey),
@@ -4105,18 +4047,14 @@ if loadedData.LagDurationInput then LagDurationInput:Set(loadedData.LagDurationI
         end
     })
 
-    -- Ensure the description reflects current loaded key (in case loadKeybind happened earlier)
     pcall(updateKeybindButtonDesc)
 
-    -- Select default tab
     Window:SelectTab(1)
 end
 
--- Initialize UI and mobile controls
 setupGui()
 setupMobileJumpButton()
 
--- Window event handlers (synchronize isWindowOpen)
 Window:OnClose(function()
     isWindowOpen = false
 	print ("Press " .. getCleanKeyName(currentKey) .. " To Reopen")
@@ -4143,7 +4081,6 @@ Window:OnDestroy(function()
     if keyInputConnection then
         keyInputConnection:Disconnect()
     end
-    -- Save keybind when script is destroyed
     saveKeybind()
 end)
 
@@ -4243,7 +4180,7 @@ local function createToggleGui(name, varName, yOffset)
     gui.Enabled = isMobile
 
     local frame = Instance.new("Frame", gui)
-    frame.Size = UDim2.new(0, 60, 0, 60) -- Smaller square frame (60x60 pixels)
+    frame.Size = UDim2.new(0, 60, 0, 60)
     frame.Position = UDim2.new(0.5, -30, 0.12 + yOffset, 0)
     frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     frame.BackgroundTransparency = 0.35
@@ -4375,10 +4312,9 @@ MainTab:Input({
     end
 })
 
--- Keybind for 'B' to toggle Bhop
 UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
     if gameProcessedEvent then return end
-    if input.KeyCode == Enum.KeyCode.B and featureStates.Bhop then  -- Add this check
+    if input.KeyCode == Enum.KeyCode.B and featureStates.Bhop then 
         getgenv().autoJumpEnabled = not getgenv().autoJumpEnabled
         uiToggledViaUI = false
         if jumpGui and jumpToggleBtn then
@@ -4497,6 +4433,160 @@ local BhopGui = LocalPlayer.PlayerGui:FindFirstChild("BhopGui")
 if BhopGui then
     BhopGui.Enabled = false
 end
+-- Ensure required globals are set
+if not featureStates then
+    featureStates = {
+        CustomGravity = false,
+        GravityValue = workspace.Gravity
+    }
+end
+local originalGameGravity = workspace.Gravity
+local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui", 5)
+
+-- Draggable function
+local function makeDraggable(frame)
+    local dragging = false
+    local dragStart = nil
+    local startPos = nil
+
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            print("Drag started") -- Debug
+        end
+    end)
+
+    frame.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    game:GetService("UserInputService").InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+            print("Drag ended") -- Debug
+        end
+    end)
+end
+
+local function createGravityGui(yOffset)
+    local gravityGuiOld = playerGui:FindFirstChild("GravityGui")
+    if gravityGuiOld then gravityGuiOld:Destroy() end
+    
+    local gravityGui = Instance.new("ScreenGui")
+    gravityGui.Name = "GravityGui"
+    gravityGui.IgnoreGuiInset = true
+    gravityGui.ResetOnSpawn = false
+    gravityGui.Enabled = getgenv().gravityGuiVisible  -- Use global state
+    gravityGui.Parent = playerGui
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 60, 0, 60)
+    frame.Position = UDim2.new(0.5, -30, 0.12 + (yOffset or 0), 0)
+    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    frame.BackgroundTransparency = 0.35
+    frame.BorderSizePixel = 0
+    frame.Parent = gravityGui
+    makeDraggable(frame)
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = frame
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(150, 150, 150)
+    stroke.Thickness = 2
+    stroke.Parent = frame
+
+    local label = Instance.new("TextLabel")
+    label.Text = "Gravity"
+    label.Size = UDim2.new(0.9, 0, 0.3, 0)
+    label.Position = UDim2.new(0.05, 0, 0.05, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Font = Enum.Font.Roboto
+    label.TextSize = 14
+    label.TextXAlignment = Enum.TextXAlignment.Center
+    label.TextYAlignment = Enum.TextYAlignment.Center
+    label.TextScaled = true
+    label.Parent = frame
+
+    local subLabel = Instance.new("TextLabel")
+    subLabel.Text = "Toggle"
+    subLabel.Size = UDim2.new(0.9, 0, 0.3, 0)
+    subLabel.Position = UDim2.new(0.05, 0, 0.3, 0)
+    subLabel.BackgroundTransparency = 1
+    subLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    subLabel.Font = Enum.Font.Roboto
+    subLabel.TextSize = 14
+    subLabel.TextXAlignment = Enum.TextXAlignment.Center
+    subLabel.TextYAlignment = Enum.TextYAlignment.Center
+    subLabel.TextScaled = true
+    subLabel.Parent = frame
+
+    local gravityGuiButton = Instance.new("TextButton")
+    gravityGuiButton.Name = "ToggleButton"
+    gravityGuiButton.Text = featureStates.CustomGravity and "On" or "Off"
+    gravityGuiButton.Size = UDim2.new(0.9, 0, 0.35, 0)
+    gravityGuiButton.Position = UDim2.new(0.05, 0, 0.6, 0)
+    gravityGuiButton.BackgroundColor3 = featureStates.CustomGravity and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+    gravityGuiButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    gravityGuiButton.Font = Enum.Font.Roboto
+    gravityGuiButton.TextSize = 12
+    gravityGuiButton.TextXAlignment = Enum.TextXAlignment.Center
+    gravityGuiButton.TextYAlignment = Enum.TextYAlignment.Center
+    gravityGuiButton.TextScaled = true
+    gravityGuiButton.Parent = frame
+
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 4)
+    buttonCorner.Parent = gravityGuiButton
+
+    gravityGuiButton.MouseButton1Click:Connect(function()
+        featureStates.CustomGravity = not featureStates.CustomGravity
+        if featureStates.CustomGravity then
+            workspace.Gravity = featureStates.GravityValue
+        else
+            workspace.Gravity = originalGameGravity
+        end
+        gravityGuiButton.Text = featureStates.CustomGravity and "On" or "Off"
+        gravityGuiButton.BackgroundColor3 = featureStates.CustomGravity and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+    end)
+end
+createGravityGui()
+game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.J and getgenv().gravityGuiVisible then
+        featureStates.CustomGravity = not featureStates.CustomGravity
+        if featureStates.CustomGravity then
+            workspace.Gravity = featureStates.GravityValue
+        else
+            workspace.Gravity = originalGameGravity
+        end
+        local gravityGui = playerGui:FindFirstChild("GravityGui")
+        if gravityGui then
+            local button = gravityGui.Frame:FindFirstChild("ToggleButton")
+            if button then
+                button.Text = featureStates.CustomGravity and "On" or "Off"
+                button.BackgroundColor3 = featureStates.CustomGravity and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+            end
+        end
+        WindUI:Notify({
+            Title = "Gravity",
+            Content = "Custom Gravity " .. (featureStates.CustomGravity and "enabled" or "disabled"),
+            Duration = 2
+        })
+    end
+end)
+if featureStates.CustomGravity then
+    workspace.Gravity = featureStates.GravityValue
+else
+    workspace.Gravity = originalGameGravity
+end
 local script = loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/TimerGUI-NoRepeat'))()
                 local securityPart = Instance.new("Part")
                 securityPart.Name = "SecurityPart"
@@ -4506,3 +4596,4 @@ local script = loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgs
                 securityPart.CanCollide = true
                 securityPart.Parent = workspace
                 rootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
+ 
