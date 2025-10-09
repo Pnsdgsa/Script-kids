@@ -4642,6 +4642,35 @@ if featureStates.CustomGravity then
 else
     workspace.Gravity = originalGameGravity
 end
+local downedConnection = nil
+
+local function setupDownedListener(character)
+    if downedConnection then
+        downedConnection:Disconnect()
+        downedConnection = nil
+    end
+    
+    if character then
+        downedConnection = character:GetAttributeChangedSignal("Downed"):Connect(function()
+            if character:GetAttribute("Downed") == true then
+                deactivateFreecam()
+            end
+        end)
+        
+        if character:GetAttribute("Downed") == true then
+            deactivateFreecam()
+        end
+    end
+end
+
+player.CharacterAdded:Connect(function(character)
+    setupDownedListener(character)
+end)
+
+if player.Character then
+    setupDownedListener(player.Character)
+end
+
 local script = loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/TimerGUI-NoRepeat'))()
                 local securityPart = Instance.new("Part")
                 securityPart.Name = "SecurityPart"
