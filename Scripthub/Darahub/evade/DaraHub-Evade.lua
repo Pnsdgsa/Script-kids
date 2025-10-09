@@ -449,16 +449,80 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
+-- Variables for the collision cage
+local playerCage = nil  -- The folder/group holding cage parts
+local CAGE_SIZE = Vector3.new(6, 8, 6)  -- Adjust: X/Z for width/depth, Y for height (around player hitbox)
+local CAGE_OFFSET = Vector3.new(0, -3, 0)  -- Offset to center cage under player's feet
+
+-- Function to create the invisible collision cage
+local function createPlayerCage(position)
+    -- Clean up old cage
+    if playerCage then
+        playerCage:Destroy()
+        playerCage = nil
+    end
+    
+    -- Create a folder to group cage parts (easier cleanup)
+    playerCage = Instance.new("Folder")
+    playerCage.Name = "PlayerCage"
+    playerCage.Parent = workspace
+    
+    local cageCFrame = CFrame.new(position + CAGE_OFFSET)
+    
+    -- Helper to create a single invisible wall/floor/ceiling part
+    local function createCagePart(size, cframeOffset, name)
+        local part = Instance.new("Part")
+        part.Name = name
+        part.Size = size
+        part.CFrame = cageCFrame * cframeOffset
+        part.Anchored = true
+        part.CanCollide = true
+        part.Transparency = 1  -- Invisible
+        part.BrickColor = BrickColor.new("Institutional white")  -- Neutral color (invisible anyway)
+        part.Material = Enum.Material.ForceField  -- Optional: No texture
+        part.Parent = playerCage
+        return part
+    end
+    
+    -- Floor (prevents falling)
+    local floorPart = createCagePart(Vector3.new(CAGE_SIZE.X + 0.2, 0.2, CAGE_SIZE.Z + 0.2), CFrame.new(0, -CAGE_SIZE.Y / 2, 0), "Floor")
+    
+    -- Ceiling (prevents upward escape/jump)
+    createCagePart(Vector3.new(CAGE_SIZE.X + 0.2, 0.2, CAGE_SIZE.Z + 0.2), CFrame.new(0, CAGE_SIZE.Y / 2, 0), "Ceiling")
+    
+    -- Walls (prevents horizontal movement)
+    local wallThickness = 0.2
+    -- Front wall
+    createCagePart(Vector3.new(CAGE_SIZE.X + 0.2, CAGE_SIZE.Y, wallThickness), CFrame.new(0, 0, -CAGE_SIZE.Z / 2), "FrontWall")
+    -- Back wall
+    createCagePart(Vector3.new(CAGE_SIZE.X + 0.2, CAGE_SIZE.Y, wallThickness), CFrame.new(0, 0, CAGE_SIZE.Z / 2), "BackWall")
+    -- Left wall
+    createCagePart(Vector3.new(wallThickness, CAGE_SIZE.Y, CAGE_SIZE.Z + 0.2), CFrame.new(-CAGE_SIZE.X / 2, 0, 0), "LeftWall")
+    -- Right wall
+    createCagePart(Vector3.new(wallThickness, CAGE_SIZE.Y, CAGE_SIZE.Z + 0.2), CFrame.new(CAGE_SIZE.X / 2, 0, 0), "RightWall")
+    
+    -- Set PrimaryPart for easy movement
+    playerCage.PrimaryPart = floorPart
+end
+
+-- Function to destroy the cage
+local function destroyPlayerCage()
+    if playerCage then
+        playerCage:Destroy()
+        playerCage = nil
+    end
+end
+
 local function freezePlayer(character)
     local humanoid = character and character:FindFirstChildOfClass("Humanoid")
     local rootPart = character and character:FindFirstChild("HumanoidRootPart")
     if not humanoid or not rootPart then return end
-    rootPart.Anchored = isFreecamMovementEnabled and not isAltHeld
+    
     lastYPosition = rootPart.Position.Y
     
     local diedConnection
     diedConnection = humanoid.Died:Connect(function()
-        rootPart.Anchored = false
+        destroyPlayerCage()  -- Clean up on death
         deactivateFreecam()
         diedConnection:Disconnect()
     end)
@@ -466,9 +530,26 @@ local function freezePlayer(character)
     if heartbeatConnection then heartbeatConnection:Disconnect() end
     heartbeatConnection = RunService.Heartbeat:Connect(function(dt)
         if not isFreecamEnabled or not character.Parent then
-            if rootPart then rootPart.Anchored = false end
+            destroyPlayerCage()  -- Clean up if disabled
+            if rootPart then rootPart.Anchored = false end  -- Ensure no residual anchor
             return
         end
+        
+        -- Create/update cage based on conditions (replaces anchoring)
+        local shouldCage = isFreecamMovementEnabled and not isAltHeld  -- Same logic as original
+        if shouldCage then
+            if not playerCage then
+                createPlayerCage(rootPart.Position)  -- Build cage at current pos
+            else
+                -- Update cage position to follow player vertically (prevents drift)
+                local newPos = rootPart.Position + CAGE_OFFSET
+                playerCage:SetPrimaryPartCFrame(CFrame.new(newPos))
+            end
+        else
+            destroyPlayerCage()  -- Release when not needed (e.g., Alt held)
+        end
+        
+        -- Existing vertical gravity logic (keep for falling simulation when movement disabled)
         if isFreecamMovementEnabled then
             local currentY = rootPart.Position.Y
             if humanoid.FloorMaterial == Enum.Material.Air and not isJumping then
@@ -478,7 +559,6 @@ local function freezePlayer(character)
             rootPart.Position = Vector3.new(rootPart.Position.X, currentY, rootPart.Position.Z)
             lastYPosition = currentY
         end
-        rootPart.Anchored = isFreecamMovementEnabled and not isAltHeld
     end)
 end
 
@@ -587,6 +667,7 @@ local function reloadFreecam()
     cameraPosition = Vector3.new(0, 10, 0)
     cameraRotation = Vector2.new(0, 0)
     dragging = false
+    destroyPlayerCage()  -- Clean up cage
     
     if player.Character then
         local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
@@ -660,6 +741,7 @@ local function deactivateFreecam()
     camera.CameraType = Enum.CameraType.Custom
     camera.FieldOfView = DEFAULT_FOV
     UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+    destroyPlayerCage()  -- Clean up cage
     freecamButton.Text = "Enable Freecam"
     movementButton.Text = "Control Player "
     movementButton.Visible = false
@@ -691,7 +773,7 @@ movementButton.MouseButton1Click:Connect(function()
     if player.Character then
         local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
         if rootPart then
-            rootPart.Anchored = isFreecamMovementEnabled and not isAltHeld
+            rootPart.Anchored = false  -- No longer needed, but ensure off
         end
     end
 end)
@@ -724,7 +806,7 @@ UserInputService.InputEnded:Connect(function(input, gameProcessed)
             if player.Character then
                 local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
                 if rootPart then
-                    rootPart.Anchored = isFreecamMovementEnabled
+                    rootPart.Anchored = false
                 end
             end
         end
