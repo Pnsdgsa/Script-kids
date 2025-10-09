@@ -3803,33 +3803,6 @@ local GravityGUIToggle = Tabs.Utility:Toggle({
     end
 })
 
-game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.J then
-        featureStates.CustomGravity = not featureStates.CustomGravity
-
-        if featureStates.CustomGravity then
-            workspace.Gravity = featureStates.GravityValue
-        else
-            workspace.Gravity = originalGameGravity
-        end
-
-        local gravityGui = playerGui:FindFirstChild("GravityGui")
-        if gravityGui then
-            local button = gravityGui.Frame:FindFirstChild("ToggleButton")
-            if button then
-                button.Text = featureStates.CustomGravity and "On" or "Off"
-                button.BackgroundColor3 = featureStates.CustomGravity and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
-            end
-        end
-
-        WindUI:Notify({
-            Title = "Gravity",
-            Content = "Custom Gravity " .. (featureStates.CustomGravity and "enabled" or "disabled"),
-            Duration = 2
-        })
-    end
-end)
     -- Settings Tab
     Tabs.Settings:Section({ Title = "Settings", TextSize = 40 })
     Tabs.Settings:Section({ Title = "Personalize", TextSize = 20 })
