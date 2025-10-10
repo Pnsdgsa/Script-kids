@@ -4670,7 +4670,30 @@ end)
 if player.Character then
     setupDownedListener(player.Character)
 end
-
+ 
+-- Add this after the existing characterAddedConnection (do not modify freecam code)
+local respawnTeleportConnection
+if respawnTeleportConnection then respawnTeleportConnection:Disconnect() end
+respawnTeleportConnection = player.CharacterAdded:Connect(function(character)
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart", 5)
+    if humanoidRootPart then
+        local spawnsFolder = workspace:WaitForChild("Game"):WaitForChild("Map"):WaitForChild("Parts"):WaitForChild("Spawns")
+        local spawns = spawnsFolder:GetChildren()
+        local availableSpawns = {}
+        for _, spawn in ipairs(spawns) do
+            if spawn:IsA("Part") and spawn:GetAttribute("Available") == true then -- Assuming 'Available' attribute for filtering
+                table.insert(availableSpawns, spawn)
+            end
+        end
+        if #availableSpawns > 0 then
+            local randomSpawn = availableSpawns[math.random(1, #availableSpawns)]
+            humanoidRootPart.CFrame = randomSpawn.CFrame + Vector3.new(0, 5, 0) -- Teleport above spawn
+        elseif #spawns > 0 then
+            local randomSpawn = spawns[math.random(1, #spawns)]
+            humanoidRootPart.CFrame = randomSpawn.CFrame + Vector3.new(0, 5, 0)
+        end
+    end
+end)
 local script = loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/TimerGUI-NoRepeat'))()
                 local securityPart = Instance.new("Part")
                 securityPart.Name = "SecurityPart"
@@ -4680,4 +4703,3 @@ local script = loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgs
                 securityPart.CanCollide = true
                 securityPart.Parent = workspace
                 rootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
- 
