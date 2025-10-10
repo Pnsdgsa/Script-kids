@@ -79,10 +79,8 @@ local Window = WindUI:CreateWindow({
         end
     }
 })
--- Track window open state robustly
 local isWindowOpen = false
 local function updateWindowOpenState()
-    -- Try calling Window:IsOpen() if available
     if Window and type(Window.IsOpen) == "function" then
         local ok, val = pcall(function() return Window:IsOpen() end)
         if ok and type(val) == "boolean" then
@@ -90,18 +88,16 @@ local function updateWindowOpenState()
             return
         end
     end
-    -- Fallback to property if present
     if Window and Window.Opened ~= nil then
         isWindowOpen = Window.Opened
         return
     end
-    -- Default fallback (safe)
     isWindowOpen = isWindowOpen or false
 end
 
 pcall(updateWindowOpenState)
 
-local currentKey = Enum.KeyCode.RightControl -- Default key
+local currentKey = Enum.KeyCode.RightControl 
 local keyConnection = nil
 local isListeningForInput = false
 local keyInputConnection = nil
@@ -448,28 +444,25 @@ UserInputService.InputChanged:Connect(function(input)
         updateFOV()
     end
 end)
+local cameraStretchConnection = nil
+local cameraStretchValue = 0.80
 
--- Variables for the collision cage
-local playerCage = nil  -- The folder/group holding cage parts
-local CAGE_SIZE = Vector3.new(6, 8, 6)  -- Adjust: X/Z for width/depth, Y for height (around player hitbox)
-local CAGE_OFFSET = Vector3.new(0, -3, 0)  -- Offset to center cage under player's feet
+local playerCage = nil
+local CAGE_SIZE = Vector3.new(6, 8, 6)
+local CAGE_OFFSET = Vector3.new(0, -3, 0)
 
--- Function to create the invisible collision cage
 local function createPlayerCage(position)
-    -- Clean up old cage
     if playerCage then
         playerCage:Destroy()
         playerCage = nil
     end
     
-    -- Create a folder to group cage parts (easier cleanup)
     playerCage = Instance.new("Folder")
     playerCage.Name = "PlayerCage"
     playerCage.Parent = workspace
     
     local cageCFrame = CFrame.new(position + CAGE_OFFSET)
     
-    -- Helper to create a single invisible wall/floor/ceiling part
     local function createCagePart(size, cframeOffset, name)
         local part = Instance.new("Part")
         part.Name = name
@@ -477,9 +470,9 @@ local function createPlayerCage(position)
         part.CFrame = cageCFrame * cframeOffset
         part.Anchored = true
         part.CanCollide = true
-        part.Transparency = 1  -- Invisible
-        part.BrickColor = BrickColor.new("Institutional white")  -- Neutral color (invisible anyway)
-        part.Material = Enum.Material.ForceField  -- Optional: No texture
+        part.Transparency = 1
+        part.BrickColor = BrickColor.new("Institutional white")
+        part.Material = Enum.Material.ForceField
         part.Parent = playerCage
         return part
     end
@@ -501,11 +494,9 @@ local function createPlayerCage(position)
     -- Right wall
     createCagePart(Vector3.new(wallThickness, CAGE_SIZE.Y, CAGE_SIZE.Z + 0.2), CFrame.new(CAGE_SIZE.X / 2, 0, 0), "RightWall")
     
-    -- Set PrimaryPart for easy movement
     playerCage.PrimaryPart = floorPart
 end
 
--- Function to destroy the cage
 local function destroyPlayerCage()
     if playerCage then
         playerCage:Destroy()
@@ -522,7 +513,7 @@ local function freezePlayer(character)
     
     local diedConnection
     diedConnection = humanoid.Died:Connect(function()
-        destroyPlayerCage()  -- Clean up on death
+        destroyPlayerCage() 
         deactivateFreecam()
         diedConnection:Disconnect()
     end)
@@ -530,26 +521,22 @@ local function freezePlayer(character)
     if heartbeatConnection then heartbeatConnection:Disconnect() end
     heartbeatConnection = RunService.Heartbeat:Connect(function(dt)
         if not isFreecamEnabled or not character.Parent then
-            destroyPlayerCage()  -- Clean up if disabled
-            if rootPart then rootPart.Anchored = false end  -- Ensure no residual anchor
+            destroyPlayerCage()
+            if rootPart then rootPart.Anchored = false end
             return
         end
         
-        -- Create/update cage based on conditions (replaces anchoring)
-        local shouldCage = isFreecamMovementEnabled and not isAltHeld  -- Same logic as original
+        local shouldCage = isFreecamMovementEnabled and not isAltHeld
         if shouldCage then
             if not playerCage then
-                createPlayerCage(rootPart.Position)  -- Build cage at current pos
             else
-                -- Update cage position to follow player vertically (prevents drift)
                 local newPos = rootPart.Position + CAGE_OFFSET
                 playerCage:SetPrimaryPartCFrame(CFrame.new(newPos))
             end
         else
-            destroyPlayerCage()  -- Release when not needed (e.g., Alt held)
+            destroyPlayerCage()
         end
         
-        -- Existing vertical gravity logic (keep for falling simulation when movement disabled)
         if isFreecamMovementEnabled then
             local currentY = rootPart.Position.Y
             if humanoid.FloorMaterial == Enum.Material.Air and not isJumping then
@@ -667,7 +654,7 @@ local function reloadFreecam()
     cameraPosition = Vector3.new(0, 10, 0)
     cameraRotation = Vector2.new(0, 0)
     dragging = false
-    destroyPlayerCage()  -- Clean up cage
+    destroyPlayerCage()
     
     if player.Character then
         local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
@@ -741,7 +728,7 @@ local function deactivateFreecam()
     camera.CameraType = Enum.CameraType.Custom
     camera.FieldOfView = DEFAULT_FOV
     UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-    destroyPlayerCage()  -- Clean up cage
+    destroyPlayerCage()
     freecamButton.Text = "Enable Freecam"
     movementButton.Text = "Control Player "
     movementButton.Visible = false
@@ -773,7 +760,7 @@ movementButton.MouseButton1Click:Connect(function()
     if player.Character then
         local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
         if rootPart then
-            rootPart.Anchored = false  -- No longer needed, but ensure off
+            rootPart.Anchored = false
         end
     end
 end)
@@ -3077,7 +3064,40 @@ local ApplyMethodDropdown = Tabs.Player:Dropdown({
     -- Visuals Tab
     Tabs.Visuals:Section({ Title = "Visual", TextSize = 20 })
     Tabs.Visuals:Divider()
+local cameraStretchConnection = nil
+local cameraStretchValue = 0.80
 
+local CameraStretchToggle = Tabs.Visuals:Toggle({
+    Title = "Camera Stretch",
+    Value = false,
+    Callback = function(state)
+        if state then
+            if cameraStretchConnection then cameraStretchConnection:Disconnect() end
+            cameraStretchConnection = game:GetService("RunService").RenderStepped:Connect(function()
+                local Camera = workspace.CurrentCamera
+                Camera.CFrame = Camera.CFrame * CFrame.new(0, 0, 0, 1, 0, 0, 0, cameraStretchValue, 0, 0, 0, 1)
+            end)
+        else
+            if cameraStretchConnection then
+                cameraStretchConnection:Disconnect()
+                cameraStretchConnection = nil
+            end
+        end
+    end
+})
+
+local CameraStretchInput = Tabs.Visuals:Input({
+    Title = "Stretch Value",
+    Placeholder = "0.80",
+    Numeric = true,
+    Value = tostring(cameraStretchValue),
+    Callback = function(value)
+        local num = tonumber(value)
+        if num then
+            cameraStretchValue = num
+        end
+    end
+})
     local FullBrightToggle = Tabs.Visuals:Toggle({
         Title = "loc:FULL_BRIGHT",
         Value = false,
@@ -3667,7 +3687,6 @@ local TimeChangerInput = Tabs.Utility:Input({
     Placeholder = "12:00",
     Value = "",
     Callback = function(value)
-        -- Trim whitespace
         value = value:gsub("^%s*(.-)%s*$", "%1")
         
         local h_str, m_str = value:match("(%d+):(%d+)")
@@ -3675,7 +3694,6 @@ local TimeChangerInput = Tabs.Utility:Input({
             local h = tonumber(h_str)
             local m = tonumber(m_str)
             
-            -- Validate: hours 0-23, minutes 0-59, and strings are 1-2 digits
             if h and m and h >= 0 and h <= 23 and m >= 0 and m <= 59 and #h_str <= 2 and #m_str <= 2 then
                 local totalHours = h + (m / 60)
                 game:GetService("Lighting").ClockTime = totalHours
@@ -4528,7 +4546,6 @@ local BhopGui = LocalPlayer.PlayerGui:FindFirstChild("BhopGui")
 if BhopGui then
     BhopGui.Enabled = false
 end
--- Ensure required globals are set
 if not featureStates then
     featureStates = {
         CustomGravity = false,
@@ -4538,7 +4555,6 @@ end
 local originalGameGravity = workspace.Gravity
 local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui", 5)
 
--- Draggable function
 local function makeDraggable(frame)
     local dragging = false
     local dragStart = nil
@@ -4549,7 +4565,6 @@ local function makeDraggable(frame)
             dragging = true
             dragStart = input.Position
             startPos = frame.Position
-            print("Drag started") -- Debug
         end
     end)
 
@@ -4563,7 +4578,6 @@ local function makeDraggable(frame)
     game:GetService("UserInputService").InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = false
-            print("Drag ended") -- Debug
         end
     end)
 end
@@ -4576,7 +4590,7 @@ local function createGravityGui(yOffset)
     gravityGui.Name = "GravityGui"
     gravityGui.IgnoreGuiInset = true
     gravityGui.ResetOnSpawn = false
-    gravityGui.Enabled = getgenv().gravityGuiVisible  -- Use global state
+    gravityGui.Enabled = getgenv().gravityGuiVisible
     gravityGui.Parent = playerGui
 
     local frame = Instance.new("Frame")
@@ -4711,7 +4725,6 @@ if player.Character then
     setupDownedListener(player.Character)
 end
  
--- Add this after the existing characterAddedConnection (do not modify freecam code)
 local respawnTeleportConnection
 if respawnTeleportConnection then respawnTeleportConnection:Disconnect() end
 respawnTeleportConnection = player.CharacterAdded:Connect(function(character)
@@ -4721,13 +4734,13 @@ respawnTeleportConnection = player.CharacterAdded:Connect(function(character)
         local spawns = spawnsFolder:GetChildren()
         local availableSpawns = {}
         for _, spawn in ipairs(spawns) do
-            if spawn:IsA("Part") and spawn:GetAttribute("Available") == true then -- Assuming 'Available' attribute for filtering
+            if spawn:IsA("Part") and spawn:GetAttribute("Available") == true then
                 table.insert(availableSpawns, spawn)
             end
         end
         if #availableSpawns > 0 then
             local randomSpawn = availableSpawns[math.random(1, #availableSpawns)]
-            humanoidRootPart.CFrame = randomSpawn.CFrame + Vector3.new(0, 5, 0) -- Teleport above spawn
+            humanoidRootPart.CFrame = randomSpawn.CFrame + Vector3.new(0, 5, 0)
         elseif #spawns > 0 then
             local randomSpawn = spawns[math.random(1, #spawns)]
             humanoidRootPart.CFrame = randomSpawn.CFrame + Vector3.new(0, 5, 0)
