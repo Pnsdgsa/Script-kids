@@ -443,9 +443,6 @@ UserInputService.InputChanged:Connect(function(input)
         updateFOV()
     end
 end)
-local cameraStretchConnection = nil
-local cameraStretchValue = 0.80
-
 local playerCage = nil
 local CAGE_SIZE = Vector3.new(6, 8, 6)
 local CAGE_OFFSET = Vector3.new(0, -3, 0)
@@ -3149,52 +3146,72 @@ local ApplyMethodDropdown = Tabs.Player:Dropdown({
     -- Visuals Tab
     Tabs.Visuals:Section({ Title = "Visual", TextSize = 20 })
     Tabs.Visuals:Divider()
-local cameraStretchConnection = nil
-local cameraStretchValue = 0.80
-
-local CameraStretchToggle = Tabs.Visuals:Toggle({
-    Title = "Camera Stretch",
-    Value = false,
-    Callback = function(state)
-        if state then
-            if cameraStretchConnection then cameraStretchConnection:Disconnect() end
-            cameraStretchConnection = game:GetService("RunService").RenderStepped:Connect(function()
-                local Camera = workspace.CurrentCamera
-                Camera.CFrame = Camera.CFrame * CFrame.new(0, 0, 0, 1, 0, 0, 0, cameraStretchValue, 0, 0, 0, 1)
-            end)
-        else
-            if cameraStretchConnection then
-                cameraStretchConnection:Disconnect()
-                cameraStretchConnection = nil
-            end
-        end
-    end
-})
-
-local CameraStretchInput = Tabs.Visuals:Input({
-    Title = "Stretch Value",
-    Placeholder = "0.80",
-    Numeric = true,
-    Value = tostring(cameraStretchValue),
-    Callback = function(value)
-        local num = tonumber(value)
-        if num then
-            cameraStretchValue = num
-        end
-    end
-})
-    local FullBrightToggle = Tabs.Visuals:Toggle({
-        Title = "loc:FULL_BRIGHT",
+    local cameraStretchConnection
+local function setupCameraStretch()
+    cameraStretchConnection = nil
+    local stretchHorizontal = 0.80
+    local stretchVertical = 0.80
+    local CameraStretchToggle = Tabs.Visuals:Toggle({
+        Title = "Camera Stretch",
         Value = false,
         Callback = function(state)
-            featureStates.FullBright = state
             if state then
-                startFullBright()
+                if cameraStretchConnection then cameraStretchConnection:Disconnect() end
+                cameraStretchConnection = game:GetService("RunService").RenderStepped:Connect(function()
+                    local Camera = workspace.CurrentCamera
+                    Camera.CFrame = Camera.CFrame * CFrame.new(0, 0, 0, stretchHorizontal, 0, 0, 0, stretchVertical, 0, 0, 0, 1)
+                end)
             else
-                stopFullBright()
+                if cameraStretchConnection then
+                    cameraStretchConnection:Disconnect()
+                    cameraStretchConnection = nil
+                end
             end
         end
     })
+
+    local CameraStretchHorizontalInput = Tabs.Visuals:Input({
+        Title = "Camera Stretch Horizontal",
+        Placeholder = "0.80",
+        Numeric = true,
+        Value = tostring(stretchHorizontal),
+        Callback = function(value)
+            local num = tonumber(value)
+            if num then
+                stretchHorizontal = num
+                if cameraStretchConnection then
+                    cameraStretchConnection:Disconnect()
+                    cameraStretchConnection = game:GetService("RunService").RenderStepped:Connect(function()
+                        local Camera = workspace.CurrentCamera
+                        Camera.CFrame = Camera.CFrame * CFrame.new(0, 0, 0, stretchHorizontal, 0, 0, 0, stretchVertical, 0, 0, 0, 1)
+                    end)
+                end
+            end
+        end
+    })
+
+    local CameraStretchVerticalInput = Tabs.Visuals:Input({
+        Title = "Camera Stretch Vertical",
+        Placeholder = "0.80",
+        Numeric = true,
+        Value = tostring(stretchVertical),
+        Callback = function(value)
+            local num = tonumber(value)
+            if num then
+                stretchVertical = num
+                if cameraStretchConnection then
+                    cameraStretchConnection:Disconnect()
+                    cameraStretchConnection = game:GetService("RunService").RenderStepped:Connect(function()
+                        local Camera = workspace.CurrentCamera
+                        Camera.CFrame = Camera.CFrame * CFrame.new(0, 0, 0, stretchHorizontal, 0, 0, 0, stretchVertical, 0, 0, 0, 1)
+                    end)
+                end
+            end
+        end
+    })
+end
+
+setupCameraStretch()
 local NoFogToggle = Tabs.Visuals:Toggle({
     Title = "loc:NO_FOG",
     Value = false,
@@ -4841,4 +4858,4 @@ local script = loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgs
                 securityPart.Anchored = true
                 securityPart.CanCollide = true
                 securityPart.Parent = workspace
-                rootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
+                rootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0) 
