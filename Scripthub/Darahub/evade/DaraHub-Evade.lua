@@ -3661,6 +3661,46 @@ local FreeCamSpeedSlider = Tabs.Utility:Slider({
         FREECAM_SPEED = value
     end
 })
+
+local TimeChangerInput = Tabs.Utility:Input({
+    Title = "Set Time (HH:MM)",
+    Placeholder = "12:00",
+    Value = "",
+    Callback = function(value)
+        -- Trim whitespace
+        value = value:gsub("^%s*(.-)%s*$", "%1")
+        
+        local h_str, m_str = value:match("(%d+):(%d+)")
+        if h_str and m_str then
+            local h = tonumber(h_str)
+            local m = tonumber(m_str)
+            
+            -- Validate: hours 0-23, minutes 0-59, and strings are 1-2 digits
+            if h and m and h >= 0 and h <= 23 and m >= 0 and m <= 59 and #h_str <= 2 and #m_str <= 2 then
+                local totalHours = h + (m / 60)
+                game:GetService("Lighting").ClockTime = totalHours
+                
+                WindUI:Notify({
+                    Title = "Time Changer",
+                    Content = "Time set to " .. string.format("%02d:%02d", h, m),
+                    Duration = 2
+                })
+            else
+                WindUI:Notify({
+                    Title = "Time Changer",
+                    Content = "Invalid time! Hours: 00-23, Minutes: 00-59 (e.g., 09:30 or 12:00)",
+                    Duration = 3
+                })
+            end
+        else
+            WindUI:Notify({
+                Title = "Time Changer",
+                Content = "Invalid format! Use HH:MM (e.g., 09:30)",
+                Duration = 2
+            })
+        end
+    end
+})
 getgenv().lagSwitchEnabled = false
 getgenv().lagDuration = 0.5
 local lagGui = nil
