@@ -330,7 +330,6 @@ local FOV_SPEED = 5
 local MIN_FOV = 10
 local MAX_FOV = 120
 local DEFAULT_FOV = 70
-local SPAWN_POSITION = Vector3.new(0, 10, 0)
 local isFreecamEnabled = false
 local isFreecamMovementEnabled = true
 local cameraPosition = Vector3.new(0, 10, 0)
@@ -528,14 +527,15 @@ local function freezePlayer(character)
         
         local shouldCage = isFreecamMovementEnabled and not isAltHeld
         if shouldCage then
-            if not playerCage then
-            else
-                local newPos = rootPart.Position + CAGE_OFFSET
-                playerCage:SetPrimaryPartCFrame(CFrame.new(newPos))
-            end
-        else
-            destroyPlayerCage()
-        end
+    if not playerCage then
+        createPlayerCage(rootPart.Position)
+    else
+        local newPos = rootPart.Position + CAGE_OFFSET
+        playerCage:SetPrimaryPartCFrame(CFrame.new(newPos))
+    end
+else
+    destroyPlayerCage()
+end
         
         if isFreecamMovementEnabled then
             local currentY = rootPart.Position.Y
@@ -655,14 +655,6 @@ local function reloadFreecam()
     cameraRotation = Vector2.new(0, 0)
     dragging = false
     destroyPlayerCage()
-    
-    if player.Character then
-        local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
-        if rootPart then
-            rootPart.Anchored = false
-            rootPart.Position = SPAWN_POSITION
-        end
-    end
     
     if heartbeatConnection then heartbeatConnection:Disconnect() end
     if touchConnection then touchConnection:Disconnect() end
@@ -2763,39 +2755,132 @@ Tabs.Main:Button({
    -- Player Tabs
    Tabs.Player:Section({ Title = "Player", TextSize = 40 })
     Tabs.Player:Divider()
-Tabs.Player:Toggle({
-    Title = "bouncing height",
-    Value = false,
-    Callback = function(state)
-        if state then
-            if player.Character and player.Character:FindFirstChild("Humanoid") then
-                local hum = player.Character.Humanoid
-                hum.PlatformStand = true
-                hum.WalkSpeed = 50 
-            end
-        else
-            if player.Character and player.Character:FindFirstChild("Humanoid") then
-                player.Character.Humanoid.PlatformStand = false
-            end
-        end
-    end
-})
-local player = game:GetService("Players").LocalPlayer
 
-SpeedInput = Tabs.Player:Input({
-    Title = "bouncing height i guess?",
-		Desc = "i trynna make speed modifyer speed work on pc but trun out i got this bug, it's seem cool lol Turn out it's just my cheap ass executeor",
-    Placeholder = "Default 16",
-    Value = "16",
-    Callback = function(text)
-        local speed = tonumber(text)
-        if speed and speed >= 0 then
-            if player.Character and player.Character:FindFirstChild("Humanoid") then
-                player.Character.Humanoid.WalkSpeed = speed
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Debris = game:GetService("Debris")
+
+local player = Players.LocalPlayer
+local remoteEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Character"):WaitForChild("PassCharacterInfo")
+
+local BOUNCE_HEIGHT = 0
+local BOUNCE_EPSILON = 0.1
+local BOUNCE_ENABLED = false
+local touchConnections = {}
+
+local function setupBounceOnTouch(character)
+    if not BOUNCE_ENABLED then return end
+    
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    
+    if touchConnections[character] then
+        touchConnections[character]:Disconnect()
+        touchConnections[character] = nil
+    end
+    
+    local touchConnection
+    touchConnection = humanoidRootPart.Touched:Connect(function(hit)
+        local playerBottom = humanoidRootPart.Position.Y - humanoidRootPart.Size.Y / 2
+        local playerTop = humanoidRootPart.Position.Y + humanoidRootPart.Size.Y / 2
+        local hitBottom = hit.Position.Y - hit.Size.Y / 2
+        local hitTop = hit.Position.Y + hit.Size.Y / 2
+        
+        if hitTop <= playerBottom + BOUNCE_EPSILON then
+            return
+        elseif hitBottom >= playerTop - BOUNCE_EPSILON then
+            return
+        end
+        
+        remoteEvent:FireServer({}, {2})
+        
+        if BOUNCE_HEIGHT > 0 then
+            local bodyVel = Instance.new("BodyVelocity")
+            bodyVel.MaxForce = Vector3.new(0, math.huge, 0)
+            bodyVel.Velocity = Vector3.new(0, BOUNCE_HEIGHT, 0)
+            bodyVel.Parent = humanoidRootPart
+            Debris:AddItem(bodyVel, 0.2)
+        end
+    end)
+    
+    touchConnections[character] = touchConnection
+    
+    character.AncestryChanged:Connect(function()
+        if not character.Parent then
+            if touchConnections[character] then
+                touchConnections[character]:Disconnect()
+                touchConnections[character] = nil
             end
         end
+    end)
+end
+
+local function disableBounce()
+    for character, connection in pairs(touchConnections) do
+        if connection then
+            connection:Disconnect()
+            touchConnections[character] = nil
+        end
     end
-})
+end
+
+if player.Character then
+    setupBounceOnTouch(player.Character)
+end
+
+player.CharacterAdded:Connect(setupBounceOnTouch)
+
+if Tabs and Tabs.Player then
+    Tabs.Player:Section({ Title = "Bounce Settings", TextSize = 20 })
+    
+    local BounceToggle
+    local BounceHeightInput
+    local EpsilonInput
+    
+    BounceToggle = Tabs.Player:Toggle({
+        Title = "Enable Bounce",
+        Value = false,
+        Callback = function(state)
+            BOUNCE_ENABLED = state
+            if state then
+                if player.Character then
+                    setupBounceOnTouch(player.Character)
+                end
+            else
+                disableBounce()
+            end
+            BounceHeightInput:Set({ Enabled = state })
+            EpsilonInput:Set({ Enabled = state })
+        end
+    })
+
+    BounceHeightInput = Tabs.Player:Input({
+        Title = "Bounce Height",
+        Placeholder = "0",
+        Value = tostring(BOUNCE_HEIGHT),
+        Numeric = true,
+        Enabled = false,
+        Callback = function(value)
+            local num = tonumber(value)
+            if num then
+                BOUNCE_HEIGHT = math.max(0, num)
+            end
+        end
+    })
+
+    EpsilonInput = Tabs.Player:Input({
+        Title = "Touch Detection Epsilon",
+        Placeholder = "0.1",
+        Value = tostring(BOUNCE_EPSILON),
+        Numeric = true,
+        Enabled = false,
+        Callback = function(value)
+            local num = tonumber(value)
+            if num then
+                BOUNCE_EPSILON = math.max(0, num)
+            end
+        end
+    })
+end
     local InfiniteJumpToggle = Tabs.Player:Toggle({
         Title = "loc:INFINITE_JUMP",
         Value = false,
@@ -3648,6 +3733,7 @@ local EmoteDropdown = Tabs.Auto:Dropdown({
     })
 
 -- Utility Tab
+
 local FreeCamToggle = Tabs.Utility:Toggle({
     Title = "Free Cam UI",
     Desc = "Note: Sometimes it's may be glitchy so don't use it too often, I can't really fix it",
