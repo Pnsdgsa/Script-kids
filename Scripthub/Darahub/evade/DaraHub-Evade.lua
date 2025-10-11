@@ -3218,6 +3218,19 @@ local function setupCameraStretch()
 end
 
 setupCameraStretch()
+	    local FullBrightToggle = Tabs.Visuals:Toggle({
+        Title = "loc:FULL_BRIGHT",
+        Value = false,
+        Callback = function(state)
+            featureStates.FullBright = state
+            if state then
+                startFullBright()
+            else
+                stopFullBright()
+            end
+        end
+    })
+
 local NoFogToggle = Tabs.Visuals:Toggle({
     Title = "loc:NO_FOG",
     Value = false,
