@@ -3028,7 +3028,81 @@ local InfiniteSlideSpeedInput = Tabs.Player:Input({
             end
         end
     })
+local noclipConnections = {}
+local noclipEnabled = false
 
+local function setNoCollision()
+    for _, object in pairs(workspace:GetDescendants()) do
+        if object:IsA("BasePart") and not object:IsDescendantOf(player.Character) then
+            object.CanCollide = false
+        end
+    end
+end
+
+local function restoreCollisions()
+    for _, object in pairs(workspace:GetDescendants()) do
+        if object:IsA("BasePart") and not object:IsDescendantOf(player.Character) then
+            object.CanCollide = true
+        end
+    end
+end
+
+local function checkPlayerPosition()
+    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
+    local humanoidRootPart = player.Character.HumanoidRootPart
+    local rayOrigin = humanoidRootPart.Position
+    local rayDistance = math.clamp(10, 1, 50)  
+    local rayDirection = Vector3.new(0, -rayDistance, 0)
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {player.Character}
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+    if raycastResult and raycastResult.Instance:IsA("BasePart") then
+        raycastResult.Instance.CanCollide = true
+    end
+    for _, object in pairs(workspace:GetDescendants()) do
+        if object:IsA("BasePart") and object ~= (raycastResult and raycastResult.Instance) and not object:IsDescendantOf(player.Character) then
+            object.CanCollide = false
+        end
+    end
+end
+
+local function onCharacterAdded(newCharacter)
+    character = newCharacter
+    humanoidRootPart = newCharacter:WaitForChild("HumanoidRootPart")
+    if noclipEnabled then
+        setNoCollision()
+    end
+end
+
+local NoclipToggle = Tabs.Player:Toggle({
+    Title = "Noclip",
+    Desc = "Note: This feature Can make you fall to the void non-stop so be careful what you're doing when toggles this on",
+    Icon = "ghost",
+    Callback = function(state)
+        noclipEnabled = state
+        if state then
+            character = player.Character
+            humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
+            if character then
+                setNoCollision()
+            end
+            noclipConnections.characterAdded = player.CharacterAdded:Connect(onCharacterAdded)
+            noclipConnections.descendantAdded = workspace.DescendantAdded:Connect(function(descendant)
+                if noclipEnabled and descendant:IsA("BasePart") and not descendant:IsDescendantOf(player.Character) then
+                    descendant.CanCollide = false
+                end
+            end)
+            noclipConnections.heartbeat = RunService.Heartbeat:Connect(checkPlayerPosition)
+        else
+            for _, conn in pairs(noclipConnections) do
+                if conn then conn:Disconnect() end
+            end
+            noclipConnections = {}
+            restoreCollisions()
+        end
+    end
+})
     local FlySpeedSlider = Tabs.Player:Slider({
         Title = "loc:FLY_SPEED",
         Value = { Min = 1, Max = 200, Default = 5, Step = 1 },
