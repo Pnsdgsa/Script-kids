@@ -3688,6 +3688,100 @@ local BhopToggle = Tabs.Auto:Toggle({
         end
     end
 })
+featureStates.BhopHold = false
+
+getgenv().bhopHoldActive = false
+
+local BhopHoldToggle = Tabs.Auto:Toggle({
+    Title = "Bhop (Jump button or Space)",
+    Value = false,
+    Callback = function(state)
+        featureStates.BhopHold = state
+        if not state then
+            getgenv().bhopHoldActive = false
+        end
+    end
+})
+
+local UIS = game:GetService("UserInputService")
+UIS.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.Space and featureStates.BhopHold then
+        getgenv().bhopHoldActive = true
+    end
+end)
+UIS.InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.Space then
+        getgenv().bhopHoldActive = false
+    end
+end)
+
+local function setupJumpButton()
+    local success, err = pcall(function()
+        local touchGui = player:WaitForChild("PlayerGui"):WaitForChild("TouchGui", 5)
+        if not touchGui then return end
+        local touchControlFrame = touchGui:WaitForChild("TouchControlFrame", 5)
+        if not touchControlFrame then return end
+        local jumpButton = touchControlFrame:WaitForChild("JumpButton", 5)
+        if not jumpButton then return end
+        
+        jumpButton.MouseButton1Down:Connect(function()
+            if featureStates.BhopHold then
+                getgenv().bhopHoldActive = true
+            end
+        end)
+        
+        jumpButton.MouseButton1Up:Connect(function()
+            getgenv().bhopHoldActive = false
+        end)
+    end)
+    if not success then
+        warn("Failed to setup jump button: " .. tostring(err))
+    end
+end
+setupJumpButton()
+player.CharacterAdded:Connect(setupJumpButton)
+
+task.spawn(function()
+    while true do
+        local friction = 5
+        local isBhopActive = getgenv().autoJumpEnabled or getgenv().bhopHoldActive
+        if isBhopActive and getgenv().bhopMode == "Acceleration" then
+            friction = getgenv().bhopAccelValue or -0.5
+        end
+        for _, t in pairs(getgc(true)) do
+            if type(t) == "table" and rawget(t, "Friction") then
+                if getgenv().bhopMode == "No Acceleration" then
+                else
+                    t.Friction = friction
+                end
+            end
+        end
+        task.wait(0.15)
+    end
+end)
+
+task.spawn(function()
+    while true do
+        local isBhopActive = getgenv().autoJumpEnabled or getgenv().bhopHoldActive
+        if isBhopActive then
+            local character = LocalPlayer.Character
+            if character and character:FindFirstChild("Humanoid") then
+                local humanoid = character.Humanoid
+                if humanoid:GetState() ~= Enum.HumanoidStateType.Jumping and humanoid:GetState() ~= Enum.HumanoidStateType.Freefall then
+                    humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                end
+            end
+            if getgenv().bhopMode == "No Acceleration" then
+                task.wait(0.05)
+            else
+                task.wait()
+            end
+        else
+            task.wait()
+        end
+    end
+end)
 local BhopModeDropdown = Tabs.Auto:Dropdown({
     Title = "Bhop Mode",
     Values = {"Acceleration", "No Acceleration"},
