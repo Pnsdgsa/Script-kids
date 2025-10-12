@@ -9,7 +9,7 @@ local Localization = WindUI:Localization({
     Translations = {
         ["en"] = {
             ["SCRIPT_TITLE"] = "Dara Hub",
-            ["WELCOME"] = "Made by: Pnsdg And Yomkaa",
+            ["WELCOME"] = "Made by: Pnsdg And Yomka",
             ["FEATURES"] = "Features",
             ["Player_TAB"] = "Player",
             ["AUTO_TAB"] = "Auto",
@@ -950,6 +950,7 @@ local featureStates = {
     AutoWin = false,
     AutoMoneyFarm = false,
     AutoRevive = false,
+    DisableCameraShake = false,
     PlayerESP = {
         boxes = false,
         tracers = false,
@@ -3292,6 +3293,74 @@ local function setupCameraStretch()
 end
 
 setupCameraStretch()
+
+-- Stable camera: сбрасывает Shake через PlayerScripts.Camera.Set("CFrameOffset","Shake", CFrame.new())
+local stableCameraInstance = nil
+
+local StableCamera = {}
+StableCamera.__index = StableCamera
+
+function StableCamera.new(maxDistance)
+    local self = setmetatable({}, StableCamera)
+    self.Player = Players.LocalPlayer
+    self.MaxDistance = maxDistance or 50
+    self._conn = RunService.RenderStepped:Connect(function(dt) self:Update(dt) end)
+    return self
+end
+
+local function tryResetShake(player)
+    if not player then return end
+    local ok, playerScripts = pcall(function() return player:FindFirstChild("PlayerScripts") end)
+    if not ok or not playerScripts then return end
+    local cameraSet = playerScripts:FindFirstChild("Camera") and playerScripts.Camera:FindFirstChild("Set")
+    if cameraSet and type(cameraSet.Invoke) == "function" then
+        pcall(function()
+            cameraSet:Invoke("CFrameOffset", "Shake", CFrame.new())
+        end)
+    end
+end
+
+function StableCamera:Update(dt)
+    -- при каждой итерации сбрасываем смещение Shake чтобы отключить тряску
+    if Players and Players.LocalPlayer then
+        tryResetShake(Players.LocalPlayer)
+    end
+end
+
+function StableCamera:Destroy()
+    if self._conn then
+        self._conn:Disconnect()
+        self._conn = nil
+    end
+end
+
+local DisableCameraShakeToggle = Tabs.Visuals:Toggle({
+    Title = "Disable Camera Shake",
+    Value = false,
+    Callback = function(state)
+        featureStates.DisableCameraShake = state
+        if state then
+            if stableCameraInstance then
+                stableCameraInstance:Destroy()
+                stableCameraInstance = nil
+            end
+            stableCameraInstance = StableCamera.new(50) -- <--- 50 = maxDistance, при необходимости измените
+            pcall(function()
+                WindUI:Notify({ Title = "Camera", Content = "Camera shake disabled", Duration = 2 })
+            end)
+        else
+            if stableCameraInstance then
+                stableCameraInstance:Destroy()
+                stableCameraInstance = nil
+            end
+            pcall(function()
+                WindUI:Notify({ Title = "Camera", Content = "Camera shake enabled", Duration = 2 })
+            end)
+        end
+    end
+})
+
+
 	    local FullBrightToggle = Tabs.Visuals:Toggle({
         Title = "loc:FULL_BRIGHT",
         Value = false,
