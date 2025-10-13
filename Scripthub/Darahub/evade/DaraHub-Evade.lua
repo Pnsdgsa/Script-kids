@@ -3076,6 +3076,14 @@ local function onCharacterAdded(newCharacter)
     end
 end
 
+    local FlySpeedSlider = Tabs.Player:Slider({
+        Title = "loc:FLY_SPEED",
+        Value = { Min = 1, Max = 200, Default = 5, Step = 1 },
+                Desc = "Adjust fly speed",
+        Callback = function(value)
+            featureStates.FlySpeed = value
+        end
+    })
 local NoclipToggle = Tabs.Player:Toggle({
     Title = "Noclip",
     Desc = "Note: This feature Can make you fall to the void non-stop so be careful what you're doing when toggles this on",
@@ -3104,15 +3112,6 @@ local NoclipToggle = Tabs.Player:Toggle({
         end
     end
 })
-    local FlySpeedSlider = Tabs.Player:Slider({
-        Title = "loc:FLY_SPEED",
-        Value = { Min = 1, Max = 200, Default = 5, Step = 1 },
-                Desc = "Adjust fly speed",
-        Callback = function(value)
-            featureStates.FlySpeed = value
-        end
-    })
-
     local TPWALKToggle = Tabs.Player:Toggle({
         Title = "loc:TPWALK",
         Value = false,
@@ -3475,10 +3474,13 @@ local DisableCameraShakeToggle = Tabs.Visuals:Toggle({
     end
 })
 
+local vignetteEnabled = false
+
 local Disablevignette = Tabs.Visuals:Toggle({
     Title = "Disable Vignette",
     Default = false,
     Callback = function(value)
+        vignetteEnabled = value
         if value then
             local vignetteInstance = module_upvr.new()
             if vignetteInstance then
@@ -3495,22 +3497,26 @@ local Disablevignette = Tabs.Visuals:Toggle({
                 module_upvr.stop(currentModuleInstance)
             end
         end
-                    game.Players.LocalPlayer.CharacterAdded:Connect(function()
+    end
+})
+
+game.Players.LocalPlayer.CharacterAdded:Connect(function()
     warn("Player respawned - checking vignette disable")
-    wait(1) -- Wait for PlayerGui to reload
-    if currentModuleInstance then -- If toggle was on, reapply
+    wait(1)
+    
+    if vignetteEnabled then
+        warn("Reapplying vignette disable after respawn")
         local vignetteInstance = module_upvr.new()
         if vignetteInstance then
+            if vignetteConnection then
+                vignetteConnection:Disconnect()
+            end
             vignetteConnection = game:GetService("RunService").Heartbeat:Connect(function(dt)
                 module_upvr.Update(vignetteInstance, dt)
             end)
         end
     end
 end)
-
-return module_upvr
-    end
-})
 
 	    local FullBrightToggle = Tabs.Visuals:Toggle({
         Title = "loc:FULL_BRIGHT",
@@ -5483,3 +5489,4 @@ autoSaveConfig()
                 securityPart.CanCollide = true
                 securityPart.Parent = workspace
                 rootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0) 
+                
