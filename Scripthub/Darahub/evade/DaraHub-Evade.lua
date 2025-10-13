@@ -3294,7 +3294,123 @@ end
 
 setupCameraStretch()
 
--- Stable camera: сбрасывает Shake через PlayerScripts.Camera.Set("CFrameOffset","Shake", CFrame.new())
+
+local module_upvr = {}
+module_upvr.__index = module_upvr
+
+local currentModuleInstance = nil
+
+function module_upvr.new()
+    if currentModuleInstance then
+        currentModuleInstance = nil
+    end
+
+    local player = game.Players.LocalPlayer
+    local playerGui = player:WaitForChild("PlayerGui", 5)
+    local self = setmetatable({
+        Player = player,
+        Enabled = false,
+        Visible = false,
+    }, module_upvr)
+
+    local nextbotNoise
+    local success, err = pcall(function()
+        local shared = playerGui:FindFirstChild("Shared")
+        if shared then
+            local hud = shared:FindFirstChild("HUD")
+            if hud then
+                nextbotNoise = hud:FindFirstChild("NextbotNoise")
+            end
+        end
+        if not nextbotNoise then
+            local hud = playerGui:FindFirstChild("HUD")
+            if hud then
+                nextbotNoise = hud:FindFirstChild("NextbotNoise")
+            end
+        end
+        if not nextbotNoise then
+            nextbotNoise = playerGui:FindFirstChild("NextbotNoise")
+        end
+    end)
+
+    if not success or not nextbotNoise then
+        warn("Failed to find NextbotNoise in PlayerGui: " .. (err or "Unknown error"))
+        return self
+    end
+
+    self.originalSize = nextbotNoise.Size
+    self.originalPosition = nextbotNoise.Position
+    self.originalImageTransparency = nextbotNoise.ImageTransparency
+    self.originalNoiseTransparency = nextbotNoise:FindFirstChild("Noise") and nextbotNoise.Noise.ImageTransparency or 0
+    self.originalNoise2Transparency = nextbotNoise:FindFirstChild("Noise2") and nextbotNoise.Noise2.ImageTransparency or 0
+
+    local transparencySuccess, transparencyErr = pcall(function()
+        local inset = game:GetService("GuiService"):GetGuiInset()
+        nextbotNoise.Position = UDim2.new(0.5, 0, 0, -inset.Y)
+        nextbotNoise.Size = UDim2.new(0, 0, 0, 0)
+        nextbotNoise.ImageTransparency = 1
+        if nextbotNoise:FindFirstChild("Noise") then
+            nextbotNoise.Noise.ImageTransparency = 1
+        else
+            warn("Noise not found in NextbotNoise")
+        end
+        if nextbotNoise:FindFirstChild("Noise2") then
+            nextbotNoise.Noise2.ImageTransparency = 1
+        else
+            warn("Noise2 not found in NextbotNoise")
+        end
+    end)
+
+    if not transparencySuccess then
+        warn("Failed to set vignette properties: " .. transparencyErr)
+    end
+
+    self.Noise = nextbotNoise
+    currentModuleInstance = self
+    return self
+end
+
+function module_upvr.stop(self)
+    if self.Noise then
+        local success, err = pcall(function()
+            self.Noise.Size = self.originalSize
+            self.Noise.Position = self.originalPosition
+            self.Noise.ImageTransparency = self.originalImageTransparency
+            if self.Noise:FindFirstChild("Noise") then
+                self.Noise.Noise.ImageTransparency = self.originalNoiseTransparency
+            end
+            if self.Noise:FindFirstChild("Noise2") then
+                self.Noise.Noise2.ImageTransparency = self.originalNoise2Transparency
+            end
+        end)
+        if not success then
+            warn("Failed to restore vignette properties: " .. err)
+        end
+    end
+    currentModuleInstance = nil
+end
+
+function module_upvr.Update(arg1, arg2)
+    if arg1 and arg1.Noise then
+        local success, err = pcall(function()
+            if arg1.Noise:IsA("ImageLabel") or arg1.Noise:IsA("Frame") then
+                arg1.Noise.ImageTransparency = 1
+                if arg1.Noise:FindFirstChild("Noise") then
+                    arg1.Noise.Noise.ImageTransparency = 1
+                end
+                if arg1.Noise:FindFirstChild("Noise2") then
+                    arg1.Noise.Noise2.ImageTransparency = 1
+                end
+            end
+        end)
+        if not success then
+            warn("Update failed to set transparencies: " .. err)
+        end
+    end
+end
+
+
+
 local stableCameraInstance = nil
 
 local StableCamera = {}
@@ -3321,7 +3437,6 @@ local function tryResetShake(player)
 end
 
 function StableCamera:Update(dt)
-    -- при каждой итерации сбрасываем смещение Shake чтобы отключить тряску
     if Players and Players.LocalPlayer then
         tryResetShake(Players.LocalPlayer)
     end
@@ -3344,7 +3459,7 @@ local DisableCameraShakeToggle = Tabs.Visuals:Toggle({
                 stableCameraInstance:Destroy()
                 stableCameraInstance = nil
             end
-            stableCameraInstance = StableCamera.new(50) -- <--- 50 = maxDistance, при необходимости измените
+            stableCameraInstance = StableCamera.new(50)
             pcall(function()
                 WindUI:Notify({ Title = "Camera", Content = "Camera shake disabled", Duration = 2 })
             end)
@@ -3360,6 +3475,42 @@ local DisableCameraShakeToggle = Tabs.Visuals:Toggle({
     end
 })
 
+local Disablevignette = Tabs.Visuals:Toggle({
+    Title = "Disable Vignette",
+    Default = false,
+    Callback = function(value)
+        if value then
+            local vignetteInstance = module_upvr.new()
+            if vignetteInstance then
+                vignetteConnection = game:GetService("RunService").Heartbeat:Connect(function(dt)
+                    module_upvr.Update(vignetteInstance, dt)
+                end)
+            end
+        else
+            if vignetteConnection then
+                vignetteConnection:Disconnect()
+                vignetteConnection = nil
+            end
+            if currentModuleInstance then
+                module_upvr.stop(currentModuleInstance)
+            end
+        end
+                    game.Players.LocalPlayer.CharacterAdded:Connect(function()
+    warn("Player respawned - checking vignette disable")
+    wait(1) -- Wait for PlayerGui to reload
+    if currentModuleInstance then -- If toggle was on, reapply
+        local vignetteInstance = module_upvr.new()
+        if vignetteInstance then
+            vignetteConnection = game:GetService("RunService").Heartbeat:Connect(function(dt)
+                module_upvr.Update(vignetteInstance, dt)
+            end)
+        end
+    end
+end)
+
+return module_upvr
+    end
+})
 
 	    local FullBrightToggle = Tabs.Visuals:Toggle({
         Title = "loc:FULL_BRIGHT",
@@ -5106,7 +5257,6 @@ respawnTeleportConnection = player.CharacterAdded:Connect(function(character)
         end
     end
 end)
-
 
 --[[the part of loadstring prevent error]]
 
