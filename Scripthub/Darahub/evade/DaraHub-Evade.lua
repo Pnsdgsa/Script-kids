@@ -2744,6 +2744,29 @@ Tabs.Main:Button({
    })
    Tabs.Main:Section({ Title = "Misc", TextSize = 20 })
    Tabs.Main:Divider()
+   Tabs.Main:Button({
+    Title = "Show/Hide Reload button",
+    Desc = "This button allow you to use front view mode without keyboard or any tool in vip server",
+    Icon = "switch-camera",
+    Callback = function()
+        if reloadVisible then
+            if reloadButton then
+                reloadButton.Visible = false
+                reloadButton.Active = false
+            end
+            reloadVisible = false
+        else
+            reloadButton = game:GetService("Players").LocalPlayer.PlayerGui.Shared.HUD.Mobile.Right.Mobile.ReloadButton
+            local originalParent = reloadButton.Parent
+            reloadButton.Parent = nil
+            wait()
+            reloadButton.Parent = originalParent
+            reloadButton.Visible = true
+            reloadButton.Active = true
+            reloadVisible = true
+        end
+    end
+})
        local AntiAFKToggle = Tabs.Main:Toggle({
         Title = "loc:ANTI_AFK",
         Value = false,
@@ -3460,7 +3483,7 @@ local DisableCameraShakeToggle = Tabs.Visuals:Toggle({
             end
             stableCameraInstance = StableCamera.new(50)
             pcall(function()
-                WindUI:Notify({ Title = "Camera", Content = "Camera shake disabled", Duration = 2 })
+                WindUI:Notify({ Title = "Camera", Content = "Camera shake disabled", Duration = 0 })
             end)
         else
             if stableCameraInstance then
@@ -3468,7 +3491,7 @@ local DisableCameraShakeToggle = Tabs.Visuals:Toggle({
                 stableCameraInstance = nil
             end
             pcall(function()
-                WindUI:Notify({ Title = "Camera", Content = "Camera shake enabled", Duration = 2 })
+                WindUI:Notify({ Title = "Camera", Content = "Camera shake enabled", Duration = 0 })
             end)
         end
     end
