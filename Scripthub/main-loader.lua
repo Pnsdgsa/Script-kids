@@ -57,7 +57,7 @@ if selectedScript then
             return loadstring(game:HttpGet(selectedScript.url))()
         end)
         if not success then
-            game.Players.LocalPlayer:Kick("your nigga executor is ass 💀🙏! get a better executor dawg")
+           -- game.Players.LocalPlayer:Kick("your nigga executor is ass 💀🙏! get a better executor dawg")
             game:GetService("StarterGui"):SetCore("SendNotification", {
                 Title = "Bad Executor Detected",
                 Text = "Failed to execute the script, http failed" .. selectedScript.name .. " script: " .. tostring(result),
