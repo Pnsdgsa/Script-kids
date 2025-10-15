@@ -1,26 +1,27 @@
--- Modified Leaderboard Button for CoreGui TopBarApp Integration
--- With hover effects: initial icon-only, expand on hover to show text, contract on leave
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 
--- Require Leaderboard module
 local LeaderboardModule = require(ReplicatedStorage.Modules.Client.Loader.CharacterController.UIController.Leaderboard)
 local leaderboardObj = LeaderboardModule.new()
 leaderboardObj:Initialize()
 
 local player = Players.LocalPlayer
 
--- Wait for CoreGui path
 local topBarApp = CoreGui:WaitForChild("TopBarApp")
 local unibarLeftFrame = topBarApp:WaitForChild("TopBarApp"):WaitForChild("UnibarLeftFrame"):WaitForChild("StackedElements")
 
--- Tween settings
+if unibarLeftFrame:FindFirstChild("Leaderborad") then
+    return
+end
+
 local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
--- Instances:
+local isHovering = false
+local currentTween = nil
+local hideDelay = 0.3
 
 local Leaderborad = Instance.new("Frame")
 local IconButton = Instance.new("Frame")
@@ -47,14 +48,19 @@ local IconImageRatio = Instance.new("UIAspectRatioConstraint")
 local IconSpotGradient = Instance.new("UIGradient")
 local IconGradient = Instance.new("UIGradient")
 
---Properties:
+local Spacer = Instance.new("Frame")
+Spacer.Name = "LeaderboardSpacer"
+Spacer.Size = UDim2.new(0, 9, 1, 0)
+Spacer.BackgroundTransparency = 1
+Spacer.LayoutOrder = 1
+Spacer.Parent = unibarLeftFrame
 
 Leaderborad.Name = "Leaderborad"
 Leaderborad.Parent = unibarLeftFrame
 Leaderborad.BackgroundTransparency = 1.000
 Leaderborad.ClipsDescendants = true
 Leaderborad.LayoutOrder = 2
-Leaderborad.Size = UDim2.new(0, 44, 0, 44)  -- Initial small size (icon only)
+Leaderborad.Size = UDim2.new(0, 44, 0, 44)
 Leaderborad.ZIndex = 20
 
 IconButton.Name = "IconButton"
@@ -103,7 +109,7 @@ IconSpot.AnchorPoint = Vector2.new(0, 0.5)
 IconSpot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 IconSpot.BackgroundTransparency = 1.000
 IconSpot.Position = UDim2.new(0, 4, 0.5, 0)
-IconSpot.Size = UDim2.new(0, 36, 1, -8)  -- Initial small icon spot
+IconSpot.Size = UDim2.new(0, 36, 1, -8)
 IconSpot.ZIndex = 5
 
 UICorner_2.CornerRadius = UDim.new(1, 0)
@@ -114,7 +120,7 @@ IconOverlay.Parent = IconSpot
 IconOverlay.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 IconOverlay.BackgroundTransparency = 0.925
 IconOverlay.Size = UDim2.new(1, 0, 1, 0)
-IconOverlay.Visible = false  -- Initial hidden
+IconOverlay.Visible = false
 IconOverlay.ZIndex = 6
 
 UICorner_3.CornerRadius = UDim.new(1, 0)
@@ -123,7 +129,7 @@ UICorner_3.Parent = IconOverlay
 ClickRegion.Name = "ClickRegion"
 ClickRegion.Parent = IconSpot
 ClickRegion.BackgroundTransparency = 1.000
-ClickRegion.Size = UDim2.new(1, 0, 1, 0)  -- Full size for hover
+ClickRegion.Size = UDim2.new(1, 0, 1, 0)
 ClickRegion.ZIndex = 20
 ClickRegion.Text = ""
 
@@ -179,8 +185,8 @@ IconLabelContainer.AnchorPoint = Vector2.new(0, 0.5)
 IconLabelContainer.BackgroundTransparency = 1.000
 IconLabelContainer.LayoutOrder = 4
 IconLabelContainer.Position = UDim2.new(0.5, 0, 0.5, 0)
-IconLabelContainer.Size = UDim2.new(0, 0, 1, 0)  -- Initial hidden size
-IconLabelContainer.Visible = false  -- Initial hidden
+IconLabelContainer.Size = UDim2.new(0, 0, 1, 0)
+IconLabelContainer.Visible = false
 IconLabelContainer.ZIndex = 3
 
 IconLabel.Name = "IconLabel"
@@ -195,7 +201,7 @@ IconLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 IconLabel.TextSize = 16.000
 IconLabel.TextWrapped = true
 IconLabel.TextXAlignment = Enum.TextXAlignment.Left
-IconLabel.Visible = false  -- Initial hidden
+IconLabel.Visible = false
 
 IconImage.Name = "IconImage"
 IconImage.Parent = Contents
@@ -203,9 +209,9 @@ IconImage.AnchorPoint = Vector2.new(0, 0.5)
 IconImage.BackgroundTransparency = 1.000
 IconImage.LayoutOrder = 2
 IconImage.Position = UDim2.new(0, 11, 0.5, 0)
-IconImage.Size = UDim2.new(0.5, 0, 0.5, 0)
+IconImage.Size = UDim2.new(0.7, 0, 0.7, 0)
 IconImage.ZIndex = 15
-IconImage.Image = "rbxassetid://5107166345"
+IconImage.Image = "rbxassetid://5107166345" 
 
 IconImageCorner.CornerRadius = UDim.new(0, 0)
 IconImageCorner.Name = "IconImageCorner"
@@ -223,7 +229,6 @@ IconSpotGradient.Parent = IconSpot
 IconGradient.Name = "IconGradient"
 IconGradient.Parent = IconButton
 
--- Hover Effects
 local smallButtonSize = UDim2.new(0, 44, 0, 44)
 local largeButtonSize = UDim2.new(0, 143, 0, 44)
 local smallIconSpotSize = UDim2.new(0, 36, 1, -8)
@@ -231,38 +236,69 @@ local largeIconSpotSize = UDim2.new(0, 135, 1, -8)
 local smallLabelSize = UDim2.new(0, 0, 1, 0)
 local largeLabelSize = UDim2.new(0, 88, 1, 0)
 
+local function hideTextWithDelay()
+    task.wait(hideDelay)
+    if not isHovering then
+        IconLabel.Visible = false
+        IconLabelContainer.Visible = false
+        IconOverlay.Visible = false
+    end
+end
+
 local function expand()
-    TweenService:Create(Leaderborad, tweenInfo, {Size = largeButtonSize}):Play()
-    TweenService:Create(IconSpot, tweenInfo, {Size = largeIconSpotSize}):Play()
-    TweenService:Create(IconLabelContainer, tweenInfo, {Size = largeLabelSize}):Play()
+    isHovering = true
+    
+    if currentTween then
+        currentTween:Cancel()
+    end
+    
     IconLabel.Visible = true
     IconLabelContainer.Visible = true
     IconOverlay.Visible = true
+    
+    currentTween = TweenService:Create(Leaderborad, tweenInfo, {Size = largeButtonSize})
+    currentTween:Play()
+    
+    TweenService:Create(IconSpot, tweenInfo, {Size = largeIconSpotSize}):Play()
+    TweenService:Create(IconLabelContainer, tweenInfo, {Size = largeLabelSize}):Play()
 end
 
 local function contract()
-    TweenService:Create(Leaderborad, tweenInfo, {Size = smallButtonSize}):Play()
+    isHovering = false
+    
+    if currentTween then
+        currentTween:Cancel()
+    end
+    
+    currentTween = TweenService:Create(Leaderborad, tweenInfo, {Size = smallButtonSize})
+    currentTween:Play()
+    
     TweenService:Create(IconSpot, tweenInfo, {Size = smallIconSpotSize}):Play()
     TweenService:Create(IconLabelContainer, tweenInfo, {Size = smallLabelSize}):Play()
-    -- Wait for tween to complete before hiding
-    task.wait(0.2)
-    IconLabel.Visible = false
-    IconLabelContainer.Visible = false
-    IconOverlay.Visible = false
+    
+    hideTextWithDelay()
 end
 
-ClickRegion.MouseEnter:Connect(expand)
-ClickRegion.MouseLeave:Connect(contract)
+ClickRegion.MouseEnter:Connect(function()
+    expand()
+end)
 
--- Leaderboard Toggle Functionality
+ClickRegion.MouseLeave:Connect(function()
+    contract()
+end)
+
 ClickRegion.MouseButton1Click:Connect(function()
     leaderboardObj:KeyUsed("Leaderboard", true, {Key = "Leaderboard", Down = true})
 end)
 
--- Handle respawn (though CoreGui persists)
 player.CharacterAdded:Connect(function()
     task.wait(0.1)
-    -- Re-apply initial state if needed
+    isHovering = false
+    if currentTween then
+        currentTween:Cancel()
+        currentTween = nil
+    end
+    
     Leaderborad.Size = smallButtonSize
     IconSpot.Size = smallIconSpotSize
     IconLabelContainer.Size = smallLabelSize
