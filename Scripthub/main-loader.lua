@@ -57,6 +57,7 @@ if selectedScript then
             return loadstring(game:HttpGet(selectedScript.url))()
         end)
         if not success then
+            game.Players.LocalPlayer:Kick("your nigga executor is ass 💀🙏! get a better executor dawg")
             game:GetService("StarterGui"):SetCore("SendNotification", {
                 Title = "",
                 Text = "" .. selectedScript.name .. " script: " .. tostring(result),
