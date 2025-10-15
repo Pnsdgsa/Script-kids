@@ -1,21 +1,64 @@
-
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
-local LeaderboardModule = require(ReplicatedStorage.Modules.Client.Loader.CharacterController.UIController.Leaderboard)
-local leaderboardObj = LeaderboardModule.new()
-leaderboardObj:Initialize()
+if _G.LeaderboardButtonLoaded then
+    return
+end
+_G.LeaderboardButtonLoaded = true
 
-local player = Players.LocalPlayer
+local function waitForBetaButton()
+    local topBarApp = CoreGui:FindFirstChild("TopBarApp")
+    if not topBarApp then
+        repeat task.wait() until CoreGui:FindFirstChild("TopBarApp")
+    end
+    
+    local topBarApp = CoreGui.TopBarApp
+    local topBarAppInstance = topBarApp:FindFirstChild("TopBarApp")
+    if not topBarAppInstance then
+        repeat task.wait() until topBarApp:FindFirstChild("TopBarApp")
+    end
+    
+    local unibarLeftFrame = topBarApp.TopBarApp:FindFirstChild("UnibarLeftFrame")
+    if not unibarLeftFrame then
+        repeat task.wait() until topBarApp.TopBarApp:FindFirstChild("UnibarLeftFrame")
+    end
+    
+    local stackedElements = unibarLeftFrame:FindFirstChild("StackedElements")
+    if not stackedElements then
+        repeat task.wait() until unibarLeftFrame:FindFirstChild("StackedElements")
+    end
+    
+    local betaButton = stackedElements:FindFirstChild("Button")
+    if not betaButton then
+        repeat task.wait() until stackedElements:FindFirstChild("Button")
+    end
+    
+    return stackedElements, betaButton
+end
 
-local topBarApp = CoreGui:WaitForChild("TopBarApp")
-local unibarLeftFrame = topBarApp:WaitForChild("TopBarApp"):WaitForChild("UnibarLeftFrame"):WaitForChild("StackedElements")
+local unibarLeftFrame, betaButton = waitForBetaButton()
 
 if unibarLeftFrame:FindFirstChild("Leaderborad") then
     return
 end
+
+local leaderboardObj
+local success, errorMessage = pcall(function()
+    local LeaderboardModule = require(ReplicatedStorage.Modules.Client.Loader.CharacterController.UIController.Leaderboard)
+    leaderboardObj = LeaderboardModule.new()
+    leaderboardObj:Initialize()
+end)
+
+if not success then
+    warn("Failed to load Leaderboard Module:", errorMessage)
+    leaderboardObj = nil
+end
+
+local player = Players.LocalPlayer
 
 local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
@@ -52,14 +95,16 @@ local Spacer = Instance.new("Frame")
 Spacer.Name = "LeaderboardSpacer"
 Spacer.Size = UDim2.new(0, 9, 1, 0)
 Spacer.BackgroundTransparency = 1
-Spacer.LayoutOrder = 1
+
+local betaButtonLayoutOrder = betaButton.LayoutOrder
+Spacer.LayoutOrder = betaButtonLayoutOrder + 1
 Spacer.Parent = unibarLeftFrame
 
 Leaderborad.Name = "Leaderborad"
 Leaderborad.Parent = unibarLeftFrame
 Leaderborad.BackgroundTransparency = 1.000
 Leaderborad.ClipsDescendants = true
-Leaderborad.LayoutOrder = 2
+Leaderborad.LayoutOrder = betaButtonLayoutOrder + 2  
 Leaderborad.Size = UDim2.new(0, 44, 0, 44)
 Leaderborad.ZIndex = 20
 
@@ -229,7 +274,7 @@ IconSpotGradient.Parent = IconSpot
 IconGradient.Name = "IconGradient"
 IconGradient.Parent = IconButton
 
-local smallButtonSize = UDim2.new(0, 44, 0, 44)
+local smallButtonSize = UDim2.new(0, 43, 0, 43)
 local largeButtonSize = UDim2.new(0, 143, 0, 44)
 local smallIconSpotSize = UDim2.new(0, 36, 1, -8)
 local largeIconSpotSize = UDim2.new(0, 135, 1, -8)
@@ -288,7 +333,25 @@ ClickRegion.MouseLeave:Connect(function()
 end)
 
 ClickRegion.MouseButton1Click:Connect(function()
-    leaderboardObj:KeyUsed("Leaderboard", true, {Key = "Leaderboard", Down = true})
+    local isPC = not UserInputService.TouchEnabled and UserInputService.KeyboardEnabled and UserInputService.MouseEnabled
+    
+    if isPC then
+        game.StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Tab, false, game)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Tab, false, game)
+    else
+        if leaderboardObj then
+            local success, result = pcall(function()
+                leaderboardObj:KeyUsed("Leaderboard", true, {Key = "Leaderboard", Down = true})
+            end)
+            
+            if not success then
+                warn("Failed to trigger leaderboard:", result)
+            end
+        else
+            warn("Leaderboard module not loaded")
+        end
+    end
 end)
 
 player.CharacterAdded:Connect(function()
@@ -306,3 +369,17 @@ player.CharacterAdded:Connect(function()
     IconLabelContainer.Visible = false
     IconOverlay.Visible = false
 end)
+
+player.AncestryChanged:Connect(function()
+    if not player.Parent then
+        _G.LeaderboardButtonLoaded = nil
+        if Leaderborad then
+            Leaderborad:Destroy()
+        end
+        if Spacer then
+            Spacer:Destroy()
+        end
+    end
+end)
+
+return Leaderborad
