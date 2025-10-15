@@ -4700,9 +4700,29 @@ if loadedData.LagDurationInput then LagDurationInput:Set(loadedData.LagDurationI
     })
 
     pcall(updateKeybindButtonDesc)
+Tabs.Settings:Section({ Title = "Game Settings", TextSize = 35 })
+Tabs.Settings:Section({ Title = "Note: This is a permanent Changes, it's can be used to pass limit value, This action acquired rejoins to see the results", TextSize = 15 })
+Tabs.Settings:Divider()
+Tabs.Settings:Section({ Title = "Visual", TextSize = 20 })
+local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ChangeSettingRemote = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Data"):WaitForChild("ChangeSetting")
 
+local MapShadowToggle = Tabs.Settings:Toggle({
+    Title = "Map Shadow",
+    Value = Lighting.GlobalShadows,
+    Callback = function(state)
+        ChangeSettingRemote:InvokeServer(6, state)
+    end
+})
+
+Lighting:GetPropertyChangedSignal("GlobalShadows"):Connect(function()
+    MapShadowToggle:Set(Lighting.GlobalShadows)
+end)
     Window:SelectTab(1)
 end
+
+
 
 setupGui()
 setupMobileJumpButton()
@@ -5503,6 +5523,8 @@ end
 
 autoSaveConfig()
 ]]
+
+local script = loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/evade%20leaderboard%20button.lua'))()
 
                 local securityPart = Instance.new("Part")
                 securityPart.Name = "SecurityPart"
