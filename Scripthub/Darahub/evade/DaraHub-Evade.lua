@@ -4719,6 +4719,152 @@ local MapShadowToggle = Tabs.Settings:Toggle({
 Lighting:GetPropertyChangedSignal("GlobalShadows"):Connect(function()
     MapShadowToggle:Set(Lighting.GlobalShadows)
 end)
+local LowGraphicToggle = Tabs.Settings:Toggle({
+    Title = "Low graphic",
+    Value = false,
+    Callback = function(state)
+        ChangeSettingRemote:InvokeServer(5, state)
+    end
+})
+local RagdollToggle = Tabs.Settings:Toggle({
+    Title = "Ragdoll",
+    Value = false,
+    Callback = function(state)
+        ChangeSettingRemote:InvokeServer(10, state)
+    end
+})
+local MusicVolumeInput = Tabs.Settings:Input({
+    Title = "Music volume",
+    Placeholder = "0.5",
+    Value = "",
+    NumbersOnly = true,
+    Callback = function(value)
+        local num = tonumber(value)
+        if num then
+            ChangeSettingRemote:InvokeServer(7, num)
+        end
+    end
+})
+local NextbotVolumeInput = Tabs.Settings:Input({
+    Title = "Nextbot volume",
+    Placeholder = "100",
+    Value = "",
+    NumbersOnly = true,
+    Callback = function(value)
+        local num = tonumber(value)
+        if num then
+            ChangeSettingRemote:InvokeServer(9, num)
+        end
+    end
+})
+
+local BoomBoxVolumeInput = Tabs.Settings:Input({
+    Title = "Boom box volume",
+    Placeholder = "100",
+    Value = "",
+    NumbersOnly = true,
+    Callback = function(value)
+        local num = tonumber(value)
+        if num then
+            ChangeSettingRemote:InvokeServer(4, num)
+        end
+    end
+})
+
+local EmoteVolumeInput = Tabs.Settings:Input({
+    Title = "Emote volume",
+    Placeholder = "100",
+    Value = "",
+    NumbersOnly = true,
+    Callback = function(value)
+        local num = tonumber(value)
+        if num then
+            ChangeSettingRemote:InvokeServer(8, num)
+        end
+    end
+})
+
+local NextbotVignetteToggle = Tabs.Settings:Toggle({
+    Title = "Nextbot vignette",
+    Value = false,
+    Callback = function(state)
+        ChangeSettingRemote:InvokeServer(12, state)
+    end
+})
+
+local R15EnabledToggle = Tabs.Settings:Toggle({
+    Title = "R15 enabled",
+    Value = false,
+    Callback = function(state)
+        ChangeSettingRemote:InvokeServer(15, state)
+    end
+})
+
+local AnimatedTagToggle = Tabs.Settings:Toggle({
+    Title = "Animated tag",
+    Value = false,
+    Callback = function(state)
+        ChangeSettingRemote:InvokeServer(18, state)
+    end
+})
+Tabs.Settings:Section({ Title = "Game", TextSize = 20 })
+local CanBeCarriedToggle = Tabs.Settings:Toggle({
+    Title = "Can be carried",
+    Value = false,
+    Callback = function(state)
+        ChangeSettingRemote:InvokeServer(1, state)
+    end
+})
+
+local FovInput = Tabs.Settings:Input({
+    Title = "Fov",
+    Placeholder = "100",
+    Value = "",
+    NumbersOnly = true,
+    Callback = function(value)
+        local num = tonumber(value)
+        if num then
+            ChangeSettingRemote:InvokeServer(2, num)
+        end
+    end
+})
+
+local PovScrollToggle = Tabs.Settings:Toggle({
+    Title = "Pov scroll",
+    Value = false,
+    Callback = function(state)
+        ChangeSettingRemote:InvokeServer(13, state)
+    end
+})
+
+local SprintViewmodelToggle = Tabs.Settings:Toggle({
+    Title = "Sprint viewmodel",
+    Value = false,
+    Callback = function(state)
+        ChangeSettingRemote:InvokeServer(11, state)
+    end
+})
+
+local ViewbobToggle = Tabs.Settings:Toggle({
+    Title = "Viewbob",
+    Value = false,
+    Callback = function(state)
+        ChangeSettingRemote:InvokeServer(3, state)
+    end
+})
+
+local VoicchatVolumeInput = Tabs.Settings:Input({
+    Title = "Voicchat volume",
+    Placeholder = "100",
+    Value = "",
+    NumbersOnly = true,
+    Callback = function(value)
+        local num = tonumber(value)
+        if num then
+            ChangeSettingRemote:InvokeServer(14, num)
+        end
+    end
+})
     Window:SelectTab(1)
 end
 
