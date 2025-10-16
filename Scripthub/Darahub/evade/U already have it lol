@@ -19,12 +19,3 @@ local function autoSaveConfig()
 end
 
 autoSaveConfig()
-                local securityPart = Instance.new("Part")
-                securityPart.Name = "SecurityPart"
-                securityPart.Size = Vector3.new(10, 1, 10)
-                securityPart.Position = Vector3.new(0, 500, 0)
-                securityPart.Anchored = true
-                securityPart.CanCollide = true
-                securityPart.Parent = workspace
-                rootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0) 
-                
