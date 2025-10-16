@@ -4700,7 +4700,7 @@ if loadedData.LagDurationInput then LagDurationInput:Set(loadedData.LagDurationI
     })
 
     pcall(updateKeybindButtonDesc)
-Tabs.Settings:Section({ Title = "Game Settings", TextSize = 35 })
+Tabs.Settings:Section({ Title = "Game Settings (In Beta)", TextSize = 35 })
 Tabs.Settings:Section({ Title = "Note: This is a permanent Changes, it's can be used to pass limit value", TextSize = 15 })
 Tabs.Settings:Divider()
 Tabs.Settings:Section({ Title = "Visual", TextSize = 20 })
@@ -4709,9 +4709,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ChangeSettingRemote = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Data"):WaitForChild("ChangeSetting")
 local UpdatedEvent = game:GetService("ReplicatedStorage").Modules.Client.Settings.Updated
 
+local UpdatedEvent = game:GetService("ReplicatedStorage").Modules.Client.Settings.Updated
+local ChangeSettingRemote = game:GetService("ReplicatedStorage").Events.Data.ChangeSetting
+
 local MapShadowToggle = Tabs.Settings:Toggle({
     Title = "Map Shadow",
     Callback = function(state)
+        ChangeSettingRemote:InvokeServer(6, state)
         UpdatedEvent:Fire(6, state)
     end
 })
@@ -4719,12 +4723,14 @@ local MapShadowToggle = Tabs.Settings:Toggle({
 local LowGraphicToggle = Tabs.Settings:Toggle({
     Title = "Low graphic",
     Callback = function(state)
+        ChangeSettingRemote:InvokeServer(5, state)
         UpdatedEvent:Fire(5, state)
     end
 })
 local RagdollToggle = Tabs.Settings:Toggle({
     Title = "Ragdoll",
     Callback = function(state)
+        ChangeSettingRemote:InvokeServer(10, state)
         UpdatedEvent:Fire(10, state)
     end
 })
@@ -4735,6 +4741,7 @@ local MusicVolumeInput = Tabs.Settings:Input({
     Callback = function(value)
         local num = tonumber(value)
         if num then
+            ChangeSettingRemote:InvokeServer(7, num)
             UpdatedEvent:Fire(7, num)
         end
     end
@@ -4746,6 +4753,7 @@ local NextbotVolumeInput = Tabs.Settings:Input({
     Callback = function(value)
         local num = tonumber(value)
         if num then
+            ChangeSettingRemote:InvokeServer(9, num)
             UpdatedEvent:Fire(9, num)
         end
     end
@@ -4758,6 +4766,7 @@ local BoomBoxVolumeInput = Tabs.Settings:Input({
     Callback = function(value)
         local num = tonumber(value)
         if num then
+            ChangeSettingRemote:InvokeServer(4, num)
             UpdatedEvent:Fire(4, num)
         end
     end
@@ -4770,6 +4779,7 @@ local EmoteVolumeInput = Tabs.Settings:Input({
     Callback = function(value)
         local num = tonumber(value)
         if num then
+            ChangeSettingRemote:InvokeServer(8, num)
             UpdatedEvent:Fire(8, num)
         end
     end
@@ -4778,6 +4788,7 @@ local EmoteVolumeInput = Tabs.Settings:Input({
 local NextbotVignetteToggle = Tabs.Settings:Toggle({
     Title = "Nextbot vignette",
     Callback = function(state)
+        ChangeSettingRemote:InvokeServer(12, state)
         UpdatedEvent:Fire(12, state)
     end
 })
@@ -4785,6 +4796,7 @@ local NextbotVignetteToggle = Tabs.Settings:Toggle({
 local R15EnabledToggle = Tabs.Settings:Toggle({
     Title = "R15 enabled",
     Callback = function(state)
+        ChangeSettingRemote:InvokeServer(15, state)
         UpdatedEvent:Fire(15, state)
     end
 })
@@ -4792,6 +4804,7 @@ local R15EnabledToggle = Tabs.Settings:Toggle({
 local AnimatedTagToggle = Tabs.Settings:Toggle({
     Title = "Animated tag",
     Callback = function(state)
+        ChangeSettingRemote:InvokeServer(18, state)
         UpdatedEvent:Fire(18, state)
     end
 })
@@ -4799,6 +4812,7 @@ Tabs.Settings:Section({ Title = "Game", TextSize = 20 })
 local CanBeCarriedToggle = Tabs.Settings:Toggle({
     Title = "Can be carried",
     Callback = function(state)
+        ChangeSettingRemote:InvokeServer(1, state)
         UpdatedEvent:Fire(1, state)
     end
 })
@@ -4810,6 +4824,7 @@ local FovInput = Tabs.Settings:Input({
     Callback = function(value)
         local num = tonumber(value)
         if num then
+            ChangeSettingRemote:InvokeServer(2, num)
             UpdatedEvent:Fire(2, num)
         end
     end
@@ -4818,6 +4833,7 @@ local FovInput = Tabs.Settings:Input({
 local PovScrollToggle = Tabs.Settings:Toggle({
     Title = "Pov scroll",
     Callback = function(state)
+        ChangeSettingRemote:InvokeServer(13, state)
         UpdatedEvent:Fire(13, state)
     end
 })
@@ -4825,6 +4841,7 @@ local PovScrollToggle = Tabs.Settings:Toggle({
 local SprintViewmodelToggle = Tabs.Settings:Toggle({
     Title = "Sprint viewmodel",
     Callback = function(state)
+        ChangeSettingRemote:InvokeServer(11, state)
         UpdatedEvent:Fire(11, state)
     end
 })
@@ -4832,6 +4849,7 @@ local SprintViewmodelToggle = Tabs.Settings:Toggle({
 local ViewbobToggle = Tabs.Settings:Toggle({
     Title = "Viewbob",
     Callback = function(state)
+        ChangeSettingRemote:InvokeServer(3, state)
         UpdatedEvent:Fire(3, state)
     end
 })
@@ -4843,46 +4861,12 @@ local VoicchatVolumeInput = Tabs.Settings:Input({
     Callback = function(value)
         local num = tonumber(value)
         if num then
+            ChangeSettingRemote:InvokeServer(14, num)
             UpdatedEvent:Fire(14, num)
         end
     end
 })
 
-UpdatedEvent.Event:Connect(function(ohNumber1, ohBoolean2)
-    if ohNumber1 == 6 then
-        MapShadowToggle:Set(ohBoolean2)
-    elseif ohNumber1 == 5 then
-        LowGraphicToggle:Set(ohBoolean2)
-    elseif ohNumber1 == 10 then
-        RagdollToggle:Set(ohBoolean2)
-    elseif ohNumber1 == 7 then
-        MusicVolumeInput:Set(tostring(ohBoolean2))
-    elseif ohNumber1 == 9 then
-        NextbotVolumeInput:Set(tostring(ohBoolean2))
-    elseif ohNumber1 == 4 then
-        BoomBoxVolumeInput:Set(tostring(ohBoolean2))
-    elseif ohNumber1 == 8 then
-        EmoteVolumeInput:Set(tostring(ohBoolean2))
-    elseif ohNumber1 == 12 then
-        NextbotVignetteToggle:Set(ohBoolean2)
-    elseif ohNumber1 == 15 then
-        R15EnabledToggle:Set(ohBoolean2)
-    elseif ohNumber1 == 18 then
-        AnimatedTagToggle:Set(ohBoolean2)
-    elseif ohNumber1 == 1 then
-        CanBeCarriedToggle:Set(ohBoolean2)
-    elseif ohNumber1 == 2 then
-        FovInput:Set(tostring(ohBoolean2))
-    elseif ohNumber1 == 13 then
-        PovScrollToggle:Set(ohBoolean2)
-    elseif ohNumber1 == 11 then
-        SprintViewmodelToggle:Set(ohBoolean2)
-    elseif ohNumber1 == 3 then
-        ViewbobToggle:Set(ohBoolean2)
-    elseif ohNumber1 == 14 then
-        VoicchatVolumeInput:Set(tostring(ohBoolean2))
-    end
-end)
     Window:SelectTab(1)
 end
 
