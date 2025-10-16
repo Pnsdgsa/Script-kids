@@ -3914,6 +3914,35 @@ local NextbotDistanceESPToggle = Tabs.ESP:Toggle({
 
     -- Auto Tab
     Tabs.Auto:Section({ Title = "Auto", TextSize = 40 })
+    local AutoCrouchToggle = Tabs.Auto:Toggle({
+    Title = "Auto Crouch",
+    Icon = "arrow-down",
+    Value = false,
+    Callback = function(state)
+        featureStates.AutoCrouch = state
+        local playerGui = Players.LocalPlayer.PlayerGui
+        local autoCrouchGui = playerGui:FindFirstChild("AutoCrouchGui")
+        if not autoCrouchGui and state then
+            createAutoCrouchGui()
+        elseif autoCrouchGui then
+            autoCrouchGui.Enabled = state
+            local button = autoCrouchGui.Frame:FindFirstChild("ToggleButton")
+            if button then
+                button.Text = state and "On" or "Off"
+                button.BackgroundColor3 = state and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+            end
+        end
+    end
+})
+
+local AutoCrouchModeDropdown = Tabs.Auto:Dropdown({
+    Title = "Auto Crouch Mode",
+    Values = {"Air", "Normal", "Ground"},
+    Value = "Air",
+    Callback = function(value)
+        featureStates.AutoCrouchMode = value
+    end
+})
 local _Players = game:GetService("Players")
 local _LocalPlayer = _Players.LocalPlayer
 local BhopToggle = Tabs.Auto:Toggle({
@@ -4258,6 +4287,149 @@ local TimeChangerInput = Tabs.Utility:Input({
         end
     end
 })
+
+-- Auto Crouch GUI and Logic
+featureStates.AutoCrouch = false
+featureStates.AutoCrouchMode = "Air"
+
+local previousCrouchState = false
+local spamDown = true
+
+local function fireKeybind(down, key)
+    local ohTable = {
+        ["Down"] = down,
+        ["Key"] = key
+    }
+    local event = game:GetService("Players").LocalPlayer:WaitForChild("PlayerScripts"):WaitForChild("Events"):WaitForChild("temporary_events"):WaitForChild("UseKeybind")
+    event:Fire(ohTable)
+end
+
+local function createAutoCrouchGui()
+    local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+    
+    local autoCrouchGuiOld = playerGui:FindFirstChild("AutoCrouchGui")
+    if autoCrouchGuiOld then autoCrouchGuiOld:Destroy() end
+    
+    local autoCrouchGui = Instance.new("ScreenGui")
+    autoCrouchGui.Name = "AutoCrouchGui"
+    autoCrouchGui.IgnoreGuiInset = true
+    autoCrouchGui.ResetOnSpawn = false
+    autoCrouchGui.Enabled = true
+    autoCrouchGui.Parent = playerGui
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 50, 0, 50)
+    frame.Position = UDim2.new(0.5, -50, 0.12, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    frame.BackgroundTransparency = 0.35
+    frame.BorderSizePixel = 0
+    frame.Parent = autoCrouchGui
+    
+    local dragging = false
+    local dragStart = nil
+    local startPos = nil
+
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+        end
+    end)
+
+    frame.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    game:GetService("UserInputService").InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = frame
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(150, 150, 150)
+    stroke.Thickness = 2
+    stroke.Parent = frame
+
+    local label = Instance.new("TextLabel")
+    label.Text = "Auto Crouch"
+    label.Size = UDim2.new(0.9, 0, 0.45, 0)
+    label.Position = UDim2.new(0.05, 0, 0.05, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Font = Enum.Font.Roboto
+    label.TextSize = 30
+    label.TextXAlignment = Enum.TextXAlignment.Center
+    label.TextYAlignment = Enum.TextYAlignment.Center
+    label.TextScaled = true
+    label.Parent = frame
+
+    local autoCrouchGuiButton = Instance.new("TextButton")
+    autoCrouchGuiButton.Name = "ToggleButton"
+    autoCrouchGuiButton.Text = featureStates.AutoCrouch and "On" or "Off"
+    autoCrouchGuiButton.Size = UDim2.new(0.9, 0, 0.4, 0)
+    autoCrouchGuiButton.Position = UDim2.new(0.05, 0, 0.5, 0)
+    autoCrouchGuiButton.BackgroundColor3 = featureStates.AutoCrouch and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+    autoCrouchGuiButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    autoCrouchGuiButton.Font = Enum.Font.Roboto
+    autoCrouchGuiButton.TextSize = 16
+    autoCrouchGuiButton.TextXAlignment = Enum.TextXAlignment.Center
+    autoCrouchGuiButton.TextYAlignment = Enum.TextYAlignment.Center
+    autoCrouchGuiButton.TextScaled = true
+    autoCrouchGuiButton.Parent = frame
+
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 4)
+    buttonCorner.Parent = autoCrouchGuiButton
+
+    autoCrouchGuiButton.MouseButton1Click:Connect(function()
+        featureStates.AutoCrouch = not featureStates.AutoCrouch
+        autoCrouchGuiButton.Text = featureStates.AutoCrouch and "On" or "Off"
+        autoCrouchGuiButton.BackgroundColor3 = featureStates.AutoCrouch and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+        AutoCrouchToggle:Set(featureStates.AutoCrouch)
+    end)
+end
+
+local crouchConnection = RunService.Heartbeat:Connect(function()
+    if not featureStates.AutoCrouch then 
+        if previousCrouchState then
+            fireKeybind(false, "Crouch")
+            previousCrouchState = false
+        end
+        return 
+    end
+
+    local character = Players.LocalPlayer.Character
+    if not character or not character:FindFirstChild("Humanoid") then return end
+
+    local humanoid = character.Humanoid
+    local mode = featureStates.AutoCrouchMode
+
+    if mode == "Normal" then
+        fireKeybind(spamDown, "Crouch")
+        spamDown = not spamDown
+    else
+        local isAir = (humanoid.FloorMaterial == Enum.Material.Air) and (humanoid:GetState() ~= Enum.HumanoidStateType.Seated)
+        local shouldCrouch = (mode == "Air" and isAir) or (mode == "Ground" and not isAir)
+        if shouldCrouch ~= previousCrouchState then
+            fireKeybind(shouldCrouch, "Crouch")
+            previousCrouchState = shouldCrouch
+        end
+    end
+end)
+
+Players.LocalPlayer.CharacterAdded:Connect(function(newChar)
+    previousCrouchState = false
+    spamDown = true
+end)
 getgenv().lagSwitchEnabled = false
 getgenv().lagDuration = 0.5
 local lagGui = nil
@@ -5681,5 +5853,4 @@ autoSaveConfig()
                 securityPart.Anchored = true
                 securityPart.CanCollide = true
                 securityPart.Parent = workspace
-                rootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0) 
-                
+                rootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
