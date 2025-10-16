@@ -81,20 +81,23 @@ local IconImageRatio = Instance.new("UIAspectRatioConstraint")
 local IconSpotGradient = Instance.new("UIGradient")
 local IconGradient = Instance.new("UIGradient")
 
-local Spacer = Instance.new("Frame")
-Spacer.Name = "ReloadSpacer"
-Spacer.Size = UDim2.new(0, 9, 1, 0)
-Spacer.BackgroundTransparency = 1
+local spacerExists = unibarLeftFrame:FindFirstChild("CustomButtonSpacer")
+if not spacerExists then
+    local Spacer = Instance.new("Frame")
+    Spacer.Name = "CustomButtonSpacer"
+    Spacer.Size = UDim2.new(0, 9, 1, 0)
+    Spacer.BackgroundTransparency = 1
 
-local betaButtonLayoutOrder = betaButton.LayoutOrder
-Spacer.LayoutOrder = betaButtonLayoutOrder + 1
-Spacer.Parent = unibarLeftFrame
+    local betaButtonLayoutOrder = betaButton.LayoutOrder
+    Spacer.LayoutOrder = betaButtonLayoutOrder + 1
+    Spacer.Parent = unibarLeftFrame
+end
 
 Reload.Name = "Reload"
 Reload.Parent = unibarLeftFrame
 Reload.BackgroundTransparency = 1.000
 Reload.ClipsDescendants = true
-Reload.LayoutOrder = betaButtonLayoutOrder + 2  
+Reload.LayoutOrder = betaButton.LayoutOrder + 2  
 Reload.Size = UDim2.new(0, 44, 0, 44)
 Reload.ZIndex = 20
 
@@ -265,11 +268,11 @@ IconGradient.Name = "IconGradient"
 IconGradient.Parent = IconButton
 
 local smallButtonSize = UDim2.new(0, 43, 0, 43)
-local largeButtonSize = UDim2.new(0, 100, 0, 44)
+local largeButtonSize = UDim2.new(0, 170, 0, 44)  -- Adjusted for longer "Front View/Reload" text
 local smallIconSpotSize = UDim2.new(0, 36, 1, -8)
-local largeIconSpotSize = UDim2.new(0, 92, 1, -8)
+local largeIconSpotSize = UDim2.new(0, 162, 1, -8)
 local smallLabelSize = UDim2.new(0, 0, 1, 0)
-local largeLabelSize = UDim2.new(0, 50, 1, 0) 
+local largeLabelSize = UDim2.new(0, 120, 1, 0)  -- Adjusted for longer text
 
 local function hideTextWithDelay()
     task.wait(hideDelay)
@@ -371,8 +374,9 @@ player.AncestryChanged:Connect(function()
         if Reload then
             Reload:Destroy()
         end
-        if Spacer then
-            Spacer:Destroy()
+        local spacer = unibarLeftFrame:FindFirstChild("CustomButtonSpacer")
+        if spacer then
+            spacer:Destroy()
         end
     end
 end)
