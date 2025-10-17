@@ -27,7 +27,6 @@ local Localization = WindUI:Localization({
             ["ANTI_AFK"] = "Anti AFK",
             ["FULL_BRIGHT"] = "FullBright",
             ["NO_FOG"] = "Remove Fog",
-            ["FOV"] = "Field of View",
             ["PLAYER_NAME_ESP"] = "Player Name ESP",
             ["PLAYER_BOX_ESP"] = "Player Box ESP",
             ["PLAYER_TRACER"] = "Player Tracer",
@@ -286,7 +285,7 @@ end
 keyInputConnection = game:GetService("UserInputService").InputBegan:Connect(handleKeyPress)
 Window:SetIconSize(48)
 Window:Tag({
-    Title = "v1.0.6",
+    Title = "v1.1",
     Color = Color3.fromHex("#30ff6a")
 })
 
@@ -979,7 +978,6 @@ local featureStates = {
     JumpPower = 5,
     JumpMethod = "Hold",
     SelectedMap = 1,
-    DesiredFOV = 70,
     ZoomValue = 1,
     TimerDisplay = false
 }
@@ -1670,7 +1668,6 @@ local originalFogEnd = Lighting.FogEnd
 local originalOutdoorAmbient = Lighting.OutdoorAmbient
 local originalAmbient = Lighting.Ambient
 local originalGlobalShadows = Lighting.GlobalShadows
-local originalFOV = workspace.CurrentCamera and workspace.CurrentCamera.FieldOfView or 70
 local originalAtmospheres = {}
 
 for _, v in pairs(Lighting:GetDescendants()) do
@@ -2319,14 +2316,6 @@ local function onCharacterAdded(newCharacter, plr)
         end
     end
 end
-if featureStates.ZoomValue then
-    local success, zoomObj = pcall(function()
-        return game:GetService("Players").LocalPlayer.PlayerScripts.Camera.FOVAdjusters.Zoom
-    end)
-    if success and zoomObj then
-        zoomObj.Value = featureStates.ZoomValue
-    end
-end
 local function reapplyFeatures()
     if featureStates.Fly then
         if flying then stopFlying() end
@@ -2392,9 +2381,6 @@ end
     if featureStates.DownedNameESP then
         if downedNameESPConnection then stopDownedNameESP() end
         startDownedNameESP()
-    end
-    if featureStates.DesiredFOV and workspace.CurrentCamera then
-        workspace.CurrentCamera.FieldOfView = featureStates.DesiredFOV
     end
 end
 if featureStates.TimerDisplay then
@@ -2491,25 +2477,6 @@ else
 end
 
 RunService.RenderStepped:Connect(updateFly)
-
-RunService.Heartbeat:Connect(function()
-    if workspace.CurrentCamera and featureStates.DesiredFOV then
-        workspace.CurrentCamera.FieldOfView = featureStates.DesiredFOV
-    end
-end)
-RunService.Heartbeat:Connect(function()
-    if workspace.CurrentCamera and featureStates.DesiredFOV then
-        workspace.CurrentCamera.FieldOfView = featureStates.DesiredFOV
-    end
-    if featureStates.ZoomValue then
-        local success, zoomObj = pcall(function()
-            return game:GetService("Players").LocalPlayer.PlayerScripts.Camera.FOVAdjusters.Zoom
-        end)
-        if success and zoomObj then
-            zoomObj.Value = featureStates.ZoomValue
-        end
-    end
-end)
 local function setupGui()
 local function getServers()
     local request = request({
@@ -3566,23 +3533,15 @@ local NoFogToggle = Tabs.Visuals:Toggle({
         end
     end
 })
-    local FOVSlider = Tabs.Visuals:Slider({
-    Title = "loc:FOV",
-    Value = { Min = 10, Max = 120, Default = 70, Step = 1 },
+local FovSlider = Tabs.Visuals:Slider({
+    Title = "Spectate Field of View",
+    Desc = "Old fov has been moved to settings, will be add back in here soon"
+    Value = { Min = 1, Max = 120, Default = 70, Step = 1 },
     Callback = function(value)
-        featureStates.DesiredFOV = value
-        local camera = workspace.CurrentCamera or game:GetService("Workspace"):WaitForChild("CurrentCamera", 5)
-        if camera then
-            camera.FieldOfView = value
-        end
-        local zoomSliderValue = (value - 10) * (200 / 110)
-        featureStates.ZoomValue = zoomSliderValue * 0.01
-        ZoomSlider:Set(math.floor(zoomSliderValue + 0.5)) 
-        local success, zoomObj = pcall(function()
-            return game:GetService("Players").LocalPlayer.PlayerScripts.Camera.FOVAdjusters.Zoom
-        end)
-        if success and zoomObj then
-            zoomObj.Value = featureStates.ZoomValue
+        local state = tonumber(value)
+        if num then
+            UpdatedEvent:Fire(2, state * 2)
+            workspace.CurrentCamera.FieldOfView = state
         end
     end
 })
@@ -4756,7 +4715,6 @@ local GravityGUIToggle = Tabs.Utility:Toggle({
                 configFile:Register("JumpBoostSlider", JumpBoostSlider)
                 configFile:Register("AntiAFKToggle", AntiAFKToggle)
                 configFile:Register("FullBrightToggle", FullBrightToggle)
-                configFile:Register("FOVSlider", FOVSlider)
                 configFile:Register("PlayerBoxESPToggle", PlayerBoxESPToggle)
                 configFile:Register("PlayerBoxTypeDropdown", PlayerBoxTypeDropdown)
                 configFile:Register("PlayerTracerToggle", PlayerTracerToggle)
