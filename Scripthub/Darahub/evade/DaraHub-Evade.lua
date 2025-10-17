@@ -3535,7 +3535,7 @@ local NoFogToggle = Tabs.Visuals:Toggle({
 })
 local FovSlider = Tabs.Visuals:Slider({
     Title = "Spectate Field of View",
-    Desc = "Old fov has been moved to settings, will be add back in here soon"
+    Desc = "Old fov has been moved to settings, will be add back in here soon",
     Value = { Min = 1, Max = 120, Default = 70, Step = 1 },
     Callback = function(value)
         local state = tonumber(value)
