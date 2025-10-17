@@ -244,9 +244,9 @@ IconImage.AnchorPoint = Vector2.new(0, 0.5)
 IconImage.BackgroundTransparency = 1.000
 IconImage.LayoutOrder = 2
 IconImage.Position = UDim2.new(0, 11, 0.5, 0)
-IconImage.Size = UDim2.new(0.7, 0, 0.7, 0)
+IconImage.Size = UDim2.new(1, 0, 1, 0)
 IconImage.ZIndex = 15
-IconImage.Image = "rbxassetid://92026364175780"
+IconImage.Image = "rbxassetid://78648212535999"
 
 IconImageCorner.CornerRadius = UDim.new(0, 0)
 IconImageCorner.Name = "IconImageCorner"
