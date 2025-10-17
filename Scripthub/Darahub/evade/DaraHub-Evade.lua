@@ -3533,16 +3533,13 @@ local NoFogToggle = Tabs.Visuals:Toggle({
         end
     end
 })
-local FovSlider = Tabs.Visuals:Slider({
-    Title = "Spectate Field of View",
+local originalFOV = workspace.CurrentCamera.FieldOfView
+local FOVSlider = Tabs.Visuals:Slider({
+    Title = "Field of View",
     Desc = "Old fov has been moved to settings, will be add back in here soon",
-    Value = { Min = 1, Max = 120, Default = 70, Step = 1 },
+    Value = { Min = 10, Max = 120, Default = originalFOV, Step = 1 },
     Callback = function(value)
-        local state = tonumber(value)
-        if num then
-            UpdatedEvent:Fire(2, state * 2)
-            workspace.CurrentCamera.FieldOfView = state
-        end
+        workspace.CurrentCamera.FieldOfView = tonumber(value)
     end
 })
 local TimerDisplayToggle = Tabs.Visuals:Toggle({
