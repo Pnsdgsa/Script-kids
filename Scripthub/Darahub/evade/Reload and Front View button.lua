@@ -249,7 +249,7 @@ IconImage.LayoutOrder = 2
 IconImage.Position = UDim2.new(0, 11, 0.5, 0)
 IconImage.Size = UDim2.new(0.7, 0, 0.7, 0)
 IconImage.ZIndex = 15
-IconImage.Image = "rbxassetid://86983544335890"
+IconImage.Image = "rbxassetid://92026364175780"
 
 IconImageCorner.CornerRadius = UDim.new(0, 0)
 IconImageCorner.Name = "IconImageCorner"
