@@ -43,7 +43,7 @@ local PlaceScripts = {
 
 local UniversalScript = {
     name = "Universal Script",
-    url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/UHH-OHH-Sorry-This-Game-is-Not-Supported/Why%20are%20you%20here%3F%20There's%20nothing%20here.lua"
+    url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/Universal/Darahub-Universal.lua"
 }
 
 local currentGameId = game.PlaceId
