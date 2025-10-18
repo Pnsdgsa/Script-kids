@@ -34,6 +34,10 @@ local PlaceScripts = {
     [99214917572799] = { 
         name = "Custom Servers", 
         url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/DaraHub-Evade.lua" 
+    }, --MM2
+     [142823291] = { 
+        name = "Murder Mystery 2", 
+        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/MM2/DaraHub-MM2.lua" 
     },
 }
 
