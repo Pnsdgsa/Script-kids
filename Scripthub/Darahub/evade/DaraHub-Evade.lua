@@ -4064,6 +4064,186 @@ local EmoteDropdown = Tabs.Auto:Dropdown({
         end
     })
 
+getgenv().autoCarryGuiVisible = false
+
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+local playerGui = LocalPlayer:WaitForChild("PlayerGui", 5)
+
+local function makeDraggable(frame)
+    local dragging = false
+    local dragStart = nil
+    local startPos = nil
+
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+        end
+    end)
+
+    frame.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+end
+
+local function createAutoCarryGui(yOffset)
+    local autoCarryGuiOld = playerGui:FindFirstChild("AutoCarryGui")
+    if autoCarryGuiOld then
+        autoCarryGuiOld:Destroy()
+    end
+    
+    local autoCarryGui = Instance.new("ScreenGui")
+    autoCarryGui.Name = "AutoCarryGui"
+    autoCarryGui.IgnoreGuiInset = true
+    autoCarryGui.ResetOnSpawn = false
+    autoCarryGui.Enabled = getgenv().autoCarryGuiVisible
+    autoCarryGui.Parent = playerGui
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 60, 0, 60)
+    frame.Position = UDim2.new(0.5, -30, 0.12 + (yOffset or 0), 0)
+    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    frame.BackgroundTransparency = 0.35
+    frame.BorderSizePixel = 0
+    frame.Parent = autoCarryGui
+    makeDraggable(frame)
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = frame
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(150, 150, 150)
+    stroke.Thickness = 2
+    stroke.Parent = frame
+
+    local label = Instance.new("TextLabel")
+    label.Text = "Auto"
+    label.Size = UDim2.new(0.9, 0, 0.3, 0)
+    label.Position = UDim2.new(0.05, 0, 0.05, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Font = Enum.Font.Roboto
+    label.TextSize = 14
+    label.TextXAlignment = Enum.TextXAlignment.Center
+    label.TextYAlignment = Enum.TextYAlignment.Center
+    label.TextScaled = true
+    label.Parent = frame
+
+    local subLabel = Instance.new("TextLabel")
+    subLabel.Text = "Carry"
+    subLabel.Size = UDim2.new(0.9, 0, 0.3, 0)
+    subLabel.Position = UDim2.new(0.05, 0, 0.3, 0)
+    subLabel.BackgroundTransparency = 1
+    subLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    subLabel.Font = Enum.Font.Roboto
+    subLabel.TextSize = 14
+    subLabel.TextXAlignment = Enum.TextXAlignment.Center
+    subLabel.TextYAlignment = Enum.TextYAlignment.Center
+    subLabel.TextScaled = true
+    subLabel.Parent = frame
+
+    local autoCarryGuiButton = Instance.new("TextButton")
+    autoCarryGuiButton.Name = "ToggleButton"
+    autoCarryGuiButton.Text = featureStates.AutoCarry and "On" or "Off"
+    autoCarryGuiButton.Size = UDim2.new(0.9, 0, 0.35, 0)
+    autoCarryGuiButton.Position = UDim2.new(0.05, 0, 0.6, 0)
+    autoCarryGuiButton.BackgroundColor3 = featureStates.AutoCarry and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+    autoCarryGuiButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    autoCarryGuiButton.Font = Enum.Font.Roboto
+    autoCarryGuiButton.TextSize = 12
+    autoCarryGuiButton.TextXAlignment = Enum.TextXAlignment.Center
+    autoCarryGuiButton.TextYAlignment = Enum.TextYAlignment.Center
+    autoCarryGuiButton.TextScaled = true
+    autoCarryGuiButton.Parent = frame
+
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 4)
+    buttonCorner.Parent = autoCarryGuiButton
+
+    autoCarryGuiButton.MouseButton1Click:Connect(function()
+        featureStates.AutoCarry = not featureStates.AutoCarry
+        if featureStates.AutoCarry then
+            startAutoCarry()
+        else
+            stopAutoCarry()
+        end
+        autoCarryGuiButton.Text = featureStates.AutoCarry and "On" or "Off"
+        autoCarryGuiButton.BackgroundColor3 = featureStates.AutoCarry and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+    end)
+end
+
+local autoCarryInputConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.X and getgenv().autoCarryGuiVisible then
+        featureStates.AutoCarry = not featureStates.AutoCarry
+        if featureStates.AutoCarry then
+            startAutoCarry()
+        else
+            stopAutoCarry()
+        end
+        local autoCarryGui = playerGui:FindFirstChild("AutoCarryGui")
+        if autoCarryGui and autoCarryGui.Enabled then
+            local button = autoCarryGui.Frame:FindFirstChild("ToggleButton")
+            if button then
+                button.Text = featureStates.AutoCarry and "On" or "Off"
+                button.BackgroundColor3 = featureStates.AutoCarry and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+            end
+        end
+        WindUI:Notify({
+            Title = "Auto Carry",
+            Content = "Auto Carry " .. (featureStates.AutoCarry and "enabled" or "disabled"),
+            Duration = 2
+        })
+    end
+end)
+
+local function toggleAutoCarryGUI(state)
+    getgenv().autoCarryGuiVisible = state
+    local autoCarryGui = playerGui:FindFirstChild("AutoCarryGui")
+    if autoCarryGui then
+        autoCarryGui.Enabled = state
+    end
+    if state then
+        WindUI:Notify({
+            Title = "Auto Carry GUI",
+            Content = "GUI is enabled. Press X to toggle auto carry.",
+            Duration = 3
+        })
+    else
+        WindUI:Notify({
+            Title = "Auto Carry GUI",
+            Content = "GUI and keybind disabled.",
+            Duration = 3
+        })
+    end
+end
+
+local AutoCarryKeybindToggle = Tabs.Auto:Toggle({
+    Title = "Auto carry keybind/button",
+    Desc = "Toggle gui or keybind for quick enable auto carry",
+    Icon = "toggle-right",
+    Value = false,
+    Callback = function(state)
+        toggleAutoCarryGUI(state)
+    end
+})
+
+createAutoCarryGui(0)
     local AutoReviveToggle = Tabs.Auto:Toggle({
         Title = "loc:AUTO_REVIVE",
         Value = false,
