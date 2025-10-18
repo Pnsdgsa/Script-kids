@@ -233,7 +233,64 @@ local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local rootPart = character:WaitForChild("HumanoidRootPart")
 local camera = workspace.CurrentCamera
+local flySpeed = 5
 
+local function startFlying()
+    if not character or not humanoid or not rootPart then return end
+    
+    flying = true
+    bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    bodyVelocity.Parent = rootPart
+    
+    bodyGyro = Instance.new("BodyGyro")
+    bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    bodyGyro.CFrame = rootPart.CFrame
+    bodyGyro.Parent = rootPart
+    
+    humanoid.PlatformStand = true
+end
+
+local function stopFlying()
+    flying = false
+    if bodyVelocity then
+        bodyVelocity:Destroy()
+        bodyVelocity = nil
+    end
+    if bodyGyro then
+        bodyGyro:Destroy()
+        bodyGyro = nil
+    end
+    humanoid.PlatformStand = false
+end
+
+local function updateFly()
+    if not flying or not bodyVelocity or not bodyGyro then return end
+    
+    local camCFrame = camera.CFrame
+    local direction = Vector3.new(0, 0, 0)
+    
+    local moveDirection = humanoid.MoveDirection
+    if moveDirection.Magnitude > 0 then
+        local forwardVector = camCFrame.LookVector
+        local rightVector = camCFrame.RightVector
+        local forwardComponent = moveDirection:Dot(forwardVector) * forwardVector
+        local rightComponent = moveDirection:Dot(rightVector) * rightVector
+        direction = direction + (forwardComponent + rightComponent).Unit * moveDirection.Magnitude
+    end
+    
+    if UserInputService:IsKeyDown(Enum.KeyCode.Space) or humanoid.Jump then
+        direction = direction + Vector3.new(0, 1, 0)
+    end
+    if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+        direction = direction - Vector3.new(0, 1, 0)
+    end
+    bodyVelocity.Velocity = direction.Magnitude > 0 and direction.Unit * (flySpeed * 16) or Vector3.new(0, 0, 0)
+    bodyGyro.CFrame = camCFrame
+end
+
+local updateFlyConnection = RunService.RenderStepped:Connect(updateFly)
 -- Fling Functions
 local function manageStrength(character, enable)
     if not character or not character:IsA("Model") then return end
@@ -1286,40 +1343,25 @@ local JumpMethodDropdown = PlayerTab:Dropdown({
     end
 })
 
+
 local FlyToggle = PlayerTab:Toggle({
     Title = "loc:FLY",
     Value = false,
     Callback = function(state)
         featureStates.Fly = state
         if state then
-            if character and rootPart then
-                flying = true
-                bodyVelocity = Instance.new("BodyVelocity")
-                bodyVelocity.MaxForce = Vector3.new(4000, 4000, 4000)
-                bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-                bodyVelocity.Parent = rootPart
-                
-                bodyGyro = Instance.new("BodyGyro")
-                bodyGyro.MaxTorque = Vector3.new(4000, 4000, 4000)
-                bodyGyro.CFrame = rootPart.CFrame
-                bodyGyro.Parent = rootPart
-            end
+            startFlying()
         else
-            flying = false
-            if bodyVelocity then bodyVelocity:Destroy() end
-            if bodyGyro then bodyGyro:Destroy() end
+            stopFlying()
         end
     end
 })
 
 local FlySpeedSlider = PlayerTab:Slider({
     Title = "loc:FLY_SPEED",
-    Value = { Min = 1, Max = 100, Default = 5 },
+    Value = { Min = 1, Max = 500, Default = 5 },
     Callback = function(value)
-        featureStates.FlySpeed = value
-        if flying and bodyVelocity then
-            bodyVelocity.Velocity = Vector3.new(0, value, 0)
-        end
+        flySpeed = value
     end
 })
 
@@ -2015,6 +2057,18 @@ UtilityTab:Button({
         loadstring(game:HttpGet("https://glot.io/snippets/h9wgykubaz/raw/FireParts.lua"))()
     end
 })
+player.CharacterAdded:Connect(function(newCharacter)
+    character = newCharacter
+    humanoid = character:WaitForChild("Humanoid")
+    rootPart = character:WaitForChild("HumanoidRootPart")
+    if featureStates.SpeedHack then
+        humanoid.WalkSpeed = featureStates.Speed
+    end
+    if flying then
+        startFlying()
+    end
+    
+end)
 
 -- Settings Tab
 SettingsTab:Section({ Title = "Settings", TextSize = 40 })
