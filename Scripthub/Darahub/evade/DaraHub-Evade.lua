@@ -285,7 +285,7 @@ end
 keyInputConnection = game:GetService("UserInputService").InputBegan:Connect(handleKeyPress)
 Window:SetIconSize(48)
 Window:Tag({
-    Title = "v1.1",
+    Title = "v1.2",
     Color = Color3.fromHex("#30ff6a")
 })
 
@@ -949,6 +949,7 @@ local featureStates = {
     AutoWin = false,
     AutoMoneyFarm = false,
     AutoRevive = false,
+    FastRevive = false,
     DisableCameraShake = false,
     PlayerESP = {
         boxes = false,
@@ -984,7 +985,7 @@ local featureStates = {
 -- Variables
 local character, humanoid, rootPart
 local isJumpHeld = false
-
+local hasRevived = false
 local flying = false
 local bodyVelocity, bodyGyro
 
@@ -1728,7 +1729,7 @@ end
 local function startAutoRevive()
     if reviveLoopHandle then return end
     reviveLoopHandle = task.spawn(function()
-        while featureStates.AutoRevive do
+        while featureStates.FastRevive do
             local LocalPlayer = Players.LocalPlayer
             if LocalPlayer and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
                 local myHRP = LocalPlayer.Character.HumanoidRootPart
@@ -1758,7 +1759,7 @@ local function startAutoRevive()
 end
 
 local function stopAutoRevive()
-    featureStates.AutoRevive = false
+    featureStates.FastRevive = false
     if reviveLoopHandle then
         task.cancel(reviveLoopHandle)
         reviveLoopHandle = nil
@@ -2016,9 +2017,24 @@ local function stopAutoVote()
 end
 
 local function startAutoSelfRevive()
-    AutoSelfReviveConnection = RunService.Heartbeat:Connect(function()
-        if character and character:GetAttribute("Downed") then
+    if AutoSelfReviveConnection then
+        AutoSelfReviveConnection:Disconnect()
+    end
+    
+    local character = player.Character
+    if not character then return end
+    
+    AutoSelfReviveConnection = character:GetAttributeChangedSignal("Downed"):Connect(function()
+        local isDowned = character:GetAttribute("Downed")
+        if isDowned and not hasRevived then
+            hasRevived = true
+            task.wait(3)
+            
             ReplicatedStorage.Events.Player.ChangePlayerMode:FireServer(true)
+            
+            task.delay(10, function()
+                hasRevived = false
+            end)
         end
     end)
 end
@@ -2028,6 +2044,7 @@ local function stopAutoSelfRevive()
         AutoSelfReviveConnection:Disconnect()
         AutoSelfReviveConnection = nil
     end
+    hasRevived = false
 end
 
 local function startAutoWin()
@@ -2336,7 +2353,7 @@ local function reapplyFeatures()
         if AutoCarryConnection then stopAutoCarry() end
         startAutoCarry()
     end
-    if featureStates.AutoRevive then
+    if featureStates.FastRevive then
         stopAutoRevive()
         startAutoRevive()
     end
@@ -2355,8 +2372,10 @@ end
         startAutoVote()
     end
     if featureStates.AutoSelfRevive then
-        if AutoSelfReviveConnection then stopAutoSelfRevive() end
-    end
+    startAutoSelfRevive()
+else
+    stopAutoSelfRevive()
+end
     if featureStates.AutoWin then
         if AutoWinConnection then stopAutoWin() end
         startAutoWin()
@@ -4243,11 +4262,11 @@ local AutoCarryKeybindToggle = Tabs.Auto:Toggle({
 })
 
 createAutoCarryGui(0)
-    local AutoReviveToggle = Tabs.Auto:Toggle({
-        Title = "loc:AUTO_REVIVE",
+    local FastReviveToggle = Tabs.Auto:Toggle({
+        Title = "Fast Revive",
         Value = false,
         Callback = function(state)
-            featureStates.AutoRevive = state
+            featureStates.FastRevive = state
             if state then
                 startAutoRevive()
             else
@@ -4255,6 +4274,17 @@ createAutoCarryGui(0)
             end
         end
     })
+
+
+local FastReviveMethodDropdown = Tabs.Auto:Dropdown({
+    Title = "Fast Revive Method",
+    Values = {"Interact (Default)", "Auto"},
+    Value = "Interact (Default)",
+    Callback = function(value)
+        featureStates.FastReviveMethod = value
+    end
+})
+
 
     local AutoVoteDropdown = Tabs.Auto:Dropdown({
         Title = "loc:AUTO_VOTE_MAP",
@@ -4340,8 +4370,16 @@ createAutoCarryGui(0)
             featureStates.AutoMoneyFarm = state
             if state then
                 startAutoMoneyFarm()
-                featureStates.AutoRevive = true
-                AutoReviveToggle:Set(true)
+                featureStates.FastRevive = true
+                featureStates.FastReviveMethod = "Auto"
+                pcall(function()
+                    if FastReviveMethodDropdown and FastReviveMethodDropdown.Select then
+                        FastReviveMethodDropdown:Select("Auto")
+                    elseif FastReviveMethodDropdown and FastReviveMethodDropdown.Set then
+                        FastReviveMethodDropdown:Set("Value", "Auto")
+                    end
+                end)
+                FastReviveToggle:Set(true)
                 startAutoRevive()
             else
                 stopAutoMoneyFarm()
@@ -4564,6 +4602,13 @@ end)
 Players.LocalPlayer.CharacterAdded:Connect(function(newChar)
     previousCrouchState = false
     spamDown = true
+end)
+player.CharacterAdded:Connect(function()
+    hasRevived = false
+    if featureStates.AutoSelfRevive then
+        task.wait(1)
+        startAutoSelfRevive()
+    end
 end)
 getgenv().lagSwitchEnabled = false
 getgenv().lagDuration = 0.5
@@ -4914,7 +4959,8 @@ configFile:Register("AutoEmoteToggle", AutoEmoteToggle)
                 configFile:Register("DownedNameESPToggle", DownedNameESPToggle)
                 configFile:Register("DownedDistanceESPToggle", DownedDistanceESPToggle)
                 configFile:Register("AutoCarryToggle", AutoCarryToggle)
-                configFile:Register("AutoReviveToggle", AutoReviveToggle)
+                configFile:Register("AutoReviveToggle", FastReviveToggle)
+                configFile:Register("FastReviveToggle", FastReviveToggle)
                 configFile:Register("AutoVoteDropdown", AutoVoteDropdown)
                 configFile:Register("AutoVoteToggle", AutoVoteToggle)
                 configFile:Register("AutoSelfReviveToggle", AutoSelfReviveToggle)
