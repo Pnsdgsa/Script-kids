@@ -95,7 +95,10 @@ local function updateWindowOpenState()
 end
 
 pcall(updateWindowOpenState)
-
+featureStates = featureStates or {}
+if featureStates.DisableCameraShake == nil then
+    featureStates.DisableCameraShake = false
+end
 local currentKey = Enum.KeyCode.RightControl 
 local keyConnection = nil
 local isListeningForInput = false
