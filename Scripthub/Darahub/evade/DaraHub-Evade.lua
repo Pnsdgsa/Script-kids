@@ -2356,7 +2356,6 @@ end
     end
     if featureStates.AutoSelfRevive then
         if AutoSelfReviveConnection then stopAutoSelfRevive() end
-        startAutoSelfRevive()
     end
     if featureStates.AutoWin then
         if AutoWinConnection then stopAutoWin() end
