@@ -1,48 +1,26 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
-local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 
-if _G.LeaderboardButtonLoaded then
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Check if your custom GUI exists
+local customTopGui = playerGui:FindFirstChild("CustomTopGui")
+if not customTopGui then
     return
 end
-_G.LeaderboardButtonLoaded = true
 
-local function waitForBetaButton()
-    local topBarApp = CoreGui:FindFirstChild("TopBarApp")
-    if not topBarApp then
-        repeat task.wait() until CoreGui:FindFirstChild("TopBarApp")
-    end
-    
-    local topBarApp = CoreGui.TopBarApp
-    local topBarAppInstance = topBarApp:FindFirstChild("TopBarApp")
-    if not topBarAppInstance then
-        repeat task.wait() until topBarApp:FindFirstChild("TopBarApp")
-    end
-    
-    local unibarLeftFrame = topBarApp.TopBarApp:FindFirstChild("UnibarLeftFrame")
-    if not unibarLeftFrame then
-        repeat task.wait() until topBarApp.TopBarApp:FindFirstChild("UnibarLeftFrame")
-    end
-    
-    local stackedElements = unibarLeftFrame:FindFirstChild("StackedElements")
-    if not stackedElements then
-        repeat task.wait() until unibarLeftFrame:FindFirstChild("StackedElements")
-    end
-    
-    local betaButton = stackedElements:FindFirstChild("Button")
-    if not betaButton then
-        repeat task.wait() until stackedElements:FindFirstChild("Button")
-    end
-    
-    return stackedElements, betaButton
+-- Find the scrolling frame in your existing GUI
+local scrollingFrame = customTopGui:FindFirstChild("Frame"):FindFirstChild("Right")
+if not scrollingFrame then
+    return
 end
 
-local unibarLeftFrame, betaButton = waitForBetaButton()
-
-if unibarLeftFrame:FindFirstChild("Leaderborad") then
+-- Prevent duplicate button
+if scrollingFrame:FindFirstChild("LeaderboardButton") then
     return
 end
 
@@ -58,15 +36,13 @@ if not success then
     leaderboardObj = nil
 end
 
-local player = Players.LocalPlayer
-
 local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
 local isHovering = false
 local currentTween = nil
 local hideDelay = 0.3
 
-local Leaderborad = Instance.new("Frame")
+local Leaderboard = Instance.new("Frame")
 local IconButton = Instance.new("Frame")
 local UICorner = Instance.new("UICorner")
 local Menu = Instance.new("ScrollingFrame")
@@ -91,25 +67,16 @@ local IconImageRatio = Instance.new("UIAspectRatioConstraint")
 local IconSpotGradient = Instance.new("UIGradient")
 local IconGradient = Instance.new("UIGradient")
 
-local Spacer = Instance.new("Frame")
-Spacer.Name = "LeaderboardSpacer"
-Spacer.Size = UDim2.new(0, 9, 1, 0)
-Spacer.BackgroundTransparency = 1
-
-local betaButtonLayoutOrder = betaButton.LayoutOrder
-Spacer.LayoutOrder = betaButtonLayoutOrder + 1
-Spacer.Parent = unibarLeftFrame
-
-Leaderborad.Name = "Leaderborad"
-Leaderborad.Parent = unibarLeftFrame
-Leaderborad.BackgroundTransparency = 1.000
-Leaderborad.ClipsDescendants = true
-Leaderborad.LayoutOrder = betaButtonLayoutOrder + 2  
-Leaderborad.Size = UDim2.new(0, 44, 0, 44)
-Leaderborad.ZIndex = 20
+Leaderboard.Name = "LeaderboardButton"
+Leaderboard.Parent = scrollingFrame
+Leaderboard.BackgroundTransparency = 1.000
+Leaderboard.ClipsDescendants = true
+Leaderboard.LayoutOrder = 998
+Leaderboard.Size = UDim2.new(0, 44, 0, 44)
+Leaderboard.ZIndex = 20
 
 IconButton.Name = "IconButton"
-IconButton.Parent = Leaderborad
+IconButton.Parent = Leaderboard
 IconButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 IconButton.BackgroundTransparency = 0.300
 IconButton.BorderSizePixel = 0
@@ -256,7 +223,7 @@ IconImage.LayoutOrder = 2
 IconImage.Position = UDim2.new(0, 11, 0.5, 0)
 IconImage.Size = UDim2.new(0.7, 0, 0.7, 0)
 IconImage.ZIndex = 15
-IconImage.Image = "rbxassetid://5107166345" 
+IconImage.Image = "rbxassetid://5107166345"
 
 IconImageCorner.CornerRadius = UDim.new(0, 0)
 IconImageCorner.Name = "IconImageCorner"
@@ -274,7 +241,7 @@ IconSpotGradient.Parent = IconSpot
 IconGradient.Name = "IconGradient"
 IconGradient.Parent = IconButton
 
-local smallButtonSize = UDim2.new(0, 43, 0, 43)
+local smallButtonSize = UDim2.new(0, 44, 0, 44)
 local largeButtonSize = UDim2.new(0, 143, 0, 44)
 local smallIconSpotSize = UDim2.new(0, 36, 1, -8)
 local largeIconSpotSize = UDim2.new(0, 135, 1, -8)
@@ -301,7 +268,7 @@ local function expand()
     IconLabelContainer.Visible = true
     IconOverlay.Visible = true
     
-    currentTween = TweenService:Create(Leaderborad, tweenInfo, {Size = largeButtonSize})
+    currentTween = TweenService:Create(Leaderboard, tweenInfo, {Size = largeButtonSize})
     currentTween:Play()
     
     TweenService:Create(IconSpot, tweenInfo, {Size = largeIconSpotSize}):Play()
@@ -315,7 +282,7 @@ local function contract()
         currentTween:Cancel()
     end
     
-    currentTween = TweenService:Create(Leaderborad, tweenInfo, {Size = smallButtonSize})
+    currentTween = TweenService:Create(Leaderboard, tweenInfo, {Size = smallButtonSize})
     currentTween:Play()
     
     TweenService:Create(IconSpot, tweenInfo, {Size = smallIconSpotSize}):Play()
@@ -336,7 +303,6 @@ ClickRegion.MouseButton1Click:Connect(function()
     local isPC = not UserInputService.TouchEnabled and UserInputService.KeyboardEnabled and UserInputService.MouseEnabled
     
     if isPC then
-        game.StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
         VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Tab, false, game)
         VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Tab, false, game)
     else
@@ -362,7 +328,7 @@ player.CharacterAdded:Connect(function()
         currentTween = nil
     end
     
-    Leaderborad.Size = smallButtonSize
+    Leaderboard.Size = smallButtonSize
     IconSpot.Size = smallIconSpotSize
     IconLabelContainer.Size = smallLabelSize
     IconLabel.Visible = false
@@ -370,16 +336,4 @@ player.CharacterAdded:Connect(function()
     IconOverlay.Visible = false
 end)
 
-player.AncestryChanged:Connect(function()
-    if not player.Parent then
-        _G.LeaderboardButtonLoaded = nil
-        if Leaderborad then
-            Leaderborad:Destroy()
-        end
-        if Spacer then
-            Spacer:Destroy()
-        end
-    end
-end)
-
-return Leaderborad
+return Leaderboard
