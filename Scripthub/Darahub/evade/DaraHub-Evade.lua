@@ -1020,7 +1020,7 @@ local function draw3DBox(esp, hrp, camera, boxColor, boxSize)
         return
     end
 
-    boxSize = boxSize or Vector3.new(3, 5, 2)
+    boxSize = boxSize or Vector3.new(4, 5, 3)
     local size = boxSize
     local offsets = {
         Vector3.new( size.X/2,  size.Y/2,  size.Z/2),
@@ -1037,7 +1037,7 @@ local function draw3DBox(esp, hrp, camera, boxColor, boxSize)
 
     for i, offset in ipairs(offsets) do
         local success, vec, onScreen = pcall(function()
-            local worldPos = hrp.CFrame * offset
+            local worldPos = hrp.CFrame * CFrame.Angles(0, math.rad(90), 0) * offset
             return camera:WorldToViewportPoint(worldPos)
         end)
         if not success then
@@ -1155,9 +1155,9 @@ local function updatePlayerESP()
                         local size = (bottomY - topY) / 2
                         local toggles = featureStates.PlayerESP
 
-                        local boxSize = Vector3.new(3, 5, 2)
+                        local boxSize = Vector3.new(4, 5, 3)
                         if humanoid then
-                            boxSize = Vector3.new(3, humanoid.HipHeight + 3, 2)
+                            boxSize = Vector3.new(2, humanoid.HipHeight + 5, 2)
                         end
 
                         if toggles.boxes then
@@ -1300,10 +1300,10 @@ local function updateNextbotESP()
             local size = (bottomY - topY) / 2
             local toggles = featureStates.NextbotESP
 
-            local boxSize = Vector3.new(3, 5, 2)
+            local boxSize = Vector3.new(4, 5, 3)
             if model:FindFirstChild("Humanoid") then
                 local humanoid = model:FindFirstChild("Humanoid")
-                boxSize = Vector3.new(3, humanoid.HipHeight + 3, 2)
+                boxSize = Vector3.new(2, humanoid.HipHeight + 5, 2)
             end
 
             if toggles.boxes then
