@@ -1,54 +1,27 @@
--- LocalScript in Roblox
-
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
-local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
-local VirtualInputManager = game:GetService("VirtualInputManager")
-
-if _G.ReloadButtonLoaded then
-    return
-end
-_G.ReloadButtonLoaded = true
-
-local function waitForBetaButton()
-    local topBarApp = CoreGui:FindFirstChild("TopBarApp")
-    if not topBarApp then
-        repeat task.wait() until CoreGui:FindFirstChild("TopBarApp")
-    end
-    
-    local topBarApp = CoreGui.TopBarApp
-    local topBarAppInstance = topBarApp:FindFirstChild("TopBarApp")
-    if not topBarAppInstance then
-        repeat task.wait() until topBarApp:FindFirstChild("TopBarApp")
-    end
-    
-    local unibarLeftFrame = topBarApp.TopBarApp:FindFirstChild("UnibarLeftFrame")
-    if not unibarLeftFrame then
-        repeat task.wait() until topBarApp.TopBarApp:FindFirstChild("UnibarLeftFrame")
-    end
-    
-    local stackedElements = unibarLeftFrame:FindFirstChild("StackedElements")
-    if not stackedElements then
-        repeat task.wait() until unibarLeftFrame:FindFirstChild("StackedElements")
-    end
-    
-    local betaButton = stackedElements:FindFirstChild("Button")
-    if not betaButton then
-        repeat task.wait() until stackedElements:FindFirstChild("Button")
-    end
-    
-    return stackedElements, betaButton
-end
-
-local unibarLeftFrame, betaButton = waitForBetaButton()
-
-if unibarLeftFrame:FindFirstChild("Reload") then
-    return
-end
 
 local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Check if your custom GUI exists
+local customTopGui = playerGui:FindFirstChild("CustomTopGui")
+if not customTopGui then
+    return
+end
+
+-- Find the scrolling frame in your existing GUI
+local scrollingFrame = customTopGui:FindFirstChild("Frame"):FindFirstChild("Right")
+if not scrollingFrame then
+    return
+end
+
+-- Prevent duplicate button
+if scrollingFrame:FindFirstChild("ReloadButton") then
+    return
+end
 
 local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
@@ -81,20 +54,11 @@ local IconImageRatio = Instance.new("UIAspectRatioConstraint")
 local IconSpotGradient = Instance.new("UIGradient")
 local IconGradient = Instance.new("UIGradient")
 
-local Spacer = Instance.new("Frame")
-Spacer.Name = "LeaderboardSpacer"
-Spacer.Size = UDim2.new(0, 9, 1, 0)
-Spacer.BackgroundTransparency = 1
-
-local betaButtonLayoutOrder = betaButton.LayoutOrder
-Spacer.LayoutOrder = betaButtonLayoutOrder + 1
-Spacer.Parent = unibarLeftFrame
-
-Reload.Name = "Reload"
-Reload.Parent = unibarLeftFrame
+Reload.Name = "ReloadButton"
+Reload.Parent = scrollingFrame
 Reload.BackgroundTransparency = 1.000
 Reload.ClipsDescendants = true
-Reload.LayoutOrder = betaButtonLayoutOrder + 2  
+Reload.LayoutOrder = 997
 Reload.Size = UDim2.new(0, 44, 0, 44)
 Reload.ZIndex = 20
 
@@ -264,7 +228,7 @@ IconSpotGradient.Parent = IconSpot
 IconGradient.Name = "IconGradient"
 IconGradient.Parent = IconButton
 
-local smallButtonSize = UDim2.new(0, 43, 0, 43)
+local smallButtonSize = UDim2.new(0, 44, 0, 44)
 local largeButtonSize = UDim2.new(0, 173, 0, 44)
 local smallIconSpotSize = UDim2.new(0, 36, 1, -8)
 local largeIconSpotSize = UDim2.new(0, 165, 1, -8)
@@ -327,7 +291,9 @@ ClickRegion.MouseButton1Down:Connect(function()
         ["Key"] = "Reload",
         ["Down"] = true
     }
-    player.PlayerScripts.Events.temporary_events.UseKeybind:Fire(ohTable1)
+    if player.PlayerScripts and player.PlayerScripts.Events and player.PlayerScripts.Events.temporary_events then
+        player.PlayerScripts.Events.temporary_events.UseKeybind:Fire(ohTable1)
+    end
 end)
 
 ClickRegion.MouseButton1Up:Connect(function()
@@ -335,17 +301,20 @@ ClickRegion.MouseButton1Up:Connect(function()
         ["Key"] = "Reload",
         ["Down"] = false
     }
-    player.PlayerScripts.Events.temporary_events.UseKeybind:Fire(ohTable1)
+    if player.PlayerScripts and player.PlayerScripts.Events and player.PlayerScripts.Events.temporary_events then
+        player.PlayerScripts.Events.temporary_events.UseKeybind:Fire(ohTable1)
+    end
 end)
 
--- Handle mouse leave while holding
 ClickRegion.MouseLeave:Connect(function()
     if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
         local ohTable1 = {
             ["Key"] = "Reload",
             ["Down"] = false
         }
-        player.PlayerScripts.Events.temporary_events.UseKeybind:Fire(ohTable1)
+        if player.PlayerScripts and player.PlayerScripts.Events and player.PlayerScripts.Events.temporary_events then
+            player.PlayerScripts.Events.temporary_events.UseKeybind:Fire(ohTable1)
+        end
     end
 end)
 
@@ -363,18 +332,6 @@ player.CharacterAdded:Connect(function()
     IconLabel.Visible = false
     IconLabelContainer.Visible = false
     IconOverlay.Visible = false
-end)
-
-player.AncestryChanged:Connect(function()
-    if not player.Parent then
-        _G.ReloadButtonLoaded = nil
-        if Reload then
-            Reload:Destroy()
-        end
-        if Spacer then
-            Spacer:Destroy()
-        end
-    end
 end)
 
 return Reload
