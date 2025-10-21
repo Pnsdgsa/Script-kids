@@ -17,6 +17,7 @@ end
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "FPSCounter"
+screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
 screenGui.ScreenInsets = Enum.ScreenInsets.TopbarSafeInsets
