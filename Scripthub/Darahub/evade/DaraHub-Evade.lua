@@ -1732,43 +1732,36 @@ end
 local function startAutoRevive()
     if reviveLoopHandle then return end
     
-    if featureStates.FastReviveMethod == "Interact" then
-        WindUI:Notify({
-            Title = " ",
-            Content = " ",
-            Duration = 0
-        })
-        return
-    end
-    
-    reviveLoopHandle = task.spawn(function()
-        while featureStates.FastRevive do
-            local LocalPlayer = Players.LocalPlayer
-            if LocalPlayer and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                local myHRP = LocalPlayer.Character.HumanoidRootPart
-                for _, pl in ipairs(Players:GetPlayers()) do
-                    if pl ~= LocalPlayer then
-                        local char = pl.Character
-                        if char and char:FindFirstChild("HumanoidRootPart") then
-                            if isPlayerDowned(pl) then
-                                local hrp = char.HumanoidRootPart
-                                local success, dist = pcall(function()
-                                    return (myHRP.Position - hrp.Position).Magnitude
-                                end)
-                                if success and dist and dist <= reviveRange then
-                                    pcall(function()
-                                        interactEvent:FireServer("Revive", true, pl.Name)
+    if featureStates.FastReviveMethod == "Auto" then
+        reviveLoopHandle = task.spawn(function()
+            while featureStates.FastRevive do
+                local LocalPlayer = Players.LocalPlayer
+                if LocalPlayer and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    local myHRP = LocalPlayer.Character.HumanoidRootPart
+                    for _, pl in ipairs(Players:GetPlayers()) do
+                        if pl ~= LocalPlayer then
+                            local char = pl.Character
+                            if char and char:FindFirstChild("HumanoidRootPart") then
+                                if isPlayerDowned(pl) then
+                                    local hrp = char.HumanoidRootPart
+                                    local success, dist = pcall(function()
+                                        return (myHRP.Position - hrp.Position).Magnitude
                                     end)
+                                    if success and dist and dist <= reviveRange then
+                                        pcall(function()
+                                            interactEvent:FireServer("Revive", true, pl.Name)
+                                        end)
+                                    end
                                 end
                             end
                         end
                     end
                 end
+                task.wait(loopDelay)
             end
-            task.wait(loopDelay)
-        end
-        reviveLoopHandle = nil
-    end)
+            reviveLoopHandle = nil
+        end)
+    end
 end
 local function stopAutoRevive()
     featureStates.FastRevive = false
@@ -4279,18 +4272,18 @@ local AutoCarryKeybindToggle = Tabs.Auto:Toggle({
 })
 
 createAutoCarryGui(0)
-    local FastReviveToggle = Tabs.Auto:Toggle({
-        Title = "Fast Revive",
-        Value = false,
-        Callback = function(state)
-            featureStates.FastRevive = state
-            if state then
-                startAutoRevive()
-            else
-                stopAutoRevive()
-            end
+local FastReviveToggle = Tabs.Auto:Toggle({
+    Title = "Fast Revive",
+    Value = false,
+    Callback = function(state)
+        featureStates.FastRevive = state
+        if state then
+            startAutoRevive()
+        else
+            stopAutoRevive()
         end
-    })
+    end
+})
 
 
 local FastReviveMethodDropdown = Tabs.Auto:Dropdown({
@@ -4307,38 +4300,38 @@ local FastReviveMethodDropdown = Tabs.Auto:Dropdown({
         
         if value == "Interact" then
             local Players = game:GetService("Players")
-local localPlayer = Players.LocalPlayer
+            local localPlayer = Players.LocalPlayer
 
-local originalFire
-local temporaryEvents = localPlayer.PlayerScripts.Events.temporary_events.UseKeybind
+            local originalFire
+            local temporaryEvents = localPlayer.PlayerScripts.Events.temporary_events.UseKeybind
 
-originalFire = hookmetamethod(temporaryEvents, "__namecall", function(self, ...)
-    if getnamecallmethod() == "Fire" then
-        local args = {...}
-        
-        if args[1] and type(args[1]) == "table" then
-            local ohTable1 = args[1]
-            
-            if ohTable1.Key == "Interact" and ohTable1.Down == true then
-                function reviveAllPlayers()
-    local Players = game:GetService("Players")
-    local ohString1 = "Revive"
-    local ohBoolean2 = true
-    
-    for _, player in pairs(Players:GetPlayers()) do
-        local ohString3 = player.Name
-        game:GetService("ReplicatedStorage").Events.Character.Interact:FireServer(ohString1, ohBoolean2, ohString3)
-        wait(0.1)
-    end
-end
-
-reviveAllPlayers()
-            end
-        end
-    end
-    
-    return originalFire(self, ...)
-end)
+            originalFire = hookmetamethod(temporaryEvents, "__namecall", function(self, ...)
+                if getnamecallmethod() == "Fire" then
+                    local args = {...}
+                    
+                    if args[1] and type(args[1]) == "table" then
+                        local ohTable1 = args[1]
+                        
+                        if ohTable1.Key == "Interact" and ohTable1.Down == true then
+                            function reviveAllPlayers()
+                                local Players = game:GetService("Players")
+                                local ohString1 = "Revive"
+                                local ohBoolean2 = true
+                                
+                                for _, player in pairs(Players:GetPlayers()) do
+                                    local ohString3 = player.Name
+                                    game:GetService("ReplicatedStorage").Events.Character.Interact:FireServer(ohString1, ohBoolean2, ohString3)
+                                    wait(0.1)
+                                end
+                            end
+                            
+                            reviveAllPlayers()
+                        end
+                    end
+                end
+                
+                return originalFire(self, ...)
+            end)
             
             featureStates.reviveHook = {
                 Disconnect = function()
@@ -4346,10 +4339,41 @@ end)
                     end
                 end
             }
+            
+        elseif value == "Auto" then
+            if reviveLoopHandle then return end
+            
+            reviveLoopHandle = task.spawn(function()
+                while featureStates.FastRevive do
+                    local LocalPlayer = Players.LocalPlayer
+                    if LocalPlayer and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                        local myHRP = LocalPlayer.Character.HumanoidRootPart
+                        for _, pl in ipairs(Players:GetPlayers()) do
+                            if pl ~= LocalPlayer then
+                                local char = pl.Character
+                                if char and char:FindFirstChild("HumanoidRootPart") then
+                                    if isPlayerDowned(pl) then
+                                        local hrp = char.HumanoidRootPart
+                                        local success, dist = pcall(function()
+                                            return (myHRP.Position - hrp.Position).Magnitude
+                                        end)
+                                        if success and dist and dist <= reviveRange then
+                                            pcall(function()
+                                                interactEvent:FireServer("Revive", true, pl.Name)
+                                            end)
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    task.wait(loopDelay)
+                end
+                reviveLoopHandle = nil
+            end)
         end
     end
 })
-
 
     local AutoVoteDropdown = Tabs.Auto:Dropdown({
         Title = "loc:AUTO_VOTE_MAP",
