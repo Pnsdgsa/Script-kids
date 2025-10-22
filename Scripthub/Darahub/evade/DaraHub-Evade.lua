@@ -1775,37 +1775,38 @@ local function startAutoRevive()
     elseif featureStates.FastReviveMethod == "Interact" then
         if not featureStates.interactHookActive then
             local localPlayer = Players.LocalPlayer
-            local originalFire
-            local temporaryEvents = localPlayer.PlayerScripts.Events.temporary_events.UseKeybind
-
-            originalFire = hookmetamethod(temporaryEvents, "__namecall", function(self, ...)
-                if getnamecallmethod() == "Fire" then
-                    local args = {...}
+            local eventsFolder = localPlayer.PlayerScripts:WaitForChild("Events")
+            local tempEventsFolder = eventsFolder:WaitForChild("temporary_events")
+            local useKeybind = tempEventsFolder:WaitForChild("UseKeybind")
+            
+            local connection = useKeybind.Event:Connect(function(...)
+                local args = {...}
+                
+                if args[1] and type(args[1]) == "table" then
+                    local keyData = args[1]
                     
-                    if args[1] and type(args[1]) == "table" then
-                        local ohTable1 = args[1]
-                        
-                        if ohTable1.Key == "Interact" and ohTable1.Down == true and featureStates.FastRevive then
-                            local function reviveAllPlayers()
-                                local Players = game:GetService("Players")
-                                local ohString1 = "Revive"
-                                local ohBoolean2 = true
-                                
-                                for _, player in pairs(Players:GetPlayers()) do
-                                    local ohString3 = player.Name
-                                    game:GetService("ReplicatedStorage").Events.Character.Interact:FireServer(ohString1, ohBoolean2, ohString3)
-                                    wait(0.1)
+                    if keyData.Key == "Interact" and keyData.Down == true and featureStates.FastRevive then
+                        local function reviveAllPlayers()
+                            local ohString1 = "Revive"
+                            local ohBoolean2 = true
+                            
+                            for _, player in pairs(Players:GetPlayers()) do
+                                if player ~= localPlayer then
+                                        local ohString3 = player.Name
+                                        pcall(function()
+                                            interactEvent:FireServer(ohString1, ohBoolean2, ohString3)
+                                        end)
+                                        task.wait(0.1)
                                 end
                             end
-                            
-                            reviveAllPlayers()
                         end
+                        
+                        task.spawn(reviveAllPlayers)
                     end
                 end
-                
-                return originalFire(self, ...)
             end)
             
+            featureStates.interactConnection = connection
             featureStates.interactHookActive = true
         end
     end
@@ -1816,8 +1817,15 @@ local function stopAutoRevive()
         task.cancel(reviveLoopHandle)
         reviveLoopHandle = nil
     end
+    
+    if featureStates.interactHookActive then
+        if featureStates.interactConnection then
+            featureStates.interactConnection:Disconnect()
+            featureStates.interactConnection = nil
+        end
+        featureStates.interactHookActive = false
+    end
 end
-
 
 local function startFlying()
     if not character or not humanoid or not rootPart then return end
