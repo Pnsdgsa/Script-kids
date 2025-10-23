@@ -1,3 +1,7 @@
+if getgenv().DaraHubEvadeExecuted then
+    return
+end
+getgenv().DaraHubEvadeExecuted = true
 -- Load WindUI
 local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
 
