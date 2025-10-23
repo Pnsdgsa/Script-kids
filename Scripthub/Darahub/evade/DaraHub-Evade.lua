@@ -2399,75 +2399,7 @@ local function onCharacterAdded(newCharacter, plr)
     end
 end
 local function reapplyFeatures()
-    if featureStates.Fly then
-        if flying then stopFlying() end
-        startFlying()
-    end
-    if featureStates.TPWALK then
-        if ToggleTpwalk then stopTpwalk() end
-        startTpwalk()
-    end
-    if featureStates.JumpBoost then
-        startJumpBoost()
-    end
-    if featureStates.AntiAFK then
-        if AntiAFKConnection then stopAntiAFK() end
-        startAntiAFK()
-    end
-    if featureStates.AutoCarry then
-        if AutoCarryConnection then stopAutoCarry() end
-        startAutoCarry()
-    end
-    if featureStates.FastRevive then
-        stopAutoRevive()
-        startAutoRevive()
-    end
-    if featureStates.FullBright then
-        startFullBright()
-    else
-        stopFullBright()
-    end
-    if featureStates.NoFog then
-    startNoFog()
-else
-    stopNoFog()
-end
-    if featureStates.AutoVote then
-        if AutoVoteConnection then stopAutoVote() end
-        startAutoVote()
-    end
-    if featureStates.AutoSelfRevive then
-    startAutoSelfRevive()
-else
-    stopAutoSelfRevive()
-end
-    if featureStates.AutoWin then
-        if AutoWinConnection then stopAutoWin() end
-        startAutoWin()
-    end
-    if featureStates.AutoMoneyFarm then
-        if AutoMoneyFarmConnection then stopAutoMoneyFarm() end
-        startAutoMoneyFarm()
-    end
-    if featureStates.PlayerESP.boxes or featureStates.PlayerESP.tracers or featureStates.PlayerESP.names or featureStates.PlayerESP.distance then
-        stopPlayerESP()
-        startPlayerESP()
-    end
-    if featureStates.NextbotESP.names or featureStates.NextbotESP.boxes or featureStates.NextbotESP.tracers or featureStates.NextbotESP.distance then
-        stopNextbotNameESP()
-        startNextbotNameESP()
-    end
-    if featureStates.DownedBoxESP or featureStates.DownedTracer then
-        if downedTracerConnection then stopDownedTracer() end
-        startDownedTracer()
-    end
-    if featureStates.DownedNameESP then
-        if downedNameESPConnection then stopDownedNameESP() end
-        startDownedNameESP()
-    end
-end
-if featureStates.TimerDisplay then
-TimerDisplayToggle:Set(true)
+print("Test")
 end
 local function onPlayerAdded(plr)
     plr.CharacterAdded:Connect(function(newCharacter)
