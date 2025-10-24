@@ -2176,7 +2176,6 @@ local function stopAutoMoneyFarm()
         AutoMoneyFarmConnection = nil
     end
 end
--- Auto Ticket Farm Logic
 task.spawn(function()
     local yOffset = 15
     local Players = game:GetService("Players")
@@ -2184,7 +2183,6 @@ task.spawn(function()
     local player = Players.LocalPlayer
     local tickets = game:GetService("Workspace"):FindFirstChild("Game") and game:GetService("Workspace").Game:FindFirstChild("Effects") and game:GetService("Workspace").Game.Effects:FindFirstChild("Tickets")
 
-    -- Create security part (only once)
     local securityPart = workspace:FindFirstChild("SecurityPart")
     if not securityPart then
         securityPart = Instance.new("Part")
@@ -2196,7 +2194,6 @@ task.spawn(function()
         securityPart.Parent = workspace
     end
 
-    -- Infinite loop to handle farming (checks farm flag)
     while true do
         if getgenv().farm then
             local character = player.Character or player.CharacterAdded:Wait()
@@ -2206,32 +2203,26 @@ task.spawn(function()
                 local activeTickets = tickets:GetChildren()
                 
                 if #activeTickets > 0 then
-                    -- Teleport to tickets if available
                     for _, ticket in ipairs(activeTickets) do
                         local ticketPart = ticket:FindFirstChild("HumanoidRootPart")
                         if ticketPart then
-                            -- First teleport: above the ticket with yOffset
                             local targetPosition = ticketPart.Position + Vector3.new(0, yOffset, 0)
                             humanoidRootPart.CFrame = CFrame.new(targetPosition)
                             task.wait(0.1)
                             
-                            -- Second teleport: downward to the ticket
                             humanoidRootPart.CFrame = ticketPart.CFrame
                             task.wait(0.1)
                         end
                     end
                 else
-                    -- Teleport to security part if no tickets
                     humanoidRootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
                     task.wait(1)
                 end
             else
-                -- If no tickets folder, teleport to security
                 humanoidRootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
                 task.wait(1)
             end
         else
-            -- When disabled, wait before checking again
             task.wait(1)
         end
     end
