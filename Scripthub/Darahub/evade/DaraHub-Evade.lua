@@ -4365,6 +4365,7 @@ local FastReviveMethodDropdown = Tabs.Auto:Dropdown({
             if state then
                 startAutoMoneyFarm()
                 featureStates.FastRevive = true
+                featureStates.AutoSelfRevive = true
                 featureStates.FastReviveMethod = "Auto"
                 pcall(function()
                     if FastReviveMethodDropdown and FastReviveMethodDropdown.Select then
@@ -4374,6 +4375,7 @@ local FastReviveMethodDropdown = Tabs.Auto:Dropdown({
                     end
                 end)
                 FastReviveToggle:Set(true)
+                AutoSelfReviveToggle:Set(true)
                 startAutoRevive()
             else
                 stopAutoMoneyFarm()
