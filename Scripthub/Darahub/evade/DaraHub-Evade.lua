@@ -989,10 +989,10 @@ local isJumpHeld = false
 local hasRevived = false
 local flying = false
 local bodyVelocity, bodyGyro
-getgenv().farm = false
 local ToggleTpwalk = false
 local TpwalkConnection
-
+getgenv().ticketfarm = false
+getgenv().moneyfarm = false
 local jumpCount = 0
 local MAX_JUMPS = math.huge
 
@@ -2140,10 +2140,6 @@ end
 local function startAutoMoneyFarm()
     AutoMoneyFarmConnection = RunService.Heartbeat:Connect(function()
         if character and rootPart then
-            if character:GetAttribute("Downed") then
-                ReplicatedStorage.Events.Player.ChangePlayerMode:FireServer(true)
-                task.wait(0.5)
-            end
             local downedPlayerFound = false
             local playersInGame = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players")
             if playersInGame then
@@ -2176,61 +2172,7 @@ local function stopAutoMoneyFarm()
         AutoMoneyFarmConnection = nil
     end
 end
-task.spawn(function()
-    local yOffset = 15
-    local Players = game:GetService("Players")
-    local player = Players.LocalPlayer
-    local tickets = game:GetService("Workspace"):FindFirstChild("Game") and game:GetService("Workspace").Game:FindFirstChild("Effects") and game:GetService("Workspace").Game.Effects:FindFirstChild("Tickets")
-
-    local securityPart = workspace:FindFirstChild("SecurityPart")
-    if not securityPart then
-        securityPart = Instance.new("Part")
-        securityPart.Name = "SecurityPart"
-        securityPart.Size = Vector3.new(10, 1, 10)
-        securityPart.Position = Vector3.new(0, 500, 0)
-        securityPart.Anchored = true
-        securityPart.CanCollide = true
-        securityPart.Parent = workspace
-    end
-
-    while true do
-        if getgenv().farm then
-            local character = player.Character or player.CharacterAdded:Wait()
-            local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-
-            if tickets then
-                local activeTickets = tickets:GetChildren()
-                
-                if #activeTickets > 0 then
-                    for _, ticket in ipairs(activeTickets) do
-                        if not getgenv().farm then break end -- Stop if farming is disabled
-                        local ticketPart = ticket:FindFirstChild("HumanoidRootPart")
-                        if ticketPart then
-                            local targetPosition = ticketPart.Position + Vector3.new(0, yOffset, 0)
-                            humanoidRootPart.CFrame = CFrame.new(targetPosition)
-                            task.wait(0.1)
-                            
-                            humanoidRootPart.CFrame = ticketPart.CFrame
-                            
-                            while ticket.Parent and getgenv().farm do
-                                task.wait(0.1)
-                            end
-                        end
-                    end
-                else
-                    humanoidRootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
-                    task.wait(1)
-                end
-            else
-                -- Tickets folder not found, teleport to security part
-                humanoidRootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
-                task.wait(1)
-            end
-        else
-            task.wait(1)
-        end
-    end
-end)local autoWhistleHandle = nil
+local autoWhistleHandle = nil
 
 local function startAutoWhistle()
     if autoWhistleHandle then return end  
@@ -4419,6 +4361,7 @@ local FastReviveMethodDropdown = Tabs.Auto:Dropdown({
         Value = false,
         Callback = function(state)
             featureStates.AutoMoneyFarm = state
+            getgenv().moneyfarm = state
             if state then
                 startAutoMoneyFarm()
                 featureStates.FastRevive = true
@@ -4441,12 +4384,109 @@ local AutoTicketFarmToggle = Tabs.Auto:Toggle({
     Title = "Auto ticket farm",
     Value = false,
     Callback = function(state)
-        getgenv().farm = state
-        if not state then
-            local character = player.Character or player.CharacterAdded:Wait()
-            local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+        getgenv().ticketfarm = state
+        local AutoTicketFarmConnection
+        local yOffset = 15
+        local currentTicket = nil
+        local ticketProcessedTime = 0
+
+        if state then
             local securityPart = workspace:FindFirstChild("SecurityPart")
-            if securityPart and humanoidRootPart then
+            if not securityPart then
+                securityPart = Instance.new("Part")
+                securityPart.Name = "SecurityPart"
+                securityPart.Size = Vector3.new(10, 1, 10)
+                securityPart.Position = Vector3.new(0, 500, 0)
+                securityPart.Anchored = true
+                securityPart.CanCollide = true
+                securityPart.Transparency = 1
+                securityPart.Parent = workspace
+            end
+
+            AutoTicketFarmConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                if not getgenv().ticketfarm then
+                    if AutoTicketFarmConnection then
+                        AutoTicketFarmConnection:Disconnect()
+                        AutoTicketFarmConnection = nil
+                    end
+                    return
+                end
+
+                local character = player.Character
+                local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
+                local tickets = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Effects") and workspace.Game.Effects:FindFirstChild("Tickets")
+                local playersInGame = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players")
+
+                if character and humanoidRootPart then
+                    if character:GetAttribute("Downed") then
+                        ReplicatedStorage.Events.Player.ChangePlayerMode:FireServer(true)
+                        humanoidRootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
+                        return
+                    end
+
+                    if getgenv().moneyfarm and playersInGame then
+                        local downedPlayerFound = false
+                        for _, v in pairs(playersInGame:GetChildren()) do
+                            if v:IsA("Model") and v:GetAttribute("Downed") then
+                                local downedRootPart = v:FindFirstChild("HumanoidRootPart")
+                                if downedRootPart then
+                                    humanoidRootPart.CFrame = downedRootPart.CFrame + Vector3.new(0, 3, 0)
+                                    ReplicatedStorage.Events.Character.Interact:FireServer("Revive", true, v)
+                                    downedPlayerFound = true
+                                    currentTicket = nil 
+                                    break
+                                end
+                            end
+                        end
+                        if downedPlayerFound then
+                            return
+                        end
+                    end
+
+                    if tickets then
+                        local activeTickets = tickets:GetChildren()
+                        if #activeTickets > 0 then
+                            if not currentTicket or not currentTicket.Parent then
+                                currentTicket = activeTickets[1]
+                                ticketProcessedTime = tick()
+                            end
+
+                            if currentTicket and currentTicket.Parent then
+                                local ticketPart = currentTicket:FindFirstChild("HumanoidRootPart")
+                                if ticketPart then
+                                    local targetPosition = ticketPart.Position + Vector3.new(0, yOffset, 0)
+                                    humanoidRootPart.CFrame = CFrame.new(targetPosition)
+                                    
+                                    if tick() - ticketProcessedTime > 0.1 then
+                                        humanoidRootPart.CFrame = ticketPart.CFrame
+                                    end
+                                else
+                                    currentTicket = nil
+                                end
+                            else
+                                humanoidRootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
+                                currentTicket = nil
+                            end
+                        else
+                            humanoidRootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
+                            currentTicket = nil
+                        end
+                    else
+                        humanoidRootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
+                        currentTicket = nil
+                    end
+                end
+            end)
+        else
+            if AutoTicketFarmConnection then
+                AutoTicketFarmConnection:Disconnect()
+                AutoTicketFarmConnection = nil
+            end
+            currentTicket = nil
+            local character = player.Character or player.CharacterAdded:Wait()
+            local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+            local securityPart = workspace:FindFirstChild("SecurityPart")
+            if humanoidRootPart and securityPart then
                 humanoidRootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
             end
         end
