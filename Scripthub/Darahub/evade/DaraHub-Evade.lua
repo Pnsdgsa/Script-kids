@@ -2179,7 +2179,6 @@ end
 task.spawn(function()
     local yOffset = 15
     local Players = game:GetService("Players")
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
     local player = Players.LocalPlayer
     local tickets = game:GetService("Workspace"):FindFirstChild("Game") and game:GetService("Workspace").Game:FindFirstChild("Effects") and game:GetService("Workspace").Game.Effects:FindFirstChild("Tickets")
 
@@ -2204,6 +2203,7 @@ task.spawn(function()
                 
                 if #activeTickets > 0 then
                     for _, ticket in ipairs(activeTickets) do
+                        if not getgenv().farm then break end -- Stop if farming is disabled
                         local ticketPart = ticket:FindFirstChild("HumanoidRootPart")
                         if ticketPart then
                             local targetPosition = ticketPart.Position + Vector3.new(0, yOffset, 0)
@@ -2211,7 +2211,10 @@ task.spawn(function()
                             task.wait(0.1)
                             
                             humanoidRootPart.CFrame = ticketPart.CFrame
-                            task.wait(0.1)
+                            
+                            while ticket.Parent and getgenv().farm do
+                                task.wait(0.1)
+                            end
                         end
                     end
                 else
@@ -2219,6 +2222,7 @@ task.spawn(function()
                     task.wait(1)
                 end
             else
+                -- Tickets folder not found, teleport to security part
                 humanoidRootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
                 task.wait(1)
             end
@@ -2226,8 +2230,7 @@ task.spawn(function()
             task.wait(1)
         end
     end
-end)
-local autoWhistleHandle = nil
+end)local autoWhistleHandle = nil
 
 local function startAutoWhistle()
     if autoWhistleHandle then return end  
