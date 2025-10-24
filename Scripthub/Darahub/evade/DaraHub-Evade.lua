@@ -3872,7 +3872,541 @@ local NextbotDistanceESPToggle = Tabs.ESP:Toggle({
             end
         end
     })
+Tabs.ESP:Section({ Title = "Ticket ESP" })
+-- Ticket ESP Toggle (Text Label)
+local TicketEspToggle = Tabs.ESP:Toggle({
+    Title = "Ticket ESP",
+    Value = false,
+    Callback = function(state)
+        -- Clear any existing data
+        if getgenv().ticketEspConnections then
+            for _, connection in ipairs(getgenv().ticketEspConnections) do
+                connection:Disconnect()
+            end
+            getgenv().ticketEspConnections = nil
+        end
+        if getgenv().ticketEspLabels then
+            for _, label in pairs(getgenv().ticketEspLabels) do
+                label:Remove()
+            end
+            getgenv().ticketEspLabels = nil
+        end
 
+        if state then
+            local espConnections = {}
+            local espLabels = {}
+            local tickets = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Effects") and workspace.Game.Effects:FindFirstChild("Tickets")
+
+            local function updateEsp()
+                if not tickets then return end
+                
+                -- Remove labels for tickets that no longer exist
+                for ticket, label in pairs(espLabels) do
+                    if not ticket.Parent or not ticket:FindFirstChild("HumanoidRootPart") then
+                        label:Remove()
+                        espLabels[ticket] = nil
+                    end
+                end
+                
+                -- Add labels for new tickets
+                for _, ticket in ipairs(tickets:GetChildren()) do
+                    if not espLabels[ticket] and ticket:FindFirstChild("HumanoidRootPart") then
+                        local label = Drawing.new("Text")
+                        label.Visible = false
+                        label.Text = "Ticket"
+                        label.Color = Color3.fromRGB(0, 0, 255) -- Blue
+                        label.Size = 20
+                        label.Center = true
+                        label.Outline = true
+                        espLabels[ticket] = label
+                    end
+                end
+                
+                -- Update label positions
+                local camera = workspace.CurrentCamera
+                for ticket, label in pairs(espLabels) do
+                    local ticketPart = ticket:FindFirstChild("HumanoidRootPart")
+                    if ticketPart then
+                        local screenPos, onScreen = camera:WorldToViewportPoint(ticketPart.Position)
+                        label.Visible = onScreen
+                        if onScreen then
+                            label.Position = Vector2.new(screenPos.X, screenPos.Y - 30) -- Above ticket
+                        end
+                    end
+                end
+            end
+            
+            -- Initial update
+            updateEsp()
+            
+            -- Connect updates
+            table.insert(espConnections, RunService.RenderStepped:Connect(updateEsp))
+            if tickets then
+                table.insert(espConnections, tickets.ChildAdded:Connect(updateEsp))
+                table.insert(espConnections, tickets.ChildRemoved:Connect(updateEsp))
+            end
+            
+            -- Store for cleanup
+            getgenv().ticketEspConnections = espConnections
+            getgenv().ticketEspLabels = espLabels
+        end
+    end
+})
+
+-- draw3DBox function adapted for tickets
+local function draw3DBox(esp, hrp, camera, boxColor, boxSize)
+    if not hrp or not camera then
+        return
+    end
+
+    boxSize = boxSize or Vector3.new(3, 3, 3) -- Adjusted for tickets
+    local size = boxSize
+    local offsets = {
+        Vector3.new( size.X/2,  size.Y/2,  size.Z/2),
+        Vector3.new( size.X/2,  size.Y/2, -size.Z/2),
+        Vector3.new( size.X/2, -size.Y/2,  size.Z/2),
+        Vector3.new( size.X/2, -size.Y/2, -size.Z/2),
+        Vector3.new(-size.X/2,  size.Y/2,  size.Z/2),
+        Vector3.new(-size.X/2,  size.Y/2, -size.Z/2),
+        Vector3.new(-size.X/2, -size.Y/2,  size.Z/2),
+        Vector3.new(-size.X/2, -size.Y/2, -size.Z/2),
+    }
+    local screenPoints = {}
+    local anyPointOnScreen = false
+
+    for i, offset in ipairs(offsets) do
+        local success, vec, onScreen = pcall(function()
+            local worldPos = hrp.CFrame * offset
+            return camera:WorldToViewportPoint(worldPos)
+        end)
+        if success then
+            screenPoints[i] = {pos = Vector2.new(vec.X, vec.Y), depth = vec.Z, onScreen = onScreen}
+            if onScreen and vec.Z > 0 then
+                anyPointOnScreen = true
+            end
+        end
+    end
+
+    if not esp.boxLines then
+        esp.boxLines = {}
+        for i = 1, 12 do
+            local success, line = pcall(function()
+                local newLine = Drawing.new("Line")
+                newLine.Thickness = 1
+                newLine.ZIndex = 2
+                return newLine
+            end)
+            if success then
+                table.insert(esp.boxLines, line)
+            end
+        end
+    end
+
+    local edges = {
+        {1, 2}, {1, 3}, {1, 5},
+        {2, 4}, {2, 6},
+        {3, 4}, {3, 7},
+        {5, 6}, {5, 7},
+        {4, 8}, {6, 8}, {7, 8}
+    }
+
+    local distance = (player.Character and player.Character:FindFirstChild("HumanoidRootPart") and 
+        (player.Character.HumanoidRootPart.Position - hrp.Position).Magnitude) or 10
+    local thickness = math.clamp(3 / (distance / 50), 1, 3)
+
+    local lineIndex = 1
+    for _, edge in ipairs(edges) do
+        if lineIndex > #esp.boxLines then
+            break
+        end
+        local p1 = screenPoints[edge[1]]
+        local p2 = screenPoints[edge[2]]
+        local line = esp.boxLines[lineIndex]
+        if line and p1 and p2 then
+            line.Color = boxColor or Color3.fromRGB(0, 0, 255) -- Blue
+            line.Thickness = thickness
+            line.Transparency = 1
+            if anyPointOnScreen and p1.depth > 0 and p2.depth > 0 then
+                line.From = p1.pos
+                line.To = p2.pos
+                line.Visible = true
+            else
+                line.Visible = false
+            end
+        end
+        lineIndex = lineIndex + 1
+    end
+
+    for i = lineIndex, #esp.boxLines do
+        esp.boxLines[i].Visible = false
+    end
+end
+
+-- Ticket Box ESP Toggle
+local TicketBoxEspToggle = Tabs.ESP:Toggle({
+    Title = "Ticket Box ESP",
+    Value = false,
+    Callback = function(state)
+        -- Clear any existing data
+        if getgenv().ticketBoxEspConnections then
+            for _, connection in ipairs(getgenv().ticketBoxEspConnections) do
+                connection:Disconnect()
+            end
+            getgenv().ticketBoxEspConnections = nil
+        end
+        if getgenv().ticketBoxEspDrawings then
+            for _, esp in pairs(getgenv().ticketBoxEspDrawings) do
+                if esp.box then
+                    esp.box:Remove()
+                end
+                if esp.boxLines then
+                    for _, line in ipairs(esp.boxLines) do
+                        line:Remove()
+                    end
+                end
+            end
+            getgenv().ticketBoxEspDrawings = nil
+        end
+
+        if state then
+            local boxConnections = {}
+            local boxDrawings = {}
+            local tickets = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Effects") and workspace.Game.Effects:FindFirstChild("Tickets")
+
+            local function updateBoxEsp()
+                if not tickets then return end
+                
+                -- Remove drawings for tickets that no longer exist
+                for ticket, esp in pairs(boxDrawings) do
+                    if not ticket.Parent or not ticket:FindFirstChild("HumanoidRootPart") then
+                        if esp.box then
+                            esp.box:Remove()
+                        end
+                        if esp.boxLines then
+                            for _, line in ipairs(esp.boxLines) do
+                                line:Remove()
+                            end
+                        end
+                        boxDrawings[ticket] = nil
+                    end
+                end
+                
+                -- Add drawings for new tickets
+                for _, ticket in ipairs(tickets:GetChildren()) do
+                    if not boxDrawings[ticket] and ticket:FindFirstChild("HumanoidRootPart") then
+                        local esp = { boxLines = {} }
+                        if getgenv().espType == "2D" then
+                            esp.box = Drawing.new("Square")
+                            esp.box.Visible = false
+                            esp.box.Color = Color3.fromRGB(0, 0, 255) -- Blue
+                            esp.box.Thickness = 2
+                            esp.box.Filled = false
+                            esp.box.Transparency = 1
+                        end
+                        boxDrawings[ticket] = esp
+                    end
+                end
+                
+                -- Update box positions
+                local camera = workspace.CurrentCamera
+                for ticket, esp in pairs(boxDrawings) do
+                    local ticketPart = ticket:FindFirstChild("HumanoidRootPart")
+                    if ticketPart then
+                        local vector, onScreen = camera:WorldToViewportPoint(ticketPart.Position)
+                        if getgenv().espType == "2D" then
+                            local topY = camera:WorldToViewportPoint(ticketPart.Position + Vector3.new(0, 1.5, 0)).Y
+                            local bottomY = camera:WorldToViewportPoint(ticketPart.Position - Vector3.new(0, 1.5, 0)).Y
+                            local size = (bottomY - topY) / 2
+                            esp.box.Visible = onScreen
+                            if onScreen then
+                                esp.box.Size = Vector2.new(size * 2, size * 3)
+                                esp.box.Position = Vector2.new(vector.X - size, vector.Y - size * 1.5)
+                            end
+                            if esp.boxLines then
+                                for _, line in ipairs(esp.boxLines) do
+                                    line.Visible = false
+                                end
+                            end
+                        else
+                            if esp.box then
+                                esp.box.Visible = false
+                            end
+                            pcall(function()
+                                draw3DBox(esp, ticketPart, camera, Color3.fromRGB(0, 0, 255), Vector3.new(3, 3, 3))
+                            end)
+                        end
+                    end
+                end
+            end
+            
+            -- Initial update
+            updateBoxEsp()
+            
+            -- Connect updates
+            table.insert(boxConnections, RunService.RenderStepped:Connect(updateBoxEsp))
+            if tickets then
+                table.insert(boxConnections, tickets.ChildAdded:Connect(updateBoxEsp))
+                table.insert(boxConnections, tickets.ChildRemoved:Connect(updateBoxEsp))
+            end
+            
+            -- Store for cleanup
+            getgenv().ticketBoxEspConnections = boxConnections
+            getgenv().ticketBoxEspDrawings = boxDrawings
+        end
+    end
+})
+
+-- ESP Type Dropdown (2D/3D)
+local EspTypeDropdown = Tabs.ESP:Dropdown({
+    Title = "ESP Type",
+    Values = {"2D", "3D"},
+    Default = "2D",
+    Callback = function(value)
+        getgenv().espType = value
+        -- Refresh box ESP if enabled
+        if TicketBoxEspToggle:Get() then
+            TicketBoxEspToggle:Set(false)
+            TicketBoxEspToggle:Set(true)
+        end
+    end
+})
+
+-- Ticket Tracer ESP Toggle
+local TicketTracerEspToggle = Tabs.ESP:Toggle({
+    Title = "Ticket Tracer ESP",
+    Value = false,
+    Callback = function(state)
+        -- Clear any existing data
+        if getgenv().ticketTracerConnections then
+            for _, connection in ipairs(getgenv().ticketTracerConnections) do
+                connection:Disconnect()
+            end
+            getgenv().ticketTracerConnections = nil
+        end
+        if getgenv().ticketTracerDrawings then
+            for _, drawings in pairs(getgenv().ticketTracerDrawings) do
+                for _, drawing in ipairs(drawings) do
+                    drawing:Remove()
+                end
+            end
+            getgenv().ticketTracerDrawings = nil
+        end
+
+        if state then
+            local tracerConnections = {}
+            local tracerDrawings = {}
+            local tickets = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Effects") and workspace.Game.Effects:FindFirstChild("Tickets")
+
+            local function updateTracerEsp()
+                if not tickets then return end
+                
+                -- Remove tracers for tickets that no longer exist
+                for ticket, drawings in pairs(tracerDrawings) do
+                    if not ticket.Parent or not ticket:FindFirstChild("HumanoidRootPart") then
+                        for _, drawing in ipairs(drawings) do
+                            drawing:Remove()
+                        end
+                        tracerDrawings[ticket] = nil
+                    end
+                end
+                
+                -- Add tracers for new tickets
+                for _, ticket in ipairs(tickets:GetChildren()) do
+                    if not tracerDrawings[ticket] and ticket:FindFirstChild("HumanoidRootPart") then
+                        local tracer = Drawing.new("Line")
+                        tracer.Visible = false
+                        tracer.Color = Color3.fromRGB(0, 0, 255) -- Blue
+                        tracer.Thickness = 2
+                        tracer.Transparency = 1
+                        tracerDrawings[ticket] = {tracer}
+                    end
+                end
+                
+                -- Update tracer positions
+                local character = player.Character
+                local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
+                local camera = workspace.CurrentCamera
+                for ticket, drawings in pairs(tracerDrawings) do
+                    local ticketPart = ticket:FindFirstChild("HumanoidRootPart")
+                    if ticketPart and humanoidRootPart then
+                        local screenPos, onScreen = camera:WorldToViewportPoint(ticketPart.Position)
+                        local playerPos = camera:WorldToViewportPoint(humanoidRootPart.Position)
+                        drawings[1].Visible = onScreen
+                        if onScreen then
+                            drawings[1].From = Vector2.new(playerPos.X, playerPos.Y)
+                            drawings[1].To = Vector2.new(screenPos.X, screenPos.Y)
+                        end
+                    end
+                end
+            end
+            
+            -- Initial update
+            updateTracerEsp()
+            
+            -- Connect updates
+            table.insert(tracerConnections, RunService.RenderStepped:Connect(updateTracerEsp))
+            if tickets then
+                table.insert(tracerConnections, tickets.ChildAdded:Connect(updateTracerEsp))
+                table.insert(tracerConnections, tickets.ChildRemoved:Connect(updateTracerEsp))
+            end
+            
+            -- Store for cleanup
+            getgenv().ticketTracerConnections = tracerConnections
+            getgenv().ticketTracerDrawings = tracerDrawings
+        end
+    end
+})
+
+-- Ticket Distance ESP Toggle
+local TicketDistanceEspToggle = Tabs.ESP:Toggle({
+    Title = "Ticket Distance ESP",
+    Value = false,
+    Callback = function(state)
+        -- Clear any existing data
+        if getgenv().ticketDistanceConnections then
+            for _, connection in ipairs(getgenv().ticketDistanceConnections) do
+                connection:Disconnect()
+            end
+            getgenv().ticketDistanceConnections = nil
+        end
+        if getgenv().ticketDistanceLabels then
+            for _, label in pairs(getgenv().ticketDistanceLabels) do
+                label:Remove()
+            end
+            getgenv().ticketDistanceLabels = nil
+        end
+
+        if state then
+            local distanceConnections = {}
+            local distanceLabels = {}
+            local tickets = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Effects") and workspace.Game.Effects:FindFirstChild("Tickets")
+
+            local function updateDistanceEsp()
+                if not tickets then return end
+                
+                -- Remove labels for tickets that no longer exist
+                for ticket, label in pairs(distanceLabels) do
+                    if not ticket.Parent or not ticket:FindFirstChild("HumanoidRootPart") then
+                        label:Remove()
+                        distanceLabels[ticket] = nil
+                    end
+                end
+                
+                -- Add labels for new tickets
+                for _, ticket in ipairs(tickets:GetChildren()) do
+                    if not distanceLabels[ticket] and ticket:FindFirstChild("HumanoidRootPart") then
+                        local distanceLabel = Drawing.new("Text")
+                        distanceLabel.Visible = false
+                        distanceLabel.Text = "0m"
+                        distanceLabel.Color = Color3.fromRGB(0, 0, 255) -- Blue
+                        distanceLabel.Size = 16
+                        distanceLabel.Center = true
+                        distanceLabel.Outline = true
+                        distanceLabels[ticket] = distanceLabel
+                    end
+                end
+                
+                -- Update distance label positions
+                local character = player.Character
+                local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
+                local camera = workspace.CurrentCamera
+                for ticket, label in pairs(distanceLabels) do
+                    local ticketPart = ticket:FindFirstChild("HumanoidRootPart")
+                    if ticketPart and humanoidRootPart then
+                        local screenPos, onScreen = camera:WorldToViewportPoint(ticketPart.Position)
+                        label.Visible = onScreen
+                        if onScreen then
+                            local distance = (ticketPart.Position - humanoidRootPart.Position).Magnitude
+                            label.Text = string.format("%.1fm", distance)
+                            label.Position = Vector2.new(screenPos.X, screenPos.Y + 20) -- Below ticket
+                        end
+                    end
+                end
+            end
+            
+            -- Initial update
+            updateDistanceEsp()
+            
+            -- Connect updates
+            table.insert(distanceConnections, RunService.RenderStepped:Connect(updateDistanceEsp))
+            if tickets then
+                table.insert(distanceConnections, tickets.ChildAdded:Connect(updateDistanceEsp))
+                table.insert(distanceConnections, tickets.ChildRemoved:Connect(updateDistanceEsp))
+            end
+            
+            -- Store for cleanup
+            getgenv().ticketDistanceConnections = distanceConnections
+            getgenv().ticketDistanceLabels = distanceLabels
+        end
+    end
+})
+
+-- Highlights Ticket ESP Toggle
+local HighlightsTicketEspToggle = Tabs.ESP:Toggle({
+    Title = "Highlights Ticket ESP",
+    Value = false,
+    Callback = function(state)
+        -- Clear any existing data
+        if getgenv().ticketHighlightConnections then
+            for _, connection in ipairs(getgenv().ticketHighlightConnections) do
+                connection:Disconnect()
+            end
+            getgenv().ticketHighlightConnections = nil
+        end
+        if getgenv().ticketHighlights then
+            for _, highlight in pairs(getgenv().ticketHighlights) do
+                highlight:Destroy()
+            end
+            getgenv().ticketHighlights = nil
+        end
+
+        if state then
+            local highlightConnections = {}
+            local highlights = {}
+            local tickets = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Effects") and workspace.Game.Effects:FindFirstChild("Tickets")
+
+            local function updateHighlights()
+                if not tickets then return end
+                
+                -- Remove highlights for tickets that no longer exist
+                for ticket, highlight in pairs(highlights) do
+                    if not ticket.Parent or not ticket:FindFirstChild("HumanoidRootPart") then
+                        highlight:Destroy()
+                        highlights[ticket] = nil
+                    end
+                end
+                
+                -- Add highlights for new tickets
+                for _, ticket in ipairs(tickets:GetChildren()) do
+                    if not highlights[ticket] and ticket:FindFirstChild("HumanoidRootPart") then
+                        local highlight = Instance.new("Highlight")
+                        highlight.Adornee = ticket
+                        highlight.FillColor = Color3.fromRGB(0, 0, 255) -- Blue
+                        highlight.OutlineColor = Color3.fromRGB(0, 0, 255) -- Blue
+                        highlight.FillTransparency = 0.5
+                        highlight.OutlineTransparency = 0
+                        highlight.Parent = ticket
+                        highlights[ticket] = highlight
+                    end
+                end
+            end
+            
+            -- Initial update
+            updateHighlights()
+            
+            -- Connect updates
+            table.insert(highlightConnections, RunService.RenderStepped:Connect(updateHighlights))
+            if tickets then
+                table.insert(highlightConnections, tickets.ChildAdded:Connect(updateHighlights))
+                table.insert(highlightConnections, tickets.ChildRemoved:Connect(updateHighlights))
+            end
+            
+            -- Store for cleanup
+            getgenv().ticketHighlightConnections = highlightConnections
+            getgenv().ticketHighlights = highlights
+        end
+    end
+})
     -- Auto Tab
     Tabs.Auto:Section({ Title = "Auto", TextSize = 40 })
     local AutoCrouchToggle = Tabs.Auto:Toggle({
