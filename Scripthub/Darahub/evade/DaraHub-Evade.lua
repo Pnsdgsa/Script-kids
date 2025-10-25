@@ -4116,6 +4116,310 @@ local HighlightsTicketEspToggle = Tabs.ESP:Toggle({
 })
     -- Auto Tab
     Tabs.Auto:Section({ Title = "Auto", TextSize = 40 })
+    local player = game.Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+
+getgenv().bhopMode = "Acceleration"
+getgenv().bhopAccelValue = -0.1
+getgenv().bhopHoldActive = false
+featureStates.BhopGuiVisible = false
+
+local isMobile = isMobile or UserInputService.TouchEnabled
+
+local bhopConnection = nil
+local bhopLoaded = false
+
+local function makeDraggable(frame)
+    frame.Active = true
+    frame.Draggable = true
+    
+    local dragDetector = Instance.new("UIDragDetector")
+    dragDetector.Parent = frame
+    
+    local originalBackground = frame.BackgroundColor3
+    local originalTransparency = frame.BackgroundTransparency
+    
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            frame.BackgroundTransparency = originalTransparency - 0.1
+        end
+    end)
+    
+    frame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            frame.BackgroundTransparency = originalTransparency
+        end
+    end)
+end
+
+local function updateBhop()
+    if not bhopLoaded then return end
+    
+    local character = player.Character
+    local humanoid = character and character:FindFirstChild("Humanoid")
+    if not character or not humanoid then
+        return
+    end
+
+    local isBhopActive = getgenv().autoJumpEnabled or getgenv().bhopHoldActive
+
+    if isBhopActive and getgenv().bhopMode == "Acceleration" then
+        local friction = getgenv().bhopAccelValue or -0.5
+        for _, t in pairs(getgc(true)) do
+            if type(t) == "table" and rawget(t, "Friction") then
+                t.Friction = friction
+            end
+        end
+    elseif not isBhopActive then
+        for _, t in pairs(getgc(true)) do
+            if type(t) == "table" and rawget(t, "Friction") then
+                t.Friction = 5
+            end
+        end
+    end
+
+    if isBhopActive and humanoid:GetState() ~= Enum.HumanoidStateType.Jumping and humanoid:GetState() ~= Enum.HumanoidStateType.Freefall then
+        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end
+
+local function loadBhop()
+    if bhopLoaded then return end
+    
+    bhopLoaded = true
+    
+    if bhopConnection then
+        bhopConnection:Disconnect()
+    end
+    bhopConnection = RunService.Heartbeat:Connect(updateBhop)
+end
+
+local function unloadBhop()
+    if not bhopLoaded then return end
+    
+    bhopLoaded = false
+    
+    if bhopConnection then
+        bhopConnection:Disconnect()
+        bhopConnection = nil
+    end
+    
+    for _, t in pairs(getgc(true)) do
+        if type(t) == "table" and rawget(t, "Friction") then
+            t.Friction = 5
+        end
+    end
+    
+    getgenv().bhopHoldActive = false
+end
+
+local function checkBhopState()
+    local shouldLoad = getgenv().autoJumpEnabled or getgenv().bhopHoldActive
+    
+    if shouldLoad and not bhopLoaded then
+        loadBhop()
+    elseif not shouldLoad and bhopLoaded then
+        unloadBhop()
+    end
+end
+
+local function setupJumpButton()
+    local success, err = pcall(function()
+        local touchGui = player:WaitForChild("PlayerGui", 5):WaitForChild("TouchGui", 5)
+        if not touchGui then return end
+        local touchControlFrame = touchGui:WaitForChild("TouchControlFrame", 5)
+        if not touchControlFrame then return end
+        local jumpButton = touchControlFrame:WaitForChild("JumpButton", 5)
+        if not jumpButton then return end
+        
+        jumpButton.MouseButton1Down:Connect(function()
+            if featureStates.BhopHold then
+                getgenv().bhopHoldActive = true
+                checkBhopState()
+            end
+        end)
+        
+        jumpButton.MouseButton1Up:Connect(function()
+            getgenv().bhopHoldActive = false
+            checkBhopState()
+        end)
+    end)
+end
+
+local function createBhopGui(yOffset)
+    local bhopGuiOld = player.PlayerGui:FindFirstChild("BhopGui")
+    if bhopGuiOld then bhopGuiOld:Destroy() end
+    
+    local bhopGui = Instance.new("ScreenGui")
+    bhopGui.Name = "BhopGui"
+    bhopGui.IgnoreGuiInset = true
+    bhopGui.ResetOnSpawn = false
+    bhopGui.Enabled = featureStates.BhopGuiVisible
+    bhopGui.Parent = player.PlayerGui
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 60, 0, 60)
+    frame.Position = UDim2.new(0.5, -30, 0.12 + (yOffset or 0), 0)
+    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    frame.BackgroundTransparency = 0.35
+    frame.BorderSizePixel = 0
+    frame.Parent = bhopGui
+    
+    makeDraggable(frame)
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = frame
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(150, 150, 150)
+    stroke.Thickness = 2
+    stroke.Parent = frame
+
+    local label = Instance.new("TextLabel")
+    label.Text = "Bhop"
+    label.Size = UDim2.new(0.9, 0, 0.5, 0)
+    label.Position = UDim2.new(0.05, 0, 0, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Font = Enum.Font.Roboto
+    label.TextSize = 16
+    label.TextXAlignment = Enum.TextXAlignment.Center
+    label.TextYAlignment = Enum.TextYAlignment.Center
+    label.TextScaled = true
+    label.Parent = frame
+
+    local bhopGuiButton = Instance.new("TextButton")
+    bhopGuiButton.Name = "ToggleButton"
+    bhopGuiButton.Text = getgenv().autoJumpEnabled and "On" or "Off"
+    bhopGuiButton.Size = UDim2.new(0.9, 0, 0.5, 0)
+    bhopGuiButton.Position = UDim2.new(0.05, 0, 0.5, 0)
+    bhopGuiButton.BackgroundColor3 = getgenv().autoJumpEnabled and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+    bhopGuiButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    bhopGuiButton.Font = Enum.Font.Roboto
+    bhopGuiButton.TextSize = 14
+    bhopGuiButton.TextXAlignment = Enum.TextXAlignment.Center
+    bhopGuiButton.TextYAlignment = Enum.TextYAlignment.Center
+    bhopGuiButton.TextScaled = true
+    bhopGuiButton.Parent = frame
+
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 4)
+    buttonCorner.Parent = bhopGuiButton
+
+    bhopGuiButton.MouseButton1Click:Connect(function()
+        getgenv().autoJumpEnabled = not getgenv().autoJumpEnabled
+        featureStates.Bhop = getgenv().autoJumpEnabled
+        bhopGuiButton.Text = getgenv().autoJumpEnabled and "On" or "Off"
+        bhopGuiButton.BackgroundColor3 = getgenv().autoJumpEnabled and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+        
+        if BhopToggle then
+            BhopToggle:Set(getgenv().autoJumpEnabled)
+        end
+        
+        checkBhopState()
+    end)
+
+    return bhopGui, bhopGuiButton
+end
+
+local jumpGui, jumpToggleBtn = createBhopGui(0.12)
+
+setupJumpButton()
+player.CharacterAdded:Connect(function()
+    setupJumpButton()
+end)
+
+local BhopToggle = Tabs.Auto:Toggle({
+    Title = "Bhop",
+    Value = false,
+    Callback = function(state)
+        featureStates.Bhop = state
+        getgenv().autoJumpEnabled = state
+        
+        if jumpGui and jumpToggleBtn then
+            jumpToggleBtn.Text = state and "On" or "Off"
+            jumpToggleBtn.BackgroundColor3 = state and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+            jumpGui.Enabled = featureStates.BhopGuiVisible
+        end
+        
+        checkBhopState()
+    end
+})
+
+local BhopHoldToggle = Tabs.Auto:Toggle({
+    Title = "Bhop (Hold Space/Jump)",
+    Value = false,
+    Callback = function(state)
+        featureStates.BhopHold = state
+        if not state then
+            getgenv().bhopHoldActive = false
+            checkBhopState()
+        end
+    end
+})
+
+local BhopShortcutToggle = Tabs.Auto:Toggle({
+    Title = "Bhop Shortcut",
+    Value = false,
+    Callback = function(state)
+        featureStates.BhopGuiVisible = state
+        if jumpGui then
+            jumpGui.Enabled = state
+        end
+    end
+})
+
+local BhopModeDropdown = Tabs.Auto:Dropdown({
+    Title = "Bhop Mode",
+    Values = {"Acceleration", "No Acceleration"},
+    Value = "Acceleration",
+    Callback = function(value)
+        getgenv().bhopMode = value
+    end
+})
+
+local BhopAccelInput = Tabs.Auto:Input({
+    Title = "Bhop Acceleration (Negative Only)",
+    Placeholder = "-0.5",
+    Numeric = true,
+    Callback = function(value)
+        if tostring(value):sub(1, 1) == "-" then
+            local n = tonumber(value)
+            if n then
+                getgenv().bhopAccelValue = n
+            end
+        end
+    end
+})
+
+UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+    if gameProcessedEvent then return end
+    if input.KeyCode == Enum.KeyCode.Space and featureStates.BhopHold then
+        getgenv().bhopHoldActive = true
+        checkBhopState()
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.Space then
+        getgenv().bhopHoldActive = false
+        checkBhopState()
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(leavingPlayer)
+    if leavingPlayer == player then
+        unloadBhop()
+        if jumpGui then
+            jumpGui:Destroy()
+        end
+    end
+end)
+
+checkBhopState()
     local AutoCrouchToggle = Tabs.Auto:Toggle({
     Title = "Auto Crouch",
     Icon = "arrow-down",
