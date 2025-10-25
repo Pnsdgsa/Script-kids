@@ -4593,9 +4593,6 @@ local FastReviveMethodDropdown = Tabs.Auto:Dropdown({
             end
         end
     })
--- Add to your Auto tab section
-Tabs.Auto:Section({ Title = "Auto Vote Game Mode", TextSize = 20 })
-
 local AutoVoteModeToggle = Tabs.Auto:Toggle({
     Title = "Auto Vote Game Mode",
     Value = false,
