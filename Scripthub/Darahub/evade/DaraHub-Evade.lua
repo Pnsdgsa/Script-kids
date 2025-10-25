@@ -4116,11 +4116,6 @@ local HighlightsTicketEspToggle = Tabs.ESP:Toggle({
 })
     -- Auto Tab
     Tabs.Auto:Section({ Title = "Auto", TextSize = 40 })
-    local player = game.Players.LocalPlayer
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local Players = game:GetService("Players")
-
 getgenv().bhopMode = "Acceleration"
 getgenv().bhopAccelValue = -0.1
 getgenv().bhopHoldActive = false
@@ -4130,6 +4125,7 @@ local isMobile = isMobile or UserInputService.TouchEnabled
 
 local bhopConnection = nil
 local bhopLoaded = false
+local bhopKeyConnection = nil
 
 local function makeDraggable(frame)
     frame.Active = true
@@ -4225,6 +4221,31 @@ local function checkBhopState()
     end
 end
 
+local function setupBhopKeybind()
+    if bhopKeyConnection then
+        bhopKeyConnection:Disconnect()
+    end
+    
+    bhopKeyConnection = UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+        if gameProcessedEvent then return end
+        if input.KeyCode == Enum.KeyCode.B and featureStates.BhopGuiVisible then
+            getgenv().autoJumpEnabled = not getgenv().autoJumpEnabled
+            featureStates.Bhop = getgenv().autoJumpEnabled
+            
+            if BhopToggle then
+                BhopToggle:Set(getgenv().autoJumpEnabled)
+            end
+            
+            if jumpToggleBtn then
+                jumpToggleBtn.Text = getgenv().autoJumpEnabled and "On" or "Off"
+                jumpToggleBtn.BackgroundColor3 = getgenv().autoJumpEnabled and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+            end
+            
+            checkBhopState()
+        end
+    end)
+end
+
 local function setupJumpButton()
     local success, err = pcall(function()
         local touchGui = player:WaitForChild("PlayerGui", 5):WaitForChild("TouchGui", 5)
@@ -4256,7 +4277,7 @@ local function createBhopGui(yOffset)
     bhopGui.Name = "BhopGui"
     bhopGui.IgnoreGuiInset = true
     bhopGui.ResetOnSpawn = false
-    bhopGui.Enabled = featureStates.BhopGuiVisible
+    bhopGui.Enabled = isMobile and featureStates.BhopGuiVisible or false
     bhopGui.Parent = player.PlayerGui
 
     local frame = Instance.new("Frame")
@@ -4328,6 +4349,8 @@ end
 local jumpGui, jumpToggleBtn = createBhopGui(0.12)
 
 setupJumpButton()
+setupBhopKeybind()
+
 player.CharacterAdded:Connect(function()
     setupJumpButton()
 end)
@@ -4342,7 +4365,7 @@ local BhopToggle = Tabs.Auto:Toggle({
         if jumpGui and jumpToggleBtn then
             jumpToggleBtn.Text = state and "On" or "Off"
             jumpToggleBtn.BackgroundColor3 = state and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
-            jumpGui.Enabled = featureStates.BhopGuiVisible
+            jumpGui.Enabled = isMobile and featureStates.BhopGuiVisible or false
         end
         
         checkBhopState()
@@ -4363,19 +4386,21 @@ local BhopHoldToggle = Tabs.Auto:Toggle({
 
 local BhopShortcutToggle = Tabs.Auto:Toggle({
     Title = "Bhop Shortcut",
+    Desc = "Show Bhop GUI For quick Toggle or press B to Toggle Bhop (Auto jump)",
     Value = false,
     Callback = function(state)
         featureStates.BhopGuiVisible = state
         if jumpGui then
-            jumpGui.Enabled = state
+            jumpGui.Enabled = isMobile and state or false
         end
+        setupBhopKeybind()
     end
 })
 
 local BhopModeDropdown = Tabs.Auto:Dropdown({
     Title = "Bhop Mode",
     Values = {"Acceleration", "No Acceleration"},
-    Value = "Acceleration",
+    Value = "Noo Acceleration",
     Callback = function(value)
         getgenv().bhopMode = value
     end
@@ -4416,30 +4441,13 @@ Players.PlayerRemoving:Connect(function(leavingPlayer)
         if jumpGui then
             jumpGui:Destroy()
         end
+        if bhopKeyConnection then
+            bhopKeyConnection:Disconnect()
+        end
     end
 end)
 
 checkBhopState()
-    local AutoCrouchToggle = Tabs.Auto:Toggle({
-    Title = "Auto Crouch",
-    Icon = "arrow-down",
-    Value = false,
-    Callback = function(state)
-        featureStates.AutoCrouch = state
-        local playerGui = Players.LocalPlayer.PlayerGui
-        local autoCrouchGui = playerGui:FindFirstChild("AutoCrouchGui")
-        if not autoCrouchGui and state then
-            createAutoCrouchGui()
-        elseif autoCrouchGui then
-            autoCrouchGui.Enabled = state
-            local button = autoCrouchGui.Frame:FindFirstChild("ToggleButton")
-            if button then
-                button.Text = state and "On" or "Off"
-                button.BackgroundColor3 = state and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
-            end
-        end
-    end
-})
 
 local AutoCrouchModeDropdown = Tabs.Auto:Dropdown({
     Title = "Auto Crouch Mode",
@@ -5178,43 +5186,79 @@ local lagGui = nil
 local lagGuiButton = nil
 local lagInputConnection = nil
 local isLagActive = false
+local lagSystemLoaded = false
 
 local function makeDraggable(frame)
-    local dragging = false
-    local dragStart = nil
-    local startPos = nil
+    frame.Active = true
+    frame.Draggable = true
     
-    local function updateInput(input)
-        local delta = input.Position - dragStart
-        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
+    local dragDetector = Instance.new("UIDragDetector")
+    dragDetector.Parent = frame
+    
+    local originalBackground = frame.BackgroundColor3
+    local originalTransparency = frame.BackgroundTransparency
     
     frame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = frame.Position
-            
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
+            frame.BackgroundTransparency = originalTransparency - 0.1
         end
     end)
     
-    frame.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            if dragging then
-                updateInput(input)
-            end
+    frame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            frame.BackgroundTransparency = originalTransparency
         end
     end)
+end
+
+local function loadLagSystem()
+    if lagSystemLoaded then return end
+    lagSystemLoaded = true
+    
+    if not lagInputConnection then
+        lagInputConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+            if gameProcessed then return end
+            if input.KeyCode == Enum.KeyCode.L and getgenv().lagSwitchEnabled and not isLagActive then
+                isLagActive = true
+                task.spawn(function()
+                    local duration = getgenv().lagDuration or 0.5
+                    local start = tick()
+                    while tick() - start < duration do
+                        local a = math.random(1, 1000000) * math.random(1, 1000000)
+                        a = a / math.random(1, 10000)
+                    end
+                    isLagActive = false
+                end)
+            end
+        end)
+    end
+end
+
+local function unloadLagSystem()
+    if not lagSystemLoaded then return end
+    lagSystemLoaded = false
+    
+    if lagInputConnection then
+        lagInputConnection:Disconnect()
+        lagInputConnection = nil
+    end
+    isLagActive = false
+end
+
+local function checkLagState()
+    local shouldLoad = getgenv().lagSwitchEnabled
+    
+    if shouldLoad and not lagSystemLoaded then
+        loadLagSystem()
+    elseif not shouldLoad and lagSystemLoaded then
+        unloadLagSystem()
+    end
 end
 
 local function createLagGui(yOffset)
     local lagGuiOld = playerGui:FindFirstChild("LagSwitchGui")
     if lagGuiOld then lagGuiOld:Destroy() end
+    
     lagGui = Instance.new("ScreenGui")
     lagGui.Name = "LagSwitchGui"
     lagGui.IgnoreGuiInset = true
@@ -5231,73 +5275,52 @@ local function createLagGui(yOffset)
     frame.Parent = lagGui
     makeDraggable(frame)
 
-    local corner = Instance.new("UICorner", frame)
+    local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = frame
 
-    local stroke = Instance.new("UIStroke", frame)
+    local stroke = Instance.new("UIStroke")
     stroke.Color = Color3.fromRGB(150, 150, 150)
     stroke.Thickness = 2
+    stroke.Parent = frame
 
-    local label = Instance.new("TextLabel", frame)
+    local label = Instance.new("TextLabel")
     label.Text = "Lag"
-    label.Size = UDim2.new(0.9, 0, 0.3, 0)
-    label.Position = UDim2.new(0.05, 0, 0.05, 0)
+    label.Size = UDim2.new(0.9, 0, 0.5, 0)
+    label.Position = UDim2.new(0.05, 0, 0, 0)
     label.BackgroundTransparency = 1
     label.TextColor3 = Color3.fromRGB(255, 255, 255)
     label.Font = Enum.Font.Roboto
-    label.TextSize = 14
+    label.TextSize = 16
     label.TextXAlignment = Enum.TextXAlignment.Center
     label.TextYAlignment = Enum.TextYAlignment.Center
     label.TextScaled = true
+    label.Parent = frame
 
-    local subLabel = Instance.new("TextLabel", frame)
-    subLabel.Text = "Switch"
-    subLabel.Size = UDim2.new(0.9, 0, 0.3, 0)
-    subLabel.Position = UDim2.new(0.05, 0, 0.3, 0)
-    subLabel.BackgroundTransparency = 1
-    subLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    subLabel.Font = Enum.Font.Roboto
-    subLabel.TextSize = 14
-    subLabel.TextXAlignment = Enum.TextXAlignment.Center
-    subLabel.TextYAlignment = Enum.TextYAlignment.Center
-    subLabel.TextScaled = true
-
-    lagGuiButton = Instance.new("TextButton", frame)
+    lagGuiButton = Instance.new("TextButton")
     lagGuiButton.Name = "TriggerButton"
     lagGuiButton.Text = "Trigger"
-    lagGuiButton.Size = UDim2.new(0.9, 0, 0.35, 0)
-    lagGuiButton.Position = UDim2.new(0.05, 0, 0.6, 0)
+    lagGuiButton.Size = UDim2.new(0.9, 0, 0.5, 0)
+    lagGuiButton.Position = UDim2.new(0.05, 0, 0.5, 0)
     lagGuiButton.BackgroundColor3 = Color3.fromRGB(0, 120, 80)
     lagGuiButton.TextColor3 = Color3.fromRGB(255, 255, 255)
     lagGuiButton.Font = Enum.Font.Roboto
-    lagGuiButton.TextSize = 12
+    lagGuiButton.TextSize = 14
     lagGuiButton.TextXAlignment = Enum.TextXAlignment.Center
     lagGuiButton.TextYAlignment = Enum.TextYAlignment.Center
     lagGuiButton.TextScaled = true
+    lagGuiButton.Parent = frame
 
-    local buttonCorner = Instance.new("UICorner", lagGuiButton)
+    local buttonCorner = Instance.new("UICorner")
     buttonCorner.CornerRadius = UDim.new(0, 4)
+    buttonCorner.Parent = lagGuiButton
 
     lagGuiButton.MouseButton1Click:Connect(function()
-        task.spawn(function()
-            local start = tick()
-            while tick() - start < (getgenv().lagDuration or 0.5) do
-                local a = math.random(1, 1000000) * math.random(1, 1000000)
-                a = a / math.random(1, 10000)
-            end
-        end)
-    end)
-end
-
-if not lagInputConnection then
-    lagInputConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if gameProcessed then return end
-        if input.KeyCode == Enum.KeyCode.L and getgenv().lagSwitchEnabled and not isLagActive then
+        if not isLagActive then
             isLagActive = true
             task.spawn(function()
-                local duration = getgenv().lagDuration or 0.5
                 local start = tick()
-                while tick() - start < duration do
+                while tick() - start < (getgenv().lagDuration or 0.5) do
                     local a = math.random(1, 1000000) * math.random(1, 1000000)
                     a = a / math.random(1, 10000)
                 end
@@ -5324,6 +5347,7 @@ local LagSwitchToggle = Tabs.Utility:Toggle({
                 lagGui.Enabled = false
             end
         end
+        checkLagState()
     end
 })
 
@@ -5340,6 +5364,16 @@ local LagDurationInput = Tabs.Utility:Input({
     end
 })
 
+Players.PlayerRemoving:Connect(function(leavingPlayer)
+    if leavingPlayer == player then
+        unloadLagSystem()
+        if lagGui then
+            lagGui:Destroy()
+        end
+    end
+end)
+
+checkLagState()
 local GravityToggle = Tabs.Utility:Toggle({
     Title = "Custom Gravity",
     Value = false,
