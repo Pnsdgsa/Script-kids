@@ -3551,90 +3551,46 @@ local TimerDisplayToggle = Tabs.Visuals:Toggle({
     Value = false,
     Callback = function(state)
         featureStates.TimerDisplay = state
+
+        local function getRoundTimer()
+            local player = game:GetService("Players").LocalPlayer
+            local pg = player.PlayerGui
+            local shared = pg:FindFirstChild("Shared")
+            local hud = shared and shared:FindFirstChild("HUD")
+            local overlay = hud and hud:FindFirstChild("Overlay")
+            local default = overlay and overlay:FindFirstChild("Default")
+            local ro = default and default:FindFirstChild("RoundOverlay")
+            local round = ro and ro:FindFirstChild("Round")
+            return round and round:FindFirstChild("RoundTimer")
+        end
+
+        local function setContainerVisible(visible)
+            local pg = game:GetService("Players").LocalPlayer.PlayerGui
+            local main = pg:FindFirstChild("MainInterface")
+            if main then
+                local container = main:FindFirstChild("TimerContainer")
+                if container then
+                    container.Visible = visible
+                end
+            end
+        end
+
         if state then
-            pcall(function()
-                local Players = game:GetService("Players")
-                local LocalPlayer = Players.LocalPlayer
-                local PlayerGui = LocalPlayer.PlayerGui
-                local MainInterface = PlayerGui:WaitForChild("MainInterface")
-                local TimerContainer = MainInterface:WaitForChild("TimerContainer")
-                TimerContainer.Visible = true
-            end)
-            
+            setContainerVisible(true)
+
             task.spawn(function()
                 while featureStates.TimerDisplay do
-                    local success, result = pcall(function()
-                        local Players = game:GetService("Players")
-                        local player = Players.LocalPlayer
-                        
-                        if not player then
-                            return false
-                        end
-                        
-                        local playerGui = player:FindFirstChild("PlayerGui")
-                        if not playerGui then
-                            return false
-                        end
-                        
-                        local shared = playerGui:WaitForChild("Shared", 1)
-                        if not shared then
-                            return false
-                        end
-                        
-                        local hud = shared:WaitForChild("HUD", 1)
-                        if not hud then
-                            return false
-                        end
-                        
-                        local overlay = hud:WaitForChild("Overlay", 1)
-                        if not overlay then
-                            return false
-                        end
-                        
-                        local default = overlay:WaitForChild("Default", 1)
-                        if not default then
-                            return false
-                        end
-                        
-                        local roundOverlay = default:WaitForChild("RoundOverlay", 1)
-                        if not roundOverlay then
-                            return false
-                        end
-                        
-                        local round = roundOverlay:WaitForChild("Round", 1)
-                        if not round then
-                            return false
-                        end
-                        
-                        local roundTimer = round:WaitForChild("RoundTimer", 1)
-                        if not roundTimer then
-                            return false
-                        end
-                        
-                        roundTimer.Visible = false
-                        return true
-                    end)
-                    
-                    if not success or not result then
-                        task.wait(0)
-                    else
-                        task.wait(0)
-                    end
+                    local timer = getRoundTimer()
+                    setContainerVisible(timer and timer.Visible == false)
+                    task.wait()
                 end
+                setContainerVisible(false)
             end)
         else
-            pcall(function()
-                local Players = game:GetService("Players")
-                local LocalPlayer = Players.LocalPlayer
-                local PlayerGui = LocalPlayer.PlayerGui
-                local MainInterface = PlayerGui:WaitForChild("MainInterface")
-                local TimerContainer = MainInterface:WaitForChild("TimerContainer")
-                TimerContainer.Visible = false
-            end)
+            setContainerVisible(false)
         end
     end
 })
-
     -- ESP Tab
     Tabs.ESP:Section({ Title = "ESP", TextSize = 40 })
     Tabs.ESP:Divider()
@@ -4189,142 +4145,7 @@ local AutoCrouchModeDropdown = Tabs.Auto:Dropdown({
         featureStates.AutoCrouchMode = value
     end
 })
-local _Players = game:GetService("Players")
-local _LocalPlayer = _Players.LocalPlayer
-local BhopToggle = Tabs.Auto:Toggle({
-    Title = "Bhop",
-    Value = false,
-    Callback = function(state)
-        featureStates.Bhop = state
-        if not state then
-            getgenv().autoJumpEnabled = false
-            if jumpGui and jumpToggleBtn then
-                jumpToggleBtn.Text = "Off"
-                jumpToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-                jumpGui.Enabled = isMobile and state
-            end
-        end
-        if _LocalPlayer and _LocalPlayer:FindFirstChild("PlayerGui") then
-            local gui = _LocalPlayer.PlayerGui:FindFirstChild("BhopGui")
-            if gui then
-                gui.Enabled = state
-            end
-        end
-    end
-})
-featureStates.BhopHold = false
 
-getgenv().bhopHoldActive = false
-
-local BhopHoldToggle = Tabs.Auto:Toggle({
-    Title = "Bhop (Jump button or Space)",
-    Value = false,
-    Callback = function(state)
-        featureStates.BhopHold = state
-        if not state then
-            getgenv().bhopHoldActive = false
-        end
-    end
-})
-
-local UIS = game:GetService("UserInputService")
-UIS.InputBegan:Connect(function(input, gpe)
-    if gpe then return end
-    if input.KeyCode == Enum.KeyCode.Space and featureStates.BhopHold then
-        getgenv().bhopHoldActive = true
-    end
-end)
-UIS.InputEnded:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.Space then
-        getgenv().bhopHoldActive = false
-    end
-end)
-
-local function setupJumpButton()
-    local success, err = pcall(function()
-        local touchGui = player:WaitForChild("PlayerGui"):WaitForChild("TouchGui", 5)
-        if not touchGui then return end
-        local touchControlFrame = touchGui:WaitForChild("TouchControlFrame", 5)
-        if not touchControlFrame then return end
-        local jumpButton = touchControlFrame:WaitForChild("JumpButton", 5)
-        if not jumpButton then return end
-        
-        jumpButton.MouseButton1Down:Connect(function()
-            if featureStates.BhopHold then
-                getgenv().bhopHoldActive = true
-            end
-        end)
-        
-        jumpButton.MouseButton1Up:Connect(function()
-            getgenv().bhopHoldActive = false
-        end)
-    end)
-    if not success then
-        warn("Failed to setup jump button: " .. tostring(err))
-    end
-end
-setupJumpButton()
-player.CharacterAdded:Connect(setupJumpButton)
-
-task.spawn(function()
-    while true do
-        local friction = 5
-        local isBhopActive = getgenv().autoJumpEnabled or getgenv().bhopHoldActive
-        if isBhopActive and getgenv().bhopMode == "Acceleration" then
-            friction = getgenv().bhopAccelValue or -0.5
-        end
-        for _, t in pairs(getgc(true)) do
-            if type(t) == "table" and rawget(t, "Friction") then
-                if getgenv().bhopMode == "No Acceleration" then
-                else
-                    t.Friction = friction
-                end
-            end
-        end
-        task.wait(0.15)
-    end
-end)
-
-task.spawn(function()
-    while true do
-        local isBhopActive = getgenv().autoJumpEnabled or getgenv().bhopHoldActive
-        if isBhopActive then
-            local character = LocalPlayer.Character
-            if character and character:FindFirstChild("Humanoid") then
-                local humanoid = character.Humanoid
-                if humanoid:GetState() ~= Enum.HumanoidStateType.Jumping and humanoid:GetState() ~= Enum.HumanoidStateType.Freefall then
-                    humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-                end
-            end
-            if getgenv().bhopMode == "No Acceleration" then
-                task.wait(0.05)
-            else
-                task.wait()
-            end
-        else
-            task.wait()
-        end
-    end
-end)
-local BhopModeDropdown = Tabs.Auto:Dropdown({
-    Title = "Bhop Mode",
-    Values = {"Acceleration", "No Acceleration"},
-    Value = "Acceleration",
-    Callback = function(value)
-        getgenv().bhopMode = value
-    end
-})
-local BhopAccelInput = Tabs.Auto:Input({
-    Title = "Bhop Acceleration (Negative Only)",
-    Placeholder = "-0.5",
-    Numeric = true,
-    Callback = function(value)
-        if tostring(value):sub(1,1) == "-" then
-            local n = tonumber(value)
-            if n then getgenv().bhopAccelValue = n end
-        end
-    end
-})
 local AutoEmoteToggle = Tabs.Auto:Toggle({
     Title = "Auto Emote (Hold Crouch Button)",
     Value = false,
@@ -5964,9 +5785,7 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local playerGui = LocalPlayer:WaitForChild("PlayerGui")
-getgenv().autoJumpEnabled = false
-getgenv().bhopMode = "Acceleration"
-getgenv().bhopAccelValue = -0.1
+
 local uiToggledViaUI = false 
 local isMobile = UserInputService.TouchEnabled 
 local function makeDraggable(frame)
@@ -6101,107 +5920,7 @@ MainTab.Input = function(self, config)
     return input
 end
 
-MainTab:Toggle({
-    Title = "Bhop",
-    Value = false,
-    Callback = function(state)
-        if not jumpGui then
-            jumpGui, jumpToggleBtn = createToggleGui("Bhop", "autoJumpEnabled", 0.12)
-        end
-        jumpGui.Enabled = (state and uiToggledViaUI) or isMobile 
-        jumpToggleBtn.Text = state and "On" or "Off"
-        jumpToggleBtn.BackgroundColor3 = state and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(0, 0, 0)
-    end
-})
 
-MainTab:Dropdown({
-    Title = "Bhop Mode",
-    Values = {"Acceleration", "No Acceleration"},
-    Multi = false,
-    Default = "Acceleration",
-    Callback = function(value)
-        getgenv().bhopMode = value
-    end
-})
-
-MainTab:Input({
-    Title = "Bhop Acceleration (Negative Only)",
-    Placeholder = "-0.5",
-    Numeric = true,
-    Callback = function(value)
-        if tostring(value):sub(1, 1) == "-" then
-            getgenv().bhopAccelValue = tonumber(value)
-        end
-    end
-})
-
-UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
-    if gameProcessedEvent then return end
-    if input.KeyCode == Enum.KeyCode.B and featureStates.Bhop then 
-        getgenv().autoJumpEnabled = not getgenv().autoJumpEnabled
-        uiToggledViaUI = false
-        if jumpGui and jumpToggleBtn then
-            jumpGui.Enabled = isMobile and getgenv().autoJumpEnabled
-            jumpToggleBtn.Text = getgenv().autoJumpEnabled and "On" or "Off"
-            jumpToggleBtn.BackgroundColor3 = getgenv().autoJumpEnabled and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(0, 0, 0)
-        end
-        MainTab:Toggle({
-            Title = "Bhop",
-            Value = getgenv().autoJumpEnabled,
-            Callback = function(state)
-                if not jumpGui then
-                    jumpGui, jumpToggleBtn = createToggleGui("Bhop", "autoJumpEnabled", 0.12)
-                end
-                getgenv().autoJumpEnabled = state
-                jumpGui.Enabled = (state and uiToggledViaUI) or (isMobile and state)
-                jumpToggleBtn.Text = state and "On" or "Off"
-                jumpToggleBtn.BackgroundColor3 = state and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(0, 0, 0)
-            end
-        }):Set(getgenv().autoJumpEnabled)
-    end
-end)
-task.spawn(function()
-    while true do
-        local friction = 5
-        if getgenv().autoJumpEnabled and getgenv().bhopMode == "Acceleration" then
-            friction = getgenv().bhopAccelValue or -5
-        end
-        if getgenv().autoJumpEnabled == false then
-            friction = 5
-        end
-
-        for _, t in pairs(getgc(true)) do
-            if type(t) == "table" and rawget(t, "Friction") then
-                if getgenv().bhopMode == "No Acceleration" then
-                else
-                    t.Friction = friction
-                end
-            end
-        end
-        task.wait(0.15)
-    end
-end)
-
-task.spawn(function()
-    while true do
-        if getgenv().autoJumpEnabled then
-            local character = LocalPlayer.Character
-            if character and character:FindFirstChild("Humanoid") then
-                local humanoid = character.Humanoid
-                if humanoid:GetState() ~= Enum.HumanoidStateType.Jumping and humanoid:GetState() ~= Enum.HumanoidStateType.Freefall then
-                    humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-                end
-            end
-            if getgenv().bhopMode == "No Acceleration" then
-                task.wait(0.05)
-            else
-                task.wait()
-            end
-        else
-            task.wait()
-        end
-    end
-end)
 task.spawn(function()
     local Players = game:GetService("Players")
     local player = Players.LocalPlayer
@@ -6249,13 +5968,7 @@ task.spawn(function()
     end
 end)
 end
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local BhopGui = LocalPlayer.PlayerGui:FindFirstChild("BhopGui")
 
-if BhopGui then
-    BhopGui.Enabled = false
-end
 if not featureStates then
     featureStates = {
         CustomGravity = false,
