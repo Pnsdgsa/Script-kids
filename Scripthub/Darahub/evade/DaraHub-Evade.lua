@@ -1666,7 +1666,173 @@ game:GetService("Players").PlayerRemoving:Connect(function(leavingPlayer)
         stopNextbotNameESP()
     end
 end)
+local function cleanupTracers(tracerTable)
+    for _, drawing in ipairs(tracerTable) do
+        if drawing and drawing.Remove then 
+            pcall(function() drawing:Remove() end)
+        elseif drawing then 
+            drawing.Visible = false 
+        end
+    end
+    tracerTable = {}
+end
 
+local function startDownedTracer()
+    downedTracerConnection = RunService.Heartbeat:Connect(function()
+        cleanupTracers(downedTracerLines)
+        downedTracerLines = {}
+        local folder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players")
+        if folder then
+            for _, char in ipairs(folder:GetChildren()) do
+                if char:IsA("Model") then
+                    local team = char:GetAttribute("Team")
+                    local downed = char:GetAttribute("Downed")
+                    if team ~= "Nextbot" and char.Name ~= player.Name and downed == true then
+                        local hrp = char:FindFirstChild("HumanoidRootPart")
+                        if hrp and workspace.CurrentCamera then
+                            local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
+                            if onScreen then
+                                if featureStates.DownedTracer then
+                                    local tracer = Drawing.new("Line")
+                                    tracer.Color = Color3.fromRGB(255, 165, 0)
+                                    tracer.Thickness = 2
+                                    tracer.From = Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y)
+                                    tracer.To = Vector2.new(pos.X, pos.Y)
+                                    tracer.ZIndex = 1
+                                    tracer.Visible = true
+                                    table.insert(downedTracerLines, tracer)
+                                end
+                                if featureStates.DownedBoxESP then
+                                    local boxColor = Color3.fromRGB(255, 255, 0)
+                                    if featureStates.DownedBoxType == "2D" then
+                                        local topY = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position + Vector3.new(0, 3, 0)).Y
+                                        local bottomY = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0)).Y
+                                        local size = (bottomY - topY) / 2
+                                        local box = Drawing.new("Square")
+                                        box.Thickness = 2
+                                        box.Filled = false
+                                        box.Color = boxColor
+                                        box.Size = Vector2.new(size * 2, size * 3)
+                                        box.Position = Vector2.new(pos.X - size, pos.Y - size * 1.5)
+                                        box.ZIndex = 1
+                                        box.Visible = true
+                                        table.insert(downedTracerLines, box)
+                                    else
+                                        local size = Vector3.new(3, 5, 2)
+                                        local offsets = {
+                                            Vector3.new( size.X/2,  size.Y/2,  size.Z/2),
+                                            Vector3.new( size.X/2,  size.Y/2, -size.Z/2),
+                                            Vector3.new( size.X/2, -size.Y/2,  size.Z/2),
+                                            Vector3.new( size.X/2, -size.Y/2, -size.Z/2),
+                                            Vector3.new(-size.X/2,  size.Y/2,  size.Z/2),
+                                            Vector3.new(-size.X/2,  size.Y/2, -size.Z/2),
+                                            Vector3.new(-size.X/2, -size.Y/2,  size.Z/2),
+                                            Vector3.new(-size.X/2, -size.Y/2, -size.Z/2),
+                                        }
+                                        local screenPoints = {}
+                                        for i, offset in ipairs(offsets) do
+                                            local worldPos = hrp.CFrame * offset
+                                            local vec, _ = workspace.CurrentCamera:WorldToViewportPoint(worldPos)
+                                            screenPoints[i] = {pos = Vector2.new(vec.X, vec.Y), depth = vec.Z}
+                                        end
+                                        local edges = {
+                                            {1,2}, {1,3}, {1,5},
+                                            {2,4}, {2,6},
+                                            {3,4}, {3,7},
+                                            {5,6}, {5,7},
+                                            {4,8}, {6,8}, {7,8}
+                                        }
+                                        for _, edge in ipairs(edges) do
+                                            local p1 = screenPoints[edge[1]]
+                                            p2 = screenPoints[edge[2]]
+                                            if p1.depth > 0 and p2.depth > 0 then
+                                                local line = Drawing.new("Line")
+                                                line.Thickness = 2
+                                                line.Color = boxColor
+                                                line.From = p1.pos
+                                                line.To = p2.pos
+                                                line.Visible = true
+                                                table.insert(downedTracerLines, line)
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+local function stopDownedTracer()
+    if downedTracerConnection then
+        downedTracerConnection:Disconnect()
+        downedTracerConnection = nil
+    end
+    cleanupTracers(downedTracerLines)
+    downedTracerLines = {}
+end
+
+local function cleanupNameESPLabels(labelTable)
+    for _, label in ipairs(labelTable) do
+        if label and label.Remove then 
+            label:Remove()
+        elseif label then 
+            label.Visible = false 
+        end
+    end
+    labelTable = {}
+end
+
+local function startDownedNameESP()
+    downedNameESPConnection = RunService.Heartbeat:Connect(function()
+        cleanupNameESPLabels(downedNameESPLabels)
+        downedNameESPLabels = {}
+        local folder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players")
+        if folder then
+            for _, char in ipairs(folder:GetChildren()) do
+                if char:IsA("Model") then
+                    local team = char:GetAttribute("Team")
+                    local downed = char:GetAttribute("Downed")
+                    if team ~= "Nextbot" and char.Name ~= player.Name and downed == true then
+                        local hrp = char:FindFirstChild("HumanoidRootPart")
+                        if hrp and workspace.CurrentCamera then
+                            local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
+                            if onScreen then
+                                local distance = getDistanceFromPlayer(hrp.Position)
+                                local displayText = char.Name
+                                if featureStates.DownedDistanceESP then
+                                    displayText = displayText .. "\n" .. math.floor(distance) .. " studs"
+                                end
+                                local label = Drawing.new("Text")
+                                label.Text = displayText
+                                label.Size = 16
+                                label.Center = true
+                                label.Outline = true
+                                label.OutlineColor = Color3.new(0, 0, 0)
+                                label.Color = Color3.fromRGB(255, 165, 0)
+                                label.Position = Vector2.new(pos.X, pos.Y - 50)
+                                label.Visible = true
+                                table.insert(downedNameESPLabels, label)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+local function stopDownedNameESP()
+    if downedNameESPConnection then
+        downedNameESPConnection:Disconnect()
+        downedNameESPConnection = nil
+    end
+    cleanupNameESPLabels(downedNameESPLabels)
+    downedNameESPLabels = {}
+end
 -- Visual Variables
 local originalBrightness = Lighting.Brightness
 local originalFogEnd = Lighting.FogEnd
@@ -2197,174 +2363,6 @@ local function manualRevive()
     if character and character:GetAttribute("Downed") then
         ReplicatedStorage.Events.Player.ChangePlayerMode:FireServer(true)
     end
-end
-
-local function cleanupTracers(tracerTable)
-    for _, drawing in ipairs(tracerTable) do
-        if drawing and drawing.Remove then 
-            pcall(function() drawing:Remove() end)
-        elseif drawing then 
-            drawing.Visible = false 
-        end
-    end
-    tracerTable = {}
-end
-
-local function startDownedTracer()
-    downedTracerConnection = RunService.Heartbeat:Connect(function()
-        cleanupTracers(downedTracerLines)
-        downedTracerLines = {}
-        local folder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players")
-        if folder then
-            for _, char in ipairs(folder:GetChildren()) do
-                if char:IsA("Model") then
-                    local team = char:GetAttribute("Team")
-                    local downed = char:GetAttribute("Downed")
-                    if team ~= "Nextbot" and char.Name ~= player.Name and downed == true then
-                        local hrp = char:FindFirstChild("HumanoidRootPart")
-                        if hrp and workspace.CurrentCamera then
-                            local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
-                            if onScreen then
-                                if featureStates.DownedTracer then
-                                    local tracer = Drawing.new("Line")
-                                    tracer.Color = Color3.fromRGB(255, 165, 0)
-                                    tracer.Thickness = 2
-                                    tracer.From = Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y)
-                                    tracer.To = Vector2.new(pos.X, pos.Y)
-                                    tracer.ZIndex = 1
-                                    tracer.Visible = true
-                                    table.insert(downedTracerLines, tracer)
-                                end
-                                if featureStates.DownedBoxESP then
-                                    local boxColor = Color3.fromRGB(255, 255, 0)
-                                    if featureStates.DownedBoxType == "2D" then
-                                        local topY = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position + Vector3.new(0, 3, 0)).Y
-                                        local bottomY = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0)).Y
-                                        local size = (bottomY - topY) / 2
-                                        local box = Drawing.new("Square")
-                                        box.Thickness = 2
-                                        box.Filled = false
-                                        box.Color = boxColor
-                                        box.Size = Vector2.new(size * 2, size * 3)
-                                        box.Position = Vector2.new(pos.X - size, pos.Y - size * 1.5)
-                                        box.ZIndex = 1
-                                        box.Visible = true
-                                        table.insert(downedTracerLines, box)
-                                    else
-                                        local size = Vector3.new(3, 5, 2)
-                                        local offsets = {
-                                            Vector3.new( size.X/2,  size.Y/2,  size.Z/2),
-                                            Vector3.new( size.X/2,  size.Y/2, -size.Z/2),
-                                            Vector3.new( size.X/2, -size.Y/2,  size.Z/2),
-                                            Vector3.new( size.X/2, -size.Y/2, -size.Z/2),
-                                            Vector3.new(-size.X/2,  size.Y/2,  size.Z/2),
-                                            Vector3.new(-size.X/2,  size.Y/2, -size.Z/2),
-                                            Vector3.new(-size.X/2, -size.Y/2,  size.Z/2),
-                                            Vector3.new(-size.X/2, -size.Y/2, -size.Z/2),
-                                        }
-                                        local screenPoints = {}
-                                        for i, offset in ipairs(offsets) do
-                                            local worldPos = hrp.CFrame * offset
-                                            local vec, _ = workspace.CurrentCamera:WorldToViewportPoint(worldPos)
-                                            screenPoints[i] = {pos = Vector2.new(vec.X, vec.Y), depth = vec.Z}
-                                        end
-                                        local edges = {
-                                            {1,2}, {1,3}, {1,5},
-                                            {2,4}, {2,6},
-                                            {3,4}, {3,7},
-                                            {5,6}, {5,7},
-                                            {4,8}, {6,8}, {7,8}
-                                        }
-                                        for _, edge in ipairs(edges) do
-                                            local p1 = screenPoints[edge[1]]
-                                            p2 = screenPoints[edge[2]]
-                                            if p1.depth > 0 and p2.depth > 0 then
-                                                local line = Drawing.new("Line")
-                                                line.Thickness = 2
-                                                line.Color = boxColor
-                                                line.From = p1.pos
-                                                line.To = p2.pos
-                                                line.Visible = true
-                                                table.insert(downedTracerLines, line)
-                                            end
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end)
-end
-
-local function stopDownedTracer()
-    if downedTracerConnection then
-        downedTracerConnection:Disconnect()
-        downedTracerConnection = nil
-    end
-    cleanupTracers(downedTracerLines)
-    downedTracerLines = {}
-end
-
-local function cleanupNameESPLabels(labelTable)
-    for _, label in ipairs(labelTable) do
-        if label and label.Remove then 
-            label:Remove()
-        elseif label then 
-            label.Visible = false 
-        end
-    end
-    labelTable = {}
-end
-
-local function startDownedNameESP()
-    downedNameESPConnection = RunService.Heartbeat:Connect(function()
-        cleanupNameESPLabels(downedNameESPLabels)
-        downedNameESPLabels = {}
-        local folder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players")
-        if folder then
-            for _, char in ipairs(folder:GetChildren()) do
-                if char:IsA("Model") then
-                    local team = char:GetAttribute("Team")
-                    local downed = char:GetAttribute("Downed")
-                    if team ~= "Nextbot" and char.Name ~= player.Name and downed == true then
-                        local hrp = char:FindFirstChild("HumanoidRootPart")
-                        if hrp and workspace.CurrentCamera then
-                            local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
-                            if onScreen then
-                                local distance = getDistanceFromPlayer(hrp.Position)
-                                local displayText = char.Name
-                                if featureStates.DownedDistanceESP then
-                                    displayText = displayText .. "\n" .. math.floor(distance) .. " studs"
-                                end
-                                local label = Drawing.new("Text")
-                                label.Text = displayText
-                                label.Size = 16
-                                label.Center = true
-                                label.Outline = true
-                                label.OutlineColor = Color3.new(0, 0, 0)
-                                label.Color = Color3.fromRGB(255, 165, 0)
-                                label.Position = Vector2.new(pos.X, pos.Y - 50)
-                                label.Visible = true
-                                table.insert(downedNameESPLabels, label)
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end)
-end
-
-local function stopDownedNameESP()
-    if downedNameESPConnection then
-        downedNameESPConnection:Disconnect()
-        downedNameESPConnection = nil
-    end
-    cleanupNameESPLabels(downedNameESPLabels)
-    downedNameESPLabels = {}
 end
 
 local function onCharacterAdded(newCharacter, plr)
@@ -3878,7 +3876,7 @@ local TicketEspToggle = Tabs.ESP:Toggle({
     Title = "Ticket ESP",
     Value = false,
     Callback = function(state)
-        -- Clear any existing data
+        -- Clear any existing data to prevent duplicates
         if getgenv().ticketEspConnections then
             for _, connection in ipairs(getgenv().ticketEspConnections) do
                 connection:Disconnect()
@@ -3910,7 +3908,7 @@ local TicketEspToggle = Tabs.ESP:Toggle({
                 
                 -- Add labels for new tickets
                 for _, ticket in ipairs(tickets:GetChildren()) do
-                    if not espLabels[ticket] and ticket:FindFirstChild("HumanoidRootPart") then
+                    if ticket:FindFirstChild("HumanoidRootPart") and not espLabels[ticket] then
                         local label = Drawing.new("Text")
                         label.Visible = false
                         label.Text = "Ticket"
@@ -3924,6 +3922,7 @@ local TicketEspToggle = Tabs.ESP:Toggle({
                 
                 -- Update label positions
                 local camera = workspace.CurrentCamera
+                if not camera then return end
                 for ticket, label in pairs(espLabels) do
                     local ticketPart = ticket:FindFirstChild("HumanoidRootPart")
                     if ticketPart then
@@ -3953,230 +3952,12 @@ local TicketEspToggle = Tabs.ESP:Toggle({
     end
 })
 
--- draw3DBox function adapted for tickets
-local function draw3DBox(esp, hrp, camera, boxColor, boxSize)
-    if not hrp or not camera then
-        return
-    end
-
-    boxSize = boxSize or Vector3.new(3, 3, 3) -- Adjusted for tickets
-    local size = boxSize
-    local offsets = {
-        Vector3.new( size.X/2,  size.Y/2,  size.Z/2),
-        Vector3.new( size.X/2,  size.Y/2, -size.Z/2),
-        Vector3.new( size.X/2, -size.Y/2,  size.Z/2),
-        Vector3.new( size.X/2, -size.Y/2, -size.Z/2),
-        Vector3.new(-size.X/2,  size.Y/2,  size.Z/2),
-        Vector3.new(-size.X/2,  size.Y/2, -size.Z/2),
-        Vector3.new(-size.X/2, -size.Y/2,  size.Z/2),
-        Vector3.new(-size.X/2, -size.Y/2, -size.Z/2),
-    }
-    local screenPoints = {}
-    local anyPointOnScreen = false
-
-    for i, offset in ipairs(offsets) do
-        local success, vec, onScreen = pcall(function()
-            local worldPos = hrp.CFrame * offset
-            return camera:WorldToViewportPoint(worldPos)
-        end)
-        if success then
-            screenPoints[i] = {pos = Vector2.new(vec.X, vec.Y), depth = vec.Z, onScreen = onScreen}
-            if onScreen and vec.Z > 0 then
-                anyPointOnScreen = true
-            end
-        end
-    end
-
-    if not esp.boxLines then
-        esp.boxLines = {}
-        for i = 1, 12 do
-            local success, line = pcall(function()
-                local newLine = Drawing.new("Line")
-                newLine.Thickness = 1
-                newLine.ZIndex = 2
-                return newLine
-            end)
-            if success then
-                table.insert(esp.boxLines, line)
-            end
-        end
-    end
-
-    local edges = {
-        {1, 2}, {1, 3}, {1, 5},
-        {2, 4}, {2, 6},
-        {3, 4}, {3, 7},
-        {5, 6}, {5, 7},
-        {4, 8}, {6, 8}, {7, 8}
-    }
-
-    local distance = (player.Character and player.Character:FindFirstChild("HumanoidRootPart") and 
-        (player.Character.HumanoidRootPart.Position - hrp.Position).Magnitude) or 10
-    local thickness = math.clamp(3 / (distance / 50), 1, 3)
-
-    local lineIndex = 1
-    for _, edge in ipairs(edges) do
-        if lineIndex > #esp.boxLines then
-            break
-        end
-        local p1 = screenPoints[edge[1]]
-        local p2 = screenPoints[edge[2]]
-        local line = esp.boxLines[lineIndex]
-        if line and p1 and p2 then
-            line.Color = boxColor or Color3.fromRGB(0, 0, 255) -- Blue
-            line.Thickness = thickness
-            line.Transparency = 1
-            if anyPointOnScreen and p1.depth > 0 and p2.depth > 0 then
-                line.From = p1.pos
-                line.To = p2.pos
-                line.Visible = true
-            else
-                line.Visible = false
-            end
-        end
-        lineIndex = lineIndex + 1
-    end
-
-    for i = lineIndex, #esp.boxLines do
-        esp.boxLines[i].Visible = false
-    end
-end
-
--- Ticket Box ESP Toggle
-local TicketBoxEspToggle = Tabs.ESP:Toggle({
-    Title = "Ticket Box ESP",
-    Value = false,
-    Callback = function(state)
-        -- Clear any existing data
-        if getgenv().ticketBoxEspConnections then
-            for _, connection in ipairs(getgenv().ticketBoxEspConnections) do
-                connection:Disconnect()
-            end
-            getgenv().ticketBoxEspConnections = nil
-        end
-        if getgenv().ticketBoxEspDrawings then
-            for _, esp in pairs(getgenv().ticketBoxEspDrawings) do
-                if esp.box then
-                    esp.box:Remove()
-                end
-                if esp.boxLines then
-                    for _, line in ipairs(esp.boxLines) do
-                        line:Remove()
-                    end
-                end
-            end
-            getgenv().ticketBoxEspDrawings = nil
-        end
-
-        if state then
-            local boxConnections = {}
-            local boxDrawings = {}
-            local tickets = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Effects") and workspace.Game.Effects:FindFirstChild("Tickets")
-
-            local function updateBoxEsp()
-                if not tickets then return end
-                
-                -- Remove drawings for tickets that no longer exist
-                for ticket, esp in pairs(boxDrawings) do
-                    if not ticket.Parent or not ticket:FindFirstChild("HumanoidRootPart") then
-                        if esp.box then
-                            esp.box:Remove()
-                        end
-                        if esp.boxLines then
-                            for _, line in ipairs(esp.boxLines) do
-                                line:Remove()
-                            end
-                        end
-                        boxDrawings[ticket] = nil
-                    end
-                end
-                
-                -- Add drawings for new tickets
-                for _, ticket in ipairs(tickets:GetChildren()) do
-                    if not boxDrawings[ticket] and ticket:FindFirstChild("HumanoidRootPart") then
-                        local esp = { boxLines = {} }
-                        if getgenv().espType == "2D" then
-                            esp.box = Drawing.new("Square")
-                            esp.box.Visible = false
-                            esp.box.Color = Color3.fromRGB(0, 0, 255) -- Blue
-                            esp.box.Thickness = 2
-                            esp.box.Filled = false
-                            esp.box.Transparency = 1
-                        end
-                        boxDrawings[ticket] = esp
-                    end
-                end
-                
-                -- Update box positions
-                local camera = workspace.CurrentCamera
-                for ticket, esp in pairs(boxDrawings) do
-                    local ticketPart = ticket:FindFirstChild("HumanoidRootPart")
-                    if ticketPart then
-                        local vector, onScreen = camera:WorldToViewportPoint(ticketPart.Position)
-                        if getgenv().espType == "2D" then
-                            local topY = camera:WorldToViewportPoint(ticketPart.Position + Vector3.new(0, 1.5, 0)).Y
-                            local bottomY = camera:WorldToViewportPoint(ticketPart.Position - Vector3.new(0, 1.5, 0)).Y
-                            local size = (bottomY - topY) / 2
-                            esp.box.Visible = onScreen
-                            if onScreen then
-                                esp.box.Size = Vector2.new(size * 2, size * 3)
-                                esp.box.Position = Vector2.new(vector.X - size, vector.Y - size * 1.5)
-                            end
-                            if esp.boxLines then
-                                for _, line in ipairs(esp.boxLines) do
-                                    line.Visible = false
-                                end
-                            end
-                        else
-                            if esp.box then
-                                esp.box.Visible = false
-                            end
-                            pcall(function()
-                                draw3DBox(esp, ticketPart, camera, Color3.fromRGB(0, 0, 255), Vector3.new(3, 3, 3))
-                            end)
-                        end
-                    end
-                end
-            end
-            
-            -- Initial update
-            updateBoxEsp()
-            
-            -- Connect updates
-            table.insert(boxConnections, RunService.RenderStepped:Connect(updateBoxEsp))
-            if tickets then
-                table.insert(boxConnections, tickets.ChildAdded:Connect(updateBoxEsp))
-                table.insert(boxConnections, tickets.ChildRemoved:Connect(updateBoxEsp))
-            end
-            
-            -- Store for cleanup
-            getgenv().ticketBoxEspConnections = boxConnections
-            getgenv().ticketBoxEspDrawings = boxDrawings
-        end
-    end
-})
-
--- ESP Type Dropdown (2D/3D)
-local EspTypeDropdown = Tabs.ESP:Dropdown({
-    Title = "ESP Type",
-    Values = {"2D", "3D"},
-    Default = "2D",
-    Callback = function(value)
-        getgenv().espType = value
-        -- Refresh box ESP if enabled
-        if TicketBoxEspToggle:Get() then
-            TicketBoxEspToggle:Set(false)
-            TicketBoxEspToggle:Set(true)
-        end
-    end
-})
-
 -- Ticket Tracer ESP Toggle
 local TicketTracerEspToggle = Tabs.ESP:Toggle({
     Title = "Ticket Tracer ESP",
     Value = false,
     Callback = function(state)
-        -- Clear any existing data
+        -- Clear any existing data to prevent duplicates
         if getgenv().ticketTracerConnections then
             for _, connection in ipairs(getgenv().ticketTracerConnections) do
                 connection:Disconnect()
@@ -4212,7 +3993,7 @@ local TicketTracerEspToggle = Tabs.ESP:Toggle({
                 
                 -- Add tracers for new tickets
                 for _, ticket in ipairs(tickets:GetChildren()) do
-                    if not tracerDrawings[ticket] and ticket:FindFirstChild("HumanoidRootPart") then
+                    if ticket:FindFirstChild("HumanoidRootPart") and not tracerDrawings[ticket] then
                         local tracer = Drawing.new("Line")
                         tracer.Visible = false
                         tracer.Color = Color3.fromRGB(0, 0, 255) -- Blue
@@ -4223,17 +4004,16 @@ local TicketTracerEspToggle = Tabs.ESP:Toggle({
                 end
                 
                 -- Update tracer positions
-                local character = player.Character
-                local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
                 local camera = workspace.CurrentCamera
+                if not camera then return end
+                local screenBottomCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y)
                 for ticket, drawings in pairs(tracerDrawings) do
                     local ticketPart = ticket:FindFirstChild("HumanoidRootPart")
-                    if ticketPart and humanoidRootPart then
+                    if ticketPart then
                         local screenPos, onScreen = camera:WorldToViewportPoint(ticketPart.Position)
-                        local playerPos = camera:WorldToViewportPoint(humanoidRootPart.Position)
                         drawings[1].Visible = onScreen
                         if onScreen then
-                            drawings[1].From = Vector2.new(playerPos.X, playerPos.Y)
+                            drawings[1].From = screenBottomCenter -- Bottom center of screen
                             drawings[1].To = Vector2.new(screenPos.X, screenPos.Y)
                         end
                     end
@@ -4262,7 +4042,7 @@ local TicketDistanceEspToggle = Tabs.ESP:Toggle({
     Title = "Ticket Distance ESP",
     Value = false,
     Callback = function(state)
-        -- Clear any existing data
+        -- Clear any existing data to prevent duplicates
         if getgenv().ticketDistanceConnections then
             for _, connection in ipairs(getgenv().ticketDistanceConnections) do
                 connection:Disconnect()
@@ -4294,7 +4074,7 @@ local TicketDistanceEspToggle = Tabs.ESP:Toggle({
                 
                 -- Add labels for new tickets
                 for _, ticket in ipairs(tickets:GetChildren()) do
-                    if not distanceLabels[ticket] and ticket:FindFirstChild("HumanoidRootPart") then
+                    if ticket:FindFirstChild("HumanoidRootPart") and not distanceLabels[ticket] then
                         local distanceLabel = Drawing.new("Text")
                         distanceLabel.Visible = false
                         distanceLabel.Text = "0m"
@@ -4310,9 +4090,10 @@ local TicketDistanceEspToggle = Tabs.ESP:Toggle({
                 local character = player.Character
                 local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
                 local camera = workspace.CurrentCamera
+                if not camera or not humanoidRootPart then return end
                 for ticket, label in pairs(distanceLabels) do
                     local ticketPart = ticket:FindFirstChild("HumanoidRootPart")
-                    if ticketPart and humanoidRootPart then
+                    if ticketPart then
                         local screenPos, onScreen = camera:WorldToViewportPoint(ticketPart.Position)
                         label.Visible = onScreen
                         if onScreen then
@@ -4346,7 +4127,7 @@ local HighlightsTicketEspToggle = Tabs.ESP:Toggle({
     Title = "Highlights Ticket ESP",
     Value = false,
     Callback = function(state)
-        -- Clear any existing data
+        -- Clear any existing data to prevent duplicates
         if getgenv().ticketHighlightConnections then
             for _, connection in ipairs(getgenv().ticketHighlightConnections) do
                 connection:Disconnect()
@@ -4378,7 +4159,7 @@ local HighlightsTicketEspToggle = Tabs.ESP:Toggle({
                 
                 -- Add highlights for new tickets
                 for _, ticket in ipairs(tickets:GetChildren()) do
-                    if not highlights[ticket] and ticket:FindFirstChild("HumanoidRootPart") then
+                    if ticket:FindFirstChild("HumanoidRootPart") and not highlights[ticket] then
                         local highlight = Instance.new("Highlight")
                         highlight.Adornee = ticket
                         highlight.FillColor = Color3.fromRGB(0, 0, 255) -- Blue
@@ -5567,6 +5348,12 @@ local GravityGUIToggle = Tabs.Utility:Toggle({
                 configFile = ConfigManager:CreateConfig(configName)
                 configFile:Register("InfiniteJumpToggle", InfiniteJumpToggle)
                 configFile:Register("AutoTicketFarmToggle", AutoTicketFarmToggle)
+                configFile:Register("TicketEspToggle", TicketEspToggle)
+                configFile:Register("TicketBoxEspToggle", TicketBoxEspToggle)
+                configFile:Register("EspTypeDropdown", EspTypeDropdown)
+                configFile:Register("TicketTracerEspToggle", TicketTracerEspToggle)
+                configFile:Register("TicketDistanceEspToggle", TicketDistanceEspToggle)
+                configFile:Register("HighlightsTicketEspToggle", HighlightsTicketEspToggle)
                 configFile:Register("FreeCamSpeedSlider", FreeCamSpeedSlider)
                 configFile:Register("JumpMethodDropdown", JumpMethodDropdown)
                 configFile:Register("FlyToggle", FlyToggle)
