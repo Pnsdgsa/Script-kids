@@ -4593,7 +4593,56 @@ local FastReviveMethodDropdown = Tabs.Auto:Dropdown({
             end
         end
     })
+-- Add to your Auto tab section
+Tabs.Auto:Section({ Title = "Auto Vote Game Mode", TextSize = 20 })
 
+local AutoVoteModeToggle = Tabs.Auto:Toggle({
+    Title = "Auto Vote Game Mode",
+    Value = false,
+    Callback = function(state)
+        if state then
+            local voteConnection
+            voteConnection = RunService.Heartbeat:Connect(function()
+                local voteEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Player"):WaitForChild("Vote")
+                if voteEvent then
+                    if featureStates.SelectedVoteMode == 1 then
+                        voteEvent:FireServer(1, true)
+                    elseif featureStates.SelectedVoteMode == 2 then
+                        voteEvent:FireServer(2, true)
+                    elseif featureStates.SelectedVoteMode == 3 then
+                        voteEvent:FireServer(3, true)
+                    elseif featureStates.SelectedVoteMode == 4 then
+                        voteEvent:FireServer(4, true)
+                    end
+                end
+            end)
+            
+            getgenv().AutoVoteModeConnection = voteConnection
+        else
+            if getgenv().AutoVoteModeConnection then
+                getgenv().AutoVoteModeConnection:Disconnect()
+                getgenv().AutoVoteModeConnection = nil
+            end
+        end
+    end
+})
+
+local AutoVoteModeDropdown = Tabs.Auto:Dropdown({
+    Title = "Vote Mode",
+    Values = {"Mode 1", "Mode 2", "Mode 3", "Mode 4"},
+    Value = "Mode 1",
+    Callback = function(value)
+        if value == "Mode 1" then
+            featureStates.SelectedVoteMode = 1
+        elseif value == "Mode 2" then
+            featureStates.SelectedVoteMode = 2
+        elseif value == "Mode 3" then
+            featureStates.SelectedVoteMode = 3
+        elseif value == "Mode 4" then
+            featureStates.SelectedVoteMode = 4
+        end
+    end
+})
     local AutoSelfReviveToggle = Tabs.Auto:Toggle({
         Title = "loc:AUTO_SELF_REVIVE",
         Value = false,
@@ -4853,7 +4902,6 @@ local TimeChangerInput = Tabs.Utility:Input({
     end
 })
 
--- Auto Crouch GUI and Logic
 featureStates.AutoCrouch = false
 featureStates.AutoCrouchMode = "Air"
 
@@ -5629,25 +5677,6 @@ configFile:Register("AutoEmoteToggle", AutoEmoteToggle)
                             MyPlayerData.level, 
                             table.concat(MyPlayerData.inventory, ", "))
                     })
-                    if loadedData.TimerDisplayToggle then
-    TimerDisplayToggle:Set(loadedData.TimerDisplayToggle)
-end
-if loadedData.FreeCamSpeedSlider then
-    FreeCamSpeedSlider:Set(loadedData.FreeCamSpeedSlider)
-end
-if loadedData.AutoWhistleToggle then AutoWhistleToggle:Set(loadedData.AutoWhistleToggle) end
-if loadedData.GravityToggle then GravityToggle:Set(loadedData.GravityToggle) end
-if loadedData.GravityInput then GravityInput:Set(loadedData.GravityInput) end
-if loadedData.SpeedInput then SpeedInput:Set(loadedData.SpeedInput) end
-if loadedData.JumpCapInput then JumpCapInput:Set(loadedData.JumpCapInput) end
-if loadedData.StrafeInput then StrafeInput:Set(loadedData.StrafeInput) end
-if loadedData.ApplyMethodDropdown then ApplyMethodDropdown:Select(loadedData.ApplyMethodDropdown) end
-if loadedData.InfiniteSlideToggle then InfiniteSlideToggle:Set(loadedData.InfiniteSlideToggle) end
-if loadedData.InfiniteSlideSpeedInput then InfiniteSlideSpeedInput:Set(loadedData.InfiniteSlideSpeedInput) end
-if loadedData.EmoteDropdown then EmoteDropdown:Select(loadedData.EmoteDropdown) end
-if loadedData.AutoEmoteToggle then AutoEmoteToggle:Set(loadedData.AutoEmoteToggle) end
-if loadedData.LagSwitchToggle then LagSwitchToggle:Set(loadedData.LagSwitchToggle) end
-if loadedData.LagDurationInput then LagDurationInput:Set(loadedData.LagDurationInput) end
                 end
             end
         })
@@ -5660,6 +5689,7 @@ if loadedData.LagDurationInput then LagDurationInput:Set(loadedData.LagDurationI
             Color = "White"
         })
     end
+
 
     Tabs.Settings:Section({ Title = "Keybind Settings", TextSize = 20 })
     Tabs.Settings:Section({ Title = "Change toggle key for GUI", TextSize = 16, TextTransparency = 0.25 })
