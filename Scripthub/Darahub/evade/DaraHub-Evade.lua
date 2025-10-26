@@ -66,7 +66,7 @@ WindUI:SetTheme("Dark")
 -- Create WindUI window
 local Window = WindUI:CreateWindow({
     Title = "loc:SCRIPT_TITLE",
-    Icon = "rocket",
+    Icon = "rbxassetid://137330250139083",
     Author = "loc:WELCOME",
     Folder = "GameHackUI",
     Size = UDim2.fromOffset(580, 490),
