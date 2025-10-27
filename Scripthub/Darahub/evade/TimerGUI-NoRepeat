@@ -1,49 +1,7 @@
-local roundStartedConnection
-local timerConnection
-local timerDisplayConnection
-
-local gameStatsPath = workspace:WaitForChild("Game"):WaitForChild("Stats")
-
-local function setupAttributeConnections()
-    if roundStartedConnection then
-        roundStartedConnection:Disconnect()
-    end
-    if timerConnection then
-        timerConnection:Disconnect()
-    end
-    if timerDisplayConnection then
-        timerDisplayConnection:Disconnect()
-    end
-    
-    if gameStatsPath then
-        roundStartedConnection = gameStatsPath:GetAttributeChangedSignal("RoundStarted"):Connect(function()
-            local roundStarted = gameStatsPath:GetAttribute("RoundStarted")
-            if roundStarted == true then
-                appliedOnce = false
-            end
-            updateTimerDisplay()
-        end)
-        
-        timerConnection = gameStatsPath:GetAttributeChangedSignal("Timer"):Connect(function()
-            if shouldApplySettings() and not appliedOnce then
-                applySettingsWithDelay()
-            end
-            updateTimerDisplay()
-        end)
-        
-        timerDisplayConnection = gameStatsPath:GetAttributeChangedSignal("Timer"):Connect(function()
-            updateTimerDisplay()
-        end)
-        
-        updateTimerDisplay()
-    end
-end
-
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-
-local TimerLabel, StatusLabel, MainInterface
 
 local function CreateTimerGUI()
     local MainInterface = Instance.new("ScreenGui")
@@ -79,6 +37,7 @@ local function CreateTimerGUI()
     TimerContainer.Size = UDim2.new(1, 0, 1, 0)
 
     AspectRatio.Parent = TimerContainer
+
     SizeLimit.Parent = TimerContainer
     SizeLimit.MaxSize = Vector2.new(900, 900)
 
@@ -95,6 +54,7 @@ local function CreateTimerGUI()
 
     RoundedCorners.CornerRadius = UDim.new(0, 4)
     RoundedCorners.Parent = TimerDisplay
+
     BorderOutline.Parent = TimerDisplay
     BorderOutline.Thickness = 1
     BorderOutline.Color = Color3.fromRGB(0, 0, 0)
@@ -139,7 +99,7 @@ local function CreateTimerGUI()
     StatusText.Size = UDim2.new(0.800000012, 0, 0.25, 0)
     StatusText.ZIndex = 10002
     StatusText.Font = Enum.Font.GothamBold
-    StatusText.Text = "INTERMISSION"
+    StatusText.Text = "ROUND ACTIVE"
     StatusText.TextColor3 = Color3.fromRGB(165, 194, 255)
     StatusText.TextScaled = true
     StatusText.TextSize = 14.000
@@ -149,6 +109,7 @@ local function CreateTimerGUI()
     TextGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 255, 255)), ColorSequenceKeypoint.new(1.00, Color3.fromRGB(193, 193, 193))}
     TextGradient.Rotation = 90
     TextGradient.Parent = StatusText
+
     StatusBorder.Parent = StatusText
     StatusBorder.Thickness = 2
     StatusBorder.Color = Color3.fromRGB(0, 0, 0)
@@ -174,6 +135,7 @@ local function CreateTimerGUI()
     TimerGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 255, 255)), ColorSequenceKeypoint.new(1.00, Color3.fromRGB(193, 193, 193))}
     TimerGradient.Rotation = 90
     TimerGradient.Parent = CountdownText
+
     CountdownBorder.Parent = CountdownText
     CountdownBorder.Thickness = 2
     CountdownBorder.Color = Color3.fromRGB(0, 0, 0)
@@ -182,50 +144,159 @@ local function CreateTimerGUI()
     return CountdownText, StatusText, MainInterface
 end
 
+local TimerLabel, StatusLabel, MainInterface = CreateTimerGUI()
+
+local statsFolder = workspace:WaitForChild("Game"):WaitForChild("Stats")
+
+local timerConnection
+
 local function formatTime(seconds)
     if not seconds then return "0:00" end
+    
     seconds = math.floor(tonumber(seconds) or 0)
     local minutes = math.floor(seconds / 60)
     local remainingSeconds = seconds % 60
+    
     return string.format("%d:%02d", minutes, remainingSeconds)
 end
 
-local function updateTimerDisplay()
-    if not TimerLabel or not StatusLabel then return end
-    if not gameStatsPath then return end
-    
-    local timerValue = gameStatsPath:GetAttribute("Timer")
-    local roundStarted = gameStatsPath:GetAttribute("RoundStarted")
-    
-    if timerValue then
-        TimerLabel.Text = formatTime(timerValue)
-        TimerLabel.TextColor3 = timerValue <= 5 and Color3.fromRGB(215, 100, 100) or Color3.fromRGB(165, 194, 255)
-    else
-        TimerLabel.Text = "0:00"
-        TimerLabel.TextColor3 = Color3.fromRGB(165, 194, 255)
+local function setupTimerConnection()
+    if timerConnection then
+        timerConnection:Disconnect()
     end
     
-    StatusLabel.Text = roundStarted and "ROUND ACTIVE" or "INTERMISSION"
+    if statsFolder then
+        timerConnection = statsFolder:GetAttributeChangedSignal("Timer"):Connect(function()
+            local timerValue = statsFolder:GetAttribute("Timer")
+            local roundStarted = statsFolder:GetAttribute("RoundStarted")
+            
+            TimerLabel.Text = formatTime(timerValue)
+            
+            TimerLabel.TextColor3 = timerValue and timerValue <= 5 and Color3.fromRGB(215, 100, 100) or Color3.fromRGB(165, 194, 255)
+            
+            StatusLabel.Text = roundStarted and "ROUND ACTIVE" or "INTERMISSION"
+        end)
+        
+        local initialTimer = statsFolder:GetAttribute("Timer")
+        local initialRoundStarted = statsFolder:GetAttribute("RoundStarted")
+        
+        TimerLabel.Text = formatTime(initialTimer)
+        TimerLabel.TextColor3 = initialTimer and initialTimer <= 5 and Color3.fromRGB(215, 100, 100) or Color3.fromRGB(165, 194, 255)
+        StatusLabel.Text = initialRoundStarted and "ROUND ACTIVE" or "INTERMISSION"
+    end
 end
 
-TimerLabel, StatusLabel, MainInterface = CreateTimerGUI()
+setupTimerConnection()
 
-local RunService = game:GetService("RunService")
-local fallbackConnection
-
-fallbackConnection = RunService.Heartbeat:Connect(function()
-    updateTimerDisplay()
+local folderAddedConnection
+folderAddedConnection = workspace.ChildAdded:Connect(function(child)
+    if child.Name == "Game" then
+        local gameFolder = child:WaitForChild("Stats")
+        statsFolder = gameFolder
+        setupTimerConnection()
+    end
 end)
 
-updateTimerDisplay()
-setupAttributeConnections()
+local function cleanupTimer()
+    if timerConnection then
+        timerConnection:Disconnect()
+        timerConnection = nil
+    end
+    if folderAddedConnection then
+        folderAddedConnection:Disconnect()
+        folderAddedConnection = nil
+    end
+end
 
-workspace.ChildAdded:Connect(function(child)
-    if child.Name == "Game" then
-        local newStatsFolder = child:WaitForChild("Stats")
-        if newStatsFolder then
-            gameStatsPath = newStatsFolder
-            setupAttributeConnections()
+local roundTimer = PlayerGui:WaitForChild("Menu"):WaitForChild("IntermissionTimer"):WaitForChild("RoundTimer")
+local hudOverlay = PlayerGui:WaitForChild("Shared"):WaitForChild("HUD"):WaitForChild("Overlay"):WaitForChild("Default"):WaitForChild("RoundOverlay"):WaitForChild("Round"):WaitForChild("RoundTimer")
+
+task.spawn(function()
+    while true do
+        local success, result = pcall(function()
+            local Players = game:GetService("Players")
+            local player = Players.LocalPlayer
+            
+            if not player then
+                return false
+            end
+            
+            local playerGui = player:FindFirstChild("PlayerGui")
+            if not playerGui then
+                return false
+            end
+            
+            local shared = playerGui:WaitForChild("Shared", 1)
+            if not shared then
+                return false
+            end
+            
+            local hud = shared:WaitForChild("HUD", 1)
+            if not hud then
+                return false
+            end
+            
+            local overlay = hud:WaitForChild("Overlay", 1)
+            if not overlay then
+                return false
+            end
+            
+            local default = overlay:WaitForChild("Default", 1)
+            if not default then
+                return false
+            end
+            
+            local roundOverlay = default:WaitForChild("RoundOverlay", 1)
+            if not roundOverlay then
+                return false
+            end
+            
+            local round = roundOverlay:WaitForChild("Round", 1)
+            if not round then
+                return false
+            end
+            
+            local roundTimer = round:WaitForChild("RoundTimer", 1)
+            if not roundTimer then
+                return false
+            end
+            
+            roundTimer.Visible = false
+            return true
+        end)
+        
+        if not success or not result then
+            task.wait(0)
+        else
+            task.wait(0)
         end
     end
 end)
+
+local function updateUIVisibility()
+    local intermissionAbout = roundTimer:GetAttribute("About")
+    local roundTimerAbout = hudOverlay:GetAttribute("About")
+    local isIntermissionTimerVisible = roundTimer:IsDescendantOf(PlayerGui) and roundTimer.Visible
+    local isHudOverlayVisible = hudOverlay:IsDescendantOf(PlayerGui) and hudOverlay.Visible
+    local toggleState = VisualsTab and VisualsTab:GetValue("Game Timer Display") or true
+
+    MainInterface.Enabled = toggleState and not (
+        intermissionAbout == "INTERMISSION" or 
+        roundTimerAbout == "INTERMISSION" or 
+        isIntermissionTimerVisible or 
+        isHudOverlayVisible
+    )
+end
+
+roundTimer:GetAttributeChangedSignal("About"):Connect(updateUIVisibility)
+hudOverlay:GetAttributeChangedSignal("About"):Connect(updateUIVisibility)
+
+local function connectVisibilityListener(instance)
+    if instance then
+        instance:GetPropertyChangedSignal("Visible"):Connect(updateUIVisibility)
+        instance.AncestryChanged:Connect(updateUIVisibility)
+    end
+end
+
+connectVisibilityListener(roundTimer)
+connectVisibilityListener(hudOverlay)
