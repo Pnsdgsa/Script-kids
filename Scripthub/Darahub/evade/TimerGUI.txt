@@ -142,10 +142,10 @@ local function CreateTimerGUI()
     CountdownBorder.Color = Color3.fromRGB(0, 0, 0)
     CountdownBorder.Transparency = 0.5
 
-    return CountdownText, StatusText, MainInterface
+    return CountdownText, StatusText, MainInterface, TimerContainer
 end
 
-local TimerLabel, StatusLabel, MainInterface = CreateTimerGUI()
+local TimerLabel, StatusLabel, MainInterface, TimerContainer = CreateTimerGUI()
 
 local statsFolder = workspace:WaitForChild("Game"):WaitForChild("Stats")
 
@@ -281,7 +281,7 @@ local function updateUIVisibility()
     local isHudOverlayVisible = hudOverlay:IsDescendantOf(PlayerGui) and hudOverlay.Visible
     local toggleState = VisualsTab and VisualsTab:GetValue("Game Timer Display") or true
 
-    MainInterface.Enabled = toggleState and not (
+    TimerContainer.Visible = toggleState and not (
         intermissionAbout == "INTERMISSION" or 
         roundTimerAbout == "INTERMISSION" or 
         isIntermissionTimerVisible or 
