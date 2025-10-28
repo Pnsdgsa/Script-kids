@@ -3,7 +3,20 @@ if getgenv().DaraHubEvadeExecuted then
 end
 getgenv().DaraHubEvadeExecuted = true
 -- Load WindUI
-local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
+local WindUI
+
+do
+    local ok, result = pcall(function()
+        return require("./src/Init")
+    end)
+    
+    if ok then
+        WindUI = result
+    else 
+        WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+    end
+end
+
 
 -- Localization setup
 local Localization = WindUI:Localization({
@@ -286,7 +299,7 @@ end
 keyInputConnection = game:GetService("UserInputService").InputBegan:Connect(handleKeyPress)
 Window:SetIconSize(48)
 Window:Tag({
-    Title = "v1.2.5",
+    Title = "v1.2.6",
     Color = Color3.fromHex("#30ff6a")
 })
 
@@ -1677,162 +1690,6 @@ local function cleanupTracers(tracerTable)
     tracerTable = {}
 end
 
-local function startDownedTracer()
-    downedTracerConnection = RunService.Heartbeat:Connect(function()
-        cleanupTracers(downedTracerLines)
-        downedTracerLines = {}
-        local folder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players")
-        if folder then
-            for _, char in ipairs(folder:GetChildren()) do
-                if char:IsA("Model") then
-                    local team = char:GetAttribute("Team")
-                    local downed = char:GetAttribute("Downed")
-                    if team ~= "Nextbot" and char.Name ~= player.Name and downed == true then
-                        local hrp = char:FindFirstChild("HumanoidRootPart")
-                        if hrp and workspace.CurrentCamera then
-                            local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
-                            if onScreen then
-                                if featureStates.DownedTracer then
-                                    local tracer = Drawing.new("Line")
-                                    tracer.Color = Color3.fromRGB(255, 165, 0)
-                                    tracer.Thickness = 2
-                                    tracer.From = Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y)
-                                    tracer.To = Vector2.new(pos.X, pos.Y)
-                                    tracer.ZIndex = 1
-                                    tracer.Visible = true
-                                    table.insert(downedTracerLines, tracer)
-                                end
-                                if featureStates.DownedBoxESP then
-                                    local boxColor = Color3.fromRGB(255, 255, 0)
-                                    if featureStates.DownedBoxType == "2D" then
-                                        local topY = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position + Vector3.new(0, 3, 0)).Y
-                                        local bottomY = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0)).Y
-                                        local size = (bottomY - topY) / 2
-                                        local box = Drawing.new("Square")
-                                        box.Thickness = 2
-                                        box.Filled = false
-                                        box.Color = boxColor
-                                        box.Size = Vector2.new(size * 2, size * 3)
-                                        box.Position = Vector2.new(pos.X - size, pos.Y - size * 1.5)
-                                        box.ZIndex = 1
-                                        box.Visible = true
-                                        table.insert(downedTracerLines, box)
-                                    else
-                                        local size = Vector3.new(3, 5, 2)
-                                        local offsets = {
-                                            Vector3.new( size.X/2,  size.Y/2,  size.Z/2),
-                                            Vector3.new( size.X/2,  size.Y/2, -size.Z/2),
-                                            Vector3.new( size.X/2, -size.Y/2,  size.Z/2),
-                                            Vector3.new( size.X/2, -size.Y/2, -size.Z/2),
-                                            Vector3.new(-size.X/2,  size.Y/2,  size.Z/2),
-                                            Vector3.new(-size.X/2,  size.Y/2, -size.Z/2),
-                                            Vector3.new(-size.X/2, -size.Y/2,  size.Z/2),
-                                            Vector3.new(-size.X/2, -size.Y/2, -size.Z/2),
-                                        }
-                                        local screenPoints = {}
-                                        for i, offset in ipairs(offsets) do
-                                            local worldPos = hrp.CFrame * offset
-                                            local vec, _ = workspace.CurrentCamera:WorldToViewportPoint(worldPos)
-                                            screenPoints[i] = {pos = Vector2.new(vec.X, vec.Y), depth = vec.Z}
-                                        end
-                                        local edges = {
-                                            {1,2}, {1,3}, {1,5},
-                                            {2,4}, {2,6},
-                                            {3,4}, {3,7},
-                                            {5,6}, {5,7},
-                                            {4,8}, {6,8}, {7,8}
-                                        }
-                                        for _, edge in ipairs(edges) do
-                                            local p1 = screenPoints[edge[1]]
-                                            p2 = screenPoints[edge[2]]
-                                            if p1.depth > 0 and p2.depth > 0 then
-                                                local line = Drawing.new("Line")
-                                                line.Thickness = 2
-                                                line.Color = boxColor
-                                                line.From = p1.pos
-                                                line.To = p2.pos
-                                                line.Visible = true
-                                                table.insert(downedTracerLines, line)
-                                            end
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end)
-end
-
-local function stopDownedTracer()
-    if downedTracerConnection then
-        downedTracerConnection:Disconnect()
-        downedTracerConnection = nil
-    end
-    cleanupTracers(downedTracerLines)
-    downedTracerLines = {}
-end
-
-local function cleanupNameESPLabels(labelTable)
-    for _, label in ipairs(labelTable) do
-        if label and label.Remove then 
-            label:Remove()
-        elseif label then 
-            label.Visible = false 
-        end
-    end
-    labelTable = {}
-end
-
-local function startDownedNameESP()
-    downedNameESPConnection = RunService.Heartbeat:Connect(function()
-        cleanupNameESPLabels(downedNameESPLabels)
-        downedNameESPLabels = {}
-        local folder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players")
-        if folder then
-            for _, char in ipairs(folder:GetChildren()) do
-                if char:IsA("Model") then
-                    local team = char:GetAttribute("Team")
-                    local downed = char:GetAttribute("Downed")
-                    if team ~= "Nextbot" and char.Name ~= player.Name and downed == true then
-                        local hrp = char:FindFirstChild("HumanoidRootPart")
-                        if hrp and workspace.CurrentCamera then
-                            local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
-                            if onScreen then
-                                local distance = getDistanceFromPlayer(hrp.Position)
-                                local displayText = char.Name
-                                if featureStates.DownedDistanceESP then
-                                    displayText = displayText .. "\n" .. math.floor(distance) .. " studs"
-                                end
-                                local label = Drawing.new("Text")
-                                label.Text = displayText
-                                label.Size = 16
-                                label.Center = true
-                                label.Outline = true
-                                label.OutlineColor = Color3.new(0, 0, 0)
-                                label.Color = Color3.fromRGB(255, 165, 0)
-                                label.Position = Vector2.new(pos.X, pos.Y - 50)
-                                label.Visible = true
-                                table.insert(downedNameESPLabels, label)
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end)
-end
-
-local function stopDownedNameESP()
-    if downedNameESPConnection then
-        downedNameESPConnection:Disconnect()
-        downedNameESPConnection = nil
-    end
-    cleanupNameESPLabels(downedNameESPLabels)
-    downedNameESPLabels = {}
-end
 -- Visual Variables
 local originalBrightness = Lighting.Brightness
 local originalFogEnd = Lighting.FogEnd
@@ -2289,8 +2146,6 @@ local function startAutoWin()
                 securityPart.CanCollide = true
                 securityPart.Parent = workspace
                 rootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
-                task.wait(0.5)
-                securityPart:Destroy()
             end
         end
     end)
@@ -2364,7 +2219,162 @@ local function manualRevive()
         ReplicatedStorage.Events.Player.ChangePlayerMode:FireServer(true)
     end
 end
+local function startDownedTracer()
+    downedTracerConnection = RunService.Heartbeat:Connect(function()
+        cleanupTracers(downedTracerLines)
+        downedTracerLines = {}
+        local folder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players")
+        if folder then
+            for _, char in ipairs(folder:GetChildren()) do
+                if char:IsA("Model") then
+                    local team = char:GetAttribute("Team")
+                    local downed = char:GetAttribute("Downed")
+                    if team ~= "Nextbot" and char.Name ~= player.Name and downed == true then
+                        local hrp = char:FindFirstChild("HumanoidRootPart")
+                        if hrp and workspace.CurrentCamera then
+                            local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
+                            if onScreen then
+                                if featureStates.DownedTracer then
+                                    local tracer = Drawing.new("Line")
+                                    tracer.Color = Color3.fromRGB(255, 165, 0)
+                                    tracer.Thickness = 2
+                                    tracer.From = Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y)
+                                    tracer.To = Vector2.new(pos.X, pos.Y)
+                                    tracer.ZIndex = 1
+                                    tracer.Visible = true
+                                    table.insert(downedTracerLines, tracer)
+                                end
+                                if featureStates.DownedBoxESP then
+                                    local boxColor = Color3.fromRGB(255, 255, 0)
+                                    if featureStates.DownedBoxType == "2D" then
+                                        local topY = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position + Vector3.new(0, 3, 0)).Y
+                                        local bottomY = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0)).Y
+                                        local size = (bottomY - topY) / 2
+                                        local box = Drawing.new("Square")
+                                        box.Thickness = 2
+                                        box.Filled = false
+                                        box.Color = boxColor
+                                        box.Size = Vector2.new(size * 2, size * 3)
+                                        box.Position = Vector2.new(pos.X - size, pos.Y - size * 1.5)
+                                        box.ZIndex = 1
+                                        box.Visible = true
+                                        table.insert(downedTracerLines, box)
+                                    else
+                                        local size = Vector3.new(3, 5, 2)
+                                        local offsets = {
+                                            Vector3.new( size.X/2,  size.Y/2,  size.Z/2),
+                                            Vector3.new( size.X/2,  size.Y/2, -size.Z/2),
+                                            Vector3.new( size.X/2, -size.Y/2,  size.Z/2),
+                                            Vector3.new( size.X/2, -size.Y/2, -size.Z/2),
+                                            Vector3.new(-size.X/2,  size.Y/2,  size.Z/2),
+                                            Vector3.new(-size.X/2,  size.Y/2, -size.Z/2),
+                                            Vector3.new(-size.X/2, -size.Y/2,  size.Z/2),
+                                            Vector3.new(-size.X/2, -size.Y/2, -size.Z/2),
+                                        }
+                                        local screenPoints = {}
+                                        for i, offset in ipairs(offsets) do
+                                            local worldPos = hrp.CFrame * CFrame.Angles(0, math.rad(90), 0) * offset
+                                            local vec, _ = workspace.CurrentCamera:WorldToViewportPoint(worldPos)
+                                            screenPoints[i] = {pos = Vector2.new(vec.X, vec.Y), depth = vec.Z}
+                                        end
+                                        local edges = {
+                                            {1,2}, {1,3}, {1,5},
+                                            {2,4}, {2,6},
+                                            {3,4}, {3,7},
+                                            {5,6}, {5,7},
+                                            {4,8}, {6,8}, {7,8}
+                                        }
+                                        for _, edge in ipairs(edges) do
+                                            local p1 = screenPoints[edge[1]]
+                                            p2 = screenPoints[edge[2]]
+                                            if p1.depth > 0 and p2.depth > 0 then
+                                                local line = Drawing.new("Line")
+                                                line.Thickness = 2
+                                                line.Color = boxColor
+                                                line.From = p1.pos
+                                                line.To = p2.pos
+                                                line.Visible = true
+                                                table.insert(downedTracerLines, line)
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
 
+local function stopDownedTracer()
+    if downedTracerConnection then
+        downedTracerConnection:Disconnect()
+        downedTracerConnection = nil
+    end
+    cleanupTracers(downedTracerLines)
+    downedTracerLines = {}
+end
+
+local function cleanupNameESPLabels(labelTable)
+    for _, label in ipairs(labelTable) do
+        if label and label.Remove then 
+            label:Remove()
+        elseif label then 
+            label.Visible = false 
+        end
+    end
+    labelTable = {}
+end
+
+local function startDownedNameESP()
+    downedNameESPConnection = RunService.Heartbeat:Connect(function()
+        cleanupNameESPLabels(downedNameESPLabels)
+        downedNameESPLabels = {}
+        local folder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players")
+        if folder then
+            for _, char in ipairs(folder:GetChildren()) do
+                if char:IsA("Model") then
+                    local team = char:GetAttribute("Team")
+                    local downed = char:GetAttribute("Downed")
+                    if team ~= "Nextbot" and char.Name ~= player.Name and downed == true then
+                        local hrp = char:FindFirstChild("HumanoidRootPart")
+                        if hrp and workspace.CurrentCamera then
+                            local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
+                            if onScreen then
+                                local distance = getDistanceFromPlayer(hrp.Position)
+                                local displayText = char.Name
+                                if featureStates.DownedDistanceESP then
+                                    displayText = displayText .. "\n" .. math.floor(distance) .. " studs"
+                                end
+                                local label = Drawing.new("Text")
+                                label.Text = displayText
+                                label.Size = 16
+                                label.Center = true
+                                label.Outline = true
+                                label.OutlineColor = Color3.new(0, 0, 0)
+                                label.Color = Color3.fromRGB(255, 165, 0)
+                                label.Position = Vector2.new(pos.X, pos.Y - 50)
+                                label.Visible = true
+                                table.insert(downedNameESPLabels, label)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+local function stopDownedNameESP()
+    if downedNameESPConnection then
+        downedNameESPConnection:Disconnect()
+        downedNameESPConnection = nil
+    end
+    cleanupNameESPLabels(downedNameESPLabels)
+    downedNameESPLabels = {}
+end
 local function onCharacterAdded(newCharacter, plr)
     if plr == player then
         character = newCharacter
@@ -2738,7 +2748,7 @@ Tabs.Main:Button({
         end
     end
 })
-       local AntiAFKToggle = Tabs.Main:Toggle({
+       AntiAFKToggle = Tabs.Main:Toggle({
         Title = "loc:ANTI_AFK",
         Value = false,
         Callback = function(state)
@@ -2750,6 +2760,540 @@ Tabs.Main:Button({
             end
         end
     })
+    local PathfindingService = game:GetService("PathfindingService")
+
+featureStates.AntiNextbot = false
+featureStates.AntiNextbotTeleportType = "Distance"
+featureStates.AntiNextbotDistance = 50
+featureStates.DistanceTeleport = 20
+
+local function handleAntiNextbot()
+    if not featureStates.AntiNextbot then return end
+
+    local character = Players.LocalPlayer.Character
+    local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
+
+    local nextbots = {}
+    local npcsFolder = workspace:FindFirstChild("NPCs")
+    if npcsFolder then
+        for _, model in ipairs(npcsFolder:GetChildren()) do
+            if model:IsA("Model") and isNextbotModel(model) then
+                local hrp = model:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    table.insert(nextbots, model)
+                end
+            end
+        end
+    end
+
+    local playersFolder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players")
+    if playersFolder then
+        for _, model in ipairs(playersFolder:GetChildren()) do
+            if model:IsA("Model") and isNextbotModel(model) then
+                local hrp = model:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    table.insert(nextbots, model)
+                end
+            end
+        end
+    end
+
+    for _, nextbot in ipairs(nextbots) do
+        local nextbotHrp = nextbot:FindFirstChild("HumanoidRootPart")
+        if nextbotHrp then
+            local distance = (humanoidRootPart.Position - nextbotHrp.Position).Magnitude
+            if distance <= featureStates.AntiNextbotDistance then
+                if featureStates.AntiNextbotTeleportType == "Players" then
+                    local validPlayers = {}
+                    for _, plr in ipairs(Players:GetPlayers()) do
+                        if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                            table.insert(validPlayers, plr)
+                        end
+                    end
+                    if #validPlayers > 0 then
+                        local randomPlayer = validPlayers[math.random(1, #validPlayers)]
+                        humanoidRootPart.CFrame = randomPlayer.Character.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
+                    end
+                elseif featureStates.AntiNextbotTeleportType == "Spawn" then
+                    local spawnsFolder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Map") and workspace.Game.Map:FindFirstChild("Parts") and workspace.Game.Map.Parts:FindFirstChild("Spawns")
+                    if spawnsFolder then
+                        local spawnLocations = spawnsFolder:GetChildren()
+                        if #spawnLocations > 0 then
+                            local randomSpawn = spawnLocations[math.random(1, #spawnLocations)]
+                            humanoidRootPart.CFrame = randomSpawn.CFrame + Vector3.new(0, 3, 0)
+                        end
+                    end
+                elseif featureStates.AntiNextbotTeleportType == "Distance" then
+                    local direction = (humanoidRootPart.Position - nextbotHrp.Position).Unit
+                    local targetPos = humanoidRootPart.Position + direction * featureStates.DistanceTeleport
+
+                    local path = PathfindingService:CreatePath({
+                        AgentRadius = 2,
+                        AgentHeight = 5,
+                        AgentCanJump = true
+                    })
+
+                    local success, errorMessage = pcall(function()
+                        path:ComputeAsync(humanoidRootPart.Position, targetPos)
+                    end)
+
+                    if success and path.Status == Enum.PathStatus.Success then
+                        local waypoints = path:GetWaypoints()
+                        if #waypoints > 1 then
+                            local lastValidPos = waypoints[#waypoints].Position
+                            local distanceToTarget = (lastValidPos - humanoidRootPart.Position).Magnitude
+                            if distanceToTarget <= featureStates.DistanceTeleport then
+                                humanoidRootPart.CFrame = CFrame.new(lastValidPos + Vector3.new(0, 3, 0))
+                            else
+                                for i = #waypoints, 1, -1 do
+                                    local waypointPos = waypoints[i].Position
+                                    if (waypointPos - humanoidRootPart.Position).Magnitude <= featureStates.DistanceTeleport then
+                                        humanoidRootPart.CFrame = CFrame.new(waypointPos + Vector3.new(0, 3, 0))
+                                        break
+                                    end
+                                end
+                            end
+                        end
+                    else
+                        local fallbackPos = humanoidRootPart.Position + direction * featureStates.DistanceTeleport
+                        local ray = Ray.new(humanoidRootPart.Position, direction * featureStates.DistanceTeleport)
+                        local hit, hitPos = workspace:FindPartOnRayWithIgnoreList(ray, {character, nextbot})
+                        if not hit then
+                            humanoidRootPart.CFrame = CFrame.new(fallbackPos + Vector3.new(0, 3, 0))
+                        else
+                            humanoidRootPart.CFrame = CFrame.new(hitPos + Vector3.new(0, 3, 0))
+                        end
+                    end
+                end
+                break
+            end
+        end
+    end
+end
+
+task.spawn(function()
+    while true do
+        if featureStates.AntiNextbot then
+            pcall(handleAntiNextbot)
+        end
+        task.wait(0.1)
+    end
+end)
+
+
+local AntiNextbotToggle = Tabs.Main:Toggle({
+    Title = "Anti-Nextbot",
+    Desc = "Automatically teleport away from nearby Nextbots",
+    Icon = "shield",
+    Value = featureStates.AntiNextbot,
+    Callback = function(state)
+        featureStates.AntiNextbot = state
+    end
+})
+
+local AntiNextbotTeleportTypeDropdown = Tabs.Main:Dropdown({
+    Title = "Anti-Nextbot Teleport Type",
+    Desc = "Choose how to teleport when avoiding Nextbots",
+    Values = {"Players", "Spawn", "Distance"},
+    Value = featureStates.AntiNextbotTeleportType,
+    Callback = function(value)
+        featureStates.AntiNextbotTeleportType = value
+    end
+})
+
+local AntiNextbotDistanceInput = Tabs.Main:Input({
+    Title = "Anti-Nextbot Distance",
+    Desc = "Distance threshold for Nextbot detection",
+    Placeholder = tostring(featureStates.AntiNextbotDistance),
+    NumbersOnly = true,
+    Callback = function(value)
+        local num = tonumber(value)
+        if num and num > 0 then
+            featureStates.AntiNextbotDistance = num
+        end
+    end
+})
+
+local DistanceTeleportInput = Tabs.Main:Input({
+    Title = "Distance Teleport",
+    Desc = "How far to teleport when using Distance mode",
+    Placeholder = tostring(featureStates.DistanceTeleport),
+    NumbersOnly = true,
+    Callback = function(value)
+        local num = tonumber(value)
+        if num and num > 0 then
+            featureStates.DistanceTeleport = num
+        end
+    end
+})
+Tabs.Main:Section({ Title = "Anti Nextbot Spawn", TextSize = 20 })
+Tabs.Main:Divider()
+
+featureStates.AntiNextbotSpawn = false
+featureStates.AntiNextbotSpawnType = "Non-NPC Spawn"
+featureStates.AntiNextbotSpawnDistance = 40
+featureStates.AntiNextbotTeleportDistance = 20
+
+local cachedAttachment = nil
+local lastAttachmentCheck = 0
+local attachmentCheckCooldown = 5
+local isSearchingForAttachment = false
+
+local function getAttachment()
+    if tick() - lastAttachmentCheck > attachmentCheckCooldown then
+        cachedAttachment = workspace.Terrain:FindFirstChild("NextbotSpawnAttachment")
+        lastAttachmentCheck = tick()
+    end
+    return cachedAttachment
+end
+
+local function startAttachmentSearch()
+    if isSearchingForAttachment then return end
+    isSearchingForAttachment = true
+    
+    task.spawn(function()
+        while featureStates.AntiNextbotSpawn and not getAttachment() do
+            task.wait(3)
+            
+            local statsFolder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Stats")
+            if statsFolder then
+                local timerValue = statsFolder:GetAttribute("Timer")
+                if timerValue == 0 then
+                    cachedAttachment = workspace.Terrain:FindFirstChild("NextbotSpawnAttachment")
+                    lastAttachmentCheck = tick()
+                    if cachedAttachment then
+                        WindUI:Notify({
+                            Title = "Anti Nextbot Spawn",
+                            Content = "Attachment found! System now active.",
+                            Duration = 3
+                        })
+                        break
+                    end
+                end
+            end
+        end
+        isSearchingForAttachment = false
+    end)
+end
+
+local function fastDistanceSquared(pos1, pos2)
+    local dx = pos1.X - pos2.X
+    local dy = pos1.Y - pos2.Y
+    local dz = pos1.Z - pos2.Z
+    return dx*dx + dy*dy + dz*dz
+end
+
+local function findSafeTeleportPositionReverse(startPos, targetPos)
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    raycastParams.FilterDescendantsInstances = {player.Character}
+    
+    local direction = (targetPos - startPos).Unit
+    local maxDistance = (targetPos - startPos).Magnitude
+    
+    for distance = maxDistance, 0, -5 do
+        local testPos = startPos + (direction * distance)
+        
+        local downRay = workspace:Raycast(testPos + Vector3.new(0, 10, 0), Vector3.new(0, -20, 0), raycastParams)
+        if downRay then
+            local groundPos = downRay.Position + Vector3.new(0, 3, 0)
+            
+            local upRay = workspace:Raycast(groundPos, Vector3.new(0, 6, 0), raycastParams)
+            if not upRay then
+                local sideRays = {
+                    Vector3.new(3, 0, 0),
+                    Vector3.new(-3, 0, 0),
+                    Vector3.new(0, 0, 3),
+                    Vector3.new(0, 0, -3)
+                }
+                
+                local isSafe = true
+                for _, sideDir in ipairs(sideRays) do
+                    local sideRay = workspace:Raycast(groundPos, sideDir, raycastParams)
+                    if sideRay and sideRay.Instance.CanCollide then
+                        isSafe = false
+                        break
+                    end
+                end
+                
+                if isSafe then
+                    return groundPos
+                end
+            end
+        end
+    end
+    
+    return nil
+end
+
+local function teleportToSpawn()
+    local spawnsFolder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Map") and workspace.Game.Map:FindFirstChild("Parts") and workspace.Game.Map.Parts:FindFirstChild("Spawns")
+    
+    if spawnsFolder then
+        local spawnLocations = spawnsFolder:GetChildren()
+        if #spawnLocations > 0 then
+            local character = player.Character
+            local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
+            
+            if humanoidRootPart then
+                for i = 1, math.min(3, #spawnLocations) do
+                    local randomSpawn = spawnLocations[math.random(1, #spawnLocations)]
+                    local targetPosition = randomSpawn.CFrame.Position + Vector3.new(0, 3, 0)
+                    
+                    local safePosition = findSafeTeleportPositionReverse(humanoidRootPart.Position, targetPosition)
+                    if safePosition then
+                        humanoidRootPart.CFrame = CFrame.new(safePosition)
+                        return true
+                    end
+                end
+            end
+        end
+    end
+    return false
+end
+
+local function teleportToPlayer()
+    local players = Players:GetPlayers()
+    local validPlayers = {}
+    
+    for _, plr in ipairs(players) do
+        if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            table.insert(validPlayers, plr)
+        end
+    end
+    
+    if #validPlayers > 0 then
+        local character = player.Character
+        local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
+        
+        if humanoidRootPart then
+            for i = 1, math.min(3, #validPlayers) do
+                local randomPlayer = validPlayers[math.random(1, #validPlayers)]
+                local targetPosition = randomPlayer.Character.HumanoidRootPart.Position + Vector3.new(0, 3, 0)
+                
+                local safePosition = findSafeTeleportPositionReverse(humanoidRootPart.Position, targetPosition)
+                if safePosition then
+                    humanoidRootPart.CFrame = CFrame.new(safePosition)
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
+local function teleportToDistance()
+    local attachment = getAttachment()
+    local character = player.Character
+    local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return false end
+    
+    if attachment then
+        local direction = (humanoidRootPart.Position - attachment.WorldPosition).Unit
+        local targetPos = humanoidRootPart.Position + direction * featureStates.AntiNextbotTeleportDistance
+        
+        local safePosition = findSafeTeleportPositionReverse(humanoidRootPart.Position, targetPos)
+        if safePosition then
+            humanoidRootPart.CFrame = CFrame.new(safePosition)
+            return true
+        else
+            return teleportToSpawn()
+        end
+    else
+        return teleportToSpawn()
+    end
+end
+
+local function isPlayerNearSpawn()
+    local attachment = getAttachment()
+    if not attachment or not player.Character then return false end
+    
+    local humanoidRootPart = player.Character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return false end
+    
+    local distanceSquared = fastDistanceSquared(humanoidRootPart.Position, attachment.WorldPosition)
+    local triggerDistanceSquared = featureStates.AntiNextbotSpawnDistance * featureStates.AntiNextbotSpawnDistance
+    
+    return distanceSquared <= triggerDistanceSquared
+end
+
+local function performAvoidance()
+    if not player.Character then return end
+    
+    local success = false
+    
+    if featureStates.AntiNextbotSpawnType == "Non-NPC Spawn" then
+        success = teleportToSpawn()
+    elseif featureStates.AntiNextbotSpawnType == "Player" then
+        success = teleportToPlayer()
+    else
+        success = teleportToDistance()
+    end
+    
+    if not success then
+        WindUI:Notify({
+            Title = "Anti Nextbot Spawn",
+            Content = "No safe teleport location found!",
+            Duration = 2
+        })
+    end
+end
+
+local nextbotSpawnConnection = nil
+local lastAvoidanceTime = 0
+local avoidanceCooldown = 2
+
+local function startAntiNextbot()
+    if nextbotSpawnConnection then
+        nextbotSpawnConnection:Disconnect()
+    end
+    
+    nextbotSpawnConnection = RunService.Heartbeat:Connect(function()
+        if not featureStates.AntiNextbotSpawn or not player.Character then return end
+        
+        if tick() - lastAvoidanceTime < avoidanceCooldown then return end
+        
+        local attachment = getAttachment()
+        if not attachment then
+            return
+        end
+        
+        if isPlayerNearSpawn() then
+            performAvoidance()
+            lastAvoidanceTime = tick()
+        end
+    end)
+end
+
+local function restartSystemOnEvents()
+    player.CharacterAdded:Connect(function()
+        if featureStates.AntiNextbotSpawn then
+            task.wait(1)
+            if not nextbotSpawnConnection then
+                startAntiNextbot()
+            end
+        end
+    end)
+    
+    local statsFolder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Stats")
+    if statsFolder then
+        statsFolder:GetAttributeChangedSignal("Timer"):Connect(function()
+            if featureStates.AntiNextbotSpawn then
+                local timerValue = statsFolder:GetAttribute("Timer")
+                if timerValue == 0 then
+                    cachedAttachment = workspace.Terrain:FindFirstChild("NextbotSpawnAttachment")
+                    lastAttachmentCheck = tick()
+                    
+                    if not nextbotSpawnConnection then
+                        task.wait(1)
+                        startAntiNextbot()
+                    end
+                end
+            end
+        end)
+    end
+end
+
+AntiNextbotSpawnToggle = Tabs.Main:Toggle({
+    Title = "Anti Nextbot Spawn",
+    Desc = "Automatically avoid Nextbot spawn areas",
+    Value = false,
+    Callback = function(state)
+        featureStates.AntiNextbotSpawn = state
+        
+        if state then
+            startAntiNextbot()
+            startAttachmentSearch()
+            
+            if not getAttachment() then
+                WindUI:Notify({
+                    Title = "Anti Nextbot Spawn",
+                    Content = "System enabled - Searching for attachment...",
+                    Duration = 3
+                })
+            else
+                WindUI:Notify({
+                    Title = "Anti Nextbot Spawn",
+                    Content = "System enabled - Attachment found!",
+                    Duration = 3
+                })
+            end
+        else
+            if nextbotSpawnConnection then
+                nextbotSpawnConnection:Disconnect()
+                nextbotSpawnConnection = nil
+            end
+            isSearchingForAttachment = false
+        end
+    end
+})
+
+AntiNextbotSpawnTypeDropdown = Tabs.Main:Dropdown({
+    Title = "Avoidance Mode",
+    Desc = "Choose how to avoid Nextbot spawn",
+    Values = {"Non-NPC Spawn", "Player", "Distance"},
+    Value = "Non-NPC Spawn",
+    Callback = function(value)
+        featureStates.AntiNextbotSpawnType = value
+    end
+})
+
+AntiNextbotSpawnDistanceInput = Tabs.Main:Input({
+    Title = "Avoidance Distance",
+    Desc = "Distance to trigger avoidance (studs)",
+    Placeholder = "40",
+    NumbersOnly = true,
+    Callback = function(value)
+        local distance = tonumber(value)
+        if distance and distance > 0 then
+            featureStates.AntiNextbotSpawnDistance = distance
+        end
+    end
+})
+
+AntiNextbotTeleportDistanceInput = Tabs.Main:Input({
+    Title = "Teleport Distance",
+    Desc = "How far to teleport in Distance mode (studs)",
+    Placeholder = "20",
+    NumbersOnly = true,
+    Callback = function(value)
+        local distance = tonumber(value)
+        if distance and distance > 0 then
+            featureStates.AntiNextbotTeleportDistance = distance
+        end
+    end
+})
+
+task.spawn(function()
+    while true do
+        task.wait(attachmentCheckCooldown)
+        
+        if featureStates.AntiNextbotSpawn then
+            local currentAttachment = workspace.Terrain:FindFirstChild("NextbotSpawnAttachment")
+            
+            if currentAttachment and not cachedAttachment then
+                cachedAttachment = currentAttachment
+                WindUI:Notify({
+                    Title = "Anti Nextbot Spawn",
+                    Content = "Attachment found! System now active.",
+                    Duration = 3
+                })
+            elseif not currentAttachment and cachedAttachment then
+                cachedAttachment = nil
+                WindUI:Notify({
+                    Title = "Anti Nextbot Spawn",
+                    Content = "Attachment lost - System will reactivate when found.",
+                    Duration = 3
+                })
+            else
+                cachedAttachment = currentAttachment
+            end
+        end
+    end
+end)
+
+restartSystemOnEvents()
    -- Player Tabs
    Tabs.Player:Section({ Title = "Player", TextSize = 40 })
     Tabs.Player:Divider()
@@ -2879,7 +3423,7 @@ if Tabs and Tabs.Player then
         end
     })
 end
-    local InfiniteJumpToggle = Tabs.Player:Toggle({
+    InfiniteJumpToggle = Tabs.Player:Toggle({
         Title = "loc:INFINITE_JUMP",
         Value = false,
         Callback = function(state)
@@ -2887,7 +3431,7 @@ end
         end
     })
 
-    local JumpMethodDropdown = Tabs.Player:Dropdown({
+    JumpMethodDropdown = Tabs.Player:Dropdown({
         Title = "loc:JUMP_METHOD",
         Values = {"Hold", "Spam"},
         Value = "Hold",
@@ -2975,7 +3519,7 @@ local function onHeartbeat()
     end
 end
 
-local InfiniteSlideToggle = Tabs.Player:Toggle({
+InfiniteSlideToggle = Tabs.Player:Toggle({
     Title = "Infinite Slide",
     Value = false,
     Callback = function(state)
@@ -3000,7 +3544,7 @@ local InfiniteSlideToggle = Tabs.Player:Toggle({
     end,
 })
 
-local InfiniteSlideSpeedInput = Tabs.Player:Input({
+InfiniteSlideSpeedInput = Tabs.Player:Input({
     Title = "Set Infinite Slide Speed (Negative Only)",
     Value = tostring(slideFrictionValue),
     Placeholder = "-8 (negative only)",
@@ -3011,7 +3555,7 @@ local InfiniteSlideSpeedInput = Tabs.Player:Input({
         end
     end,
 })
-    local FlyToggle = Tabs.Player:Toggle({
+    FlyToggle = Tabs.Player:Toggle({
         Title = "loc:FLY",
         Value = false,
         Callback = function(state)
@@ -3078,7 +3622,7 @@ end
             featureStates.FlySpeed = value
         end
     })
-local NoclipToggle = Tabs.Player:Toggle({
+NoclipToggle = Tabs.Player:Toggle({
     Title = "Noclip",
     Desc = "Note: This feature Can make you fall to the void non-stop so be careful what you're doing when toggles this on",
     Icon = "ghost",
@@ -3106,7 +3650,7 @@ local NoclipToggle = Tabs.Player:Toggle({
         end
     end
 })
-    local TPWALKToggle = Tabs.Player:Toggle({
+    TPWALKToggle = Tabs.Player:Toggle({
         Title = "loc:TPWALK",
         Value = false,
         Callback = function(state)
@@ -3128,7 +3672,7 @@ local NoclipToggle = Tabs.Player:Toggle({
         end
     })
 
-    local JumpBoostToggle = Tabs.Player:Toggle({
+    JumpBoostToggle = Tabs.Player:Toggle({
         Title = "loc:JUMP_HEIGHT",
         Value = false,
         Callback = function(state)
@@ -3172,7 +3716,7 @@ local function createValidatedInput(config)
     end
 end
 
-local SpeedInput = Tabs.Player:Input({
+SpeedInput = Tabs.Player:Input({
     Title = "Set Speed",
     Icon = "speedometer",
     Placeholder = "Default 1500",
@@ -3184,7 +3728,7 @@ local SpeedInput = Tabs.Player:Input({
     })
 })
 
-local JumpCapInput = Tabs.Player:Input({
+JumpCapInput = Tabs.Player:Input({
     Title = "Set Jump Cap",
     Icon = "chevrons-up",
     Placeholder = "Default 1",
@@ -3196,7 +3740,7 @@ local JumpCapInput = Tabs.Player:Input({
     })
 })
 
-local StrafeInput = Tabs.Player:Input({
+StrafeInput = Tabs.Player:Input({
     Title = "Strafe Acceleration",
     Icon = "wind",
     Placeholder = "Default 187",
@@ -3208,7 +3752,7 @@ local StrafeInput = Tabs.Player:Input({
     })
 })
 
-local ApplyMethodDropdown = Tabs.Player:Dropdown({
+ApplyMethodDropdown = Tabs.Player:Dropdown({
     Title = "Select Apply Method",
     Values = { "Not Optimized", "Optimized" },
     Multi = false,
@@ -3225,7 +3769,7 @@ local function setupCameraStretch()
     cameraStretchConnection = nil
     local stretchHorizontal = 0.80
     local stretchVertical = 0.80
-    local CameraStretchToggle = Tabs.Visuals:Toggle({
+    CameraStretchToggle = Tabs.Visuals:Toggle({
         Title = "Camera Stretch",
         Value = false,
         Callback = function(state)
@@ -3244,7 +3788,7 @@ local function setupCameraStretch()
         end
     })
 
-    local CameraStretchHorizontalInput = Tabs.Visuals:Input({
+    CameraStretchHorizontalInput = Tabs.Visuals:Input({
         Title = "Camera Stretch Horizontal",
         Placeholder = "0.80",
         Numeric = true,
@@ -3264,7 +3808,7 @@ local function setupCameraStretch()
         end
     })
 
-    local CameraStretchVerticalInput = Tabs.Visuals:Input({
+    CameraStretchVerticalInput = Tabs.Visuals:Input({
         Title = "Camera Stretch Vertical",
         Placeholder = "0.80",
         Numeric = true,
@@ -3442,7 +3986,7 @@ function StableCamera:Destroy()
     end
 end
 
-local DisableCameraShakeToggle = Tabs.Visuals:Toggle({
+DisableCameraShakeToggle = Tabs.Visuals:Toggle({
     Title = "Disable Camera Shake",
     Value = false,
     Callback = function(state)
@@ -3470,7 +4014,7 @@ local DisableCameraShakeToggle = Tabs.Visuals:Toggle({
 
 local vignetteEnabled = false
 
-local Disablevignette = Tabs.Visuals:Toggle({
+Disablevignette = Tabs.Visuals:Toggle({
     Title = "Disable Vignette",
     Default = false,
     Callback = function(value)
@@ -3512,7 +4056,7 @@ game.Players.LocalPlayer.CharacterAdded:Connect(function()
     end
 end)
 
-	    local FullBrightToggle = Tabs.Visuals:Toggle({
+	    FullBrightToggle = Tabs.Visuals:Toggle({
         Title = "loc:FULL_BRIGHT",
         Value = false,
         Callback = function(state)
@@ -3525,7 +4069,7 @@ end)
         end
     })
 
-local NoFogToggle = Tabs.Visuals:Toggle({
+NoFogToggle = Tabs.Visuals:Toggle({
     Title = "loc:NO_FOG",
     Value = false,
     Callback = function(state)
@@ -3546,7 +4090,7 @@ local FOVSlider = Tabs.Visuals:Slider({
         workspace.CurrentCamera.FieldOfView = tonumber(value)
     end
 })
-local TimerDisplayToggle = Tabs.Visuals:Toggle({
+TimerDisplayToggle = Tabs.Visuals:Toggle({
     Title = "Timer Display",
     Value = false,
     Callback = function(state)
@@ -3576,13 +4120,15 @@ local TimerDisplayToggle = Tabs.Visuals:Toggle({
         end
 
         if state then
-            setContainerVisible(true)
-
             task.spawn(function()
                 while featureStates.TimerDisplay do
                     local timer = getRoundTimer()
-                    setContainerVisible(timer and timer.Visible == false)
-                    task.wait()
+                    if timer then
+                        setContainerVisible(not timer.Visible)
+                    else
+                        setContainerVisible(true)
+                    end
+                    task.wait(0.1)
                 end
                 setContainerVisible(false)
             end)
@@ -3595,7 +4141,7 @@ local TimerDisplayToggle = Tabs.Visuals:Toggle({
     Tabs.ESP:Section({ Title = "ESP", TextSize = 40 })
     Tabs.ESP:Divider()
     Tabs.ESP:Section({ Title = "Player ESP" })
-    local PlayerNameESPToggle = Tabs.ESP:Toggle({
+     PlayerNameESPToggle = Tabs.ESP:Toggle({
         Title = "loc:PLAYER_NAME_ESP",
         Value = false,
         Callback = function(state)
@@ -3608,7 +4154,7 @@ local TimerDisplayToggle = Tabs.Visuals:Toggle({
         end
     })
 
-    local PlayerBoxESPToggle = Tabs.ESP:Toggle({
+     PlayerBoxESPToggle = Tabs.ESP:Toggle({
         Title = "loc:PLAYER_BOX_ESP",
         Value = false,
         Callback = function(state)
@@ -3621,7 +4167,7 @@ local TimerDisplayToggle = Tabs.Visuals:Toggle({
         end
     })
 
-    local PlayerBoxTypeDropdown = Tabs.ESP:Dropdown({
+     PlayerBoxTypeDropdown = Tabs.ESP:Dropdown({
         Title = "Player Box Type",
         Values = {"2D", "3D"},
         Value = "2D",
@@ -3630,7 +4176,7 @@ local TimerDisplayToggle = Tabs.Visuals:Toggle({
         end
     })
 
-    local PlayerRainbowBoxesToggle = Tabs.ESP:Toggle({
+     PlayerRainbowBoxesToggle = Tabs.ESP:Toggle({
         Title = "loc:PLAYER_RAINBOW_BOXES",
         Value = false,
         Callback = function(state)
@@ -3642,7 +4188,7 @@ local TimerDisplayToggle = Tabs.Visuals:Toggle({
         end
     })
 
-    local PlayerTracerToggle = Tabs.ESP:Toggle({
+     PlayerTracerToggle = Tabs.ESP:Toggle({
         Title = "loc:PLAYER_TRACER",
         Value = false,
         Callback = function(state)
@@ -3654,7 +4200,7 @@ local TimerDisplayToggle = Tabs.Visuals:Toggle({
             end
         end
     })
-    local PlayerRainbowTracersToggle = Tabs.ESP:Toggle({
+     PlayerRainbowTracersToggle = Tabs.ESP:Toggle({
         Title = "loc:PLAYER_RAINBOW_TRACERS",
         Value = false,
         Callback = function(state)
@@ -3666,7 +4212,7 @@ local TimerDisplayToggle = Tabs.Visuals:Toggle({
         end
     })
 
-    local PlayerDistanceESPToggle = Tabs.ESP:Toggle({
+     PlayerDistanceESPToggle = Tabs.ESP:Toggle({
         Title = "loc:PLAYER_DISTANCE_ESP",
         Value = false,
         Callback = function(state)
@@ -3681,7 +4227,7 @@ local TimerDisplayToggle = Tabs.Visuals:Toggle({
 
     Tabs.ESP:Section({ Title = "Nextbot Name ESP" })
 
-local NextbotESPToggle = Tabs.ESP:Toggle({
+ NextbotESPToggle = Tabs.ESP:Toggle({
     Title = "loc:NEXTBOT_NAME_ESP",
     Value = false,
     Callback = function(state)
@@ -3695,7 +4241,7 @@ local NextbotESPToggle = Tabs.ESP:Toggle({
     end
 })
 
-local NextbotBoxESPToggle = Tabs.ESP:Toggle({
+ NextbotBoxESPToggle = Tabs.ESP:Toggle({
     Title = "Nextbot Box ESP",
     Value = false,
     Callback = function(state)
@@ -3708,7 +4254,7 @@ local NextbotBoxESPToggle = Tabs.ESP:Toggle({
     end
 })
 
-local NextbotBoxTypeDropdown = Tabs.ESP:Dropdown({
+ NextbotBoxTypeDropdown = Tabs.ESP:Dropdown({
     Title = "Nextbot Box Type",
     Values = {"2D", "3D"},
     Value = "2D",
@@ -3716,7 +4262,7 @@ local NextbotBoxTypeDropdown = Tabs.ESP:Dropdown({
         featureStates.NextbotESP.boxType = value
     end
 })
-local NextbotRainbowBoxesToggle = Tabs.ESP:Toggle({
+ NextbotRainbowBoxesToggle = Tabs.ESP:Toggle({
     Title = "Nextbot Rainbow Boxes",
     Value = false,
     Callback = function(state)
@@ -3727,7 +4273,7 @@ local NextbotRainbowBoxesToggle = Tabs.ESP:Toggle({
         end
     end
 })
-local NextbotTracerToggle = Tabs.ESP:Toggle({
+ NextbotTracerToggle = Tabs.ESP:Toggle({
     Title = "Nextbot Tracer",
     Value = false,
     Callback = function(state)
@@ -3739,7 +4285,7 @@ local NextbotTracerToggle = Tabs.ESP:Toggle({
         end
     end
 })
-local NextbotRainbowTracersToggle = Tabs.ESP:Toggle({
+ NextbotRainbowTracersToggle = Tabs.ESP:Toggle({
     Title = "Nextbot Rainbow Tracers",
     Value = false,
     Callback = function(state)
@@ -3750,7 +4296,7 @@ local NextbotRainbowTracersToggle = Tabs.ESP:Toggle({
         end
     end
 })
-local NextbotDistanceESPToggle = Tabs.ESP:Toggle({
+ NextbotDistanceESPToggle = Tabs.ESP:Toggle({
     Title = "Nextbot Distance ESP",
     Value = false,
     Callback = function(state)
@@ -3766,7 +4312,7 @@ local NextbotDistanceESPToggle = Tabs.ESP:Toggle({
 
     Tabs.ESP:Section({ Title = "Downed Player ESP" })
 
-    local DownedBoxESPToggle = Tabs.ESP:Toggle({
+     DownedBoxESPToggle = Tabs.ESP:Toggle({
         Title = "loc:DOWNED_BOX_ESP",
         Value = false,
         Callback = function(state)
@@ -3780,7 +4326,7 @@ local NextbotDistanceESPToggle = Tabs.ESP:Toggle({
         end
     })
 
-    local DownedBoxTypeDropdown = Tabs.ESP:Dropdown({
+     DownedBoxTypeDropdown = Tabs.ESP:Dropdown({
         Title = "Downed Box Type",
         Values = {"2D", "3D"},
         Value = "2D",
@@ -3789,7 +4335,7 @@ local NextbotDistanceESPToggle = Tabs.ESP:Toggle({
         end
     })
 
-    local DownedTracerToggle = Tabs.ESP:Toggle({
+     DownedTracerToggle = Tabs.ESP:Toggle({
         Title = "loc:DOWNED_TRACER",
         Value = false,
         Callback = function(state)
@@ -3803,7 +4349,7 @@ local NextbotDistanceESPToggle = Tabs.ESP:Toggle({
         end
     })
 
-    local DownedNameESPToggle = Tabs.ESP:Toggle({
+     DownedNameESPToggle = Tabs.ESP:Toggle({
         Title = "loc:DOWNED_NAME_ESP",
         Value = false,
         Callback = function(state)
@@ -3816,7 +4362,7 @@ local NextbotDistanceESPToggle = Tabs.ESP:Toggle({
         end
     })
 
-    local DownedDistanceESPToggle = Tabs.ESP:Toggle({
+     DownedDistanceESPToggle = Tabs.ESP:Toggle({
         Title = "loc:DOWNED_DISTANCE_ESP",
         Value = false,
         Callback = function(state)
@@ -3858,7 +4404,7 @@ local function cleanupHighlights(highlightTable)
     return {}
 end
 
-local TicketEspToggle = Tabs.ESP:Toggle({
+TicketEspToggle = Tabs.ESP:Toggle({
     Title = "Ticket ESP",
     Value = false,
     Callback = function(state)
@@ -3935,7 +4481,7 @@ local TicketEspToggle = Tabs.ESP:Toggle({
     end
 })
 
-local TicketTracerEspToggle = Tabs.ESP:Toggle({
+TicketTracerEspToggle = Tabs.ESP:Toggle({
     Title = "Ticket Tracer ESP",
     Value = false,
     Callback = function(state)
@@ -4012,7 +4558,7 @@ local TicketTracerEspToggle = Tabs.ESP:Toggle({
     end
 })
 
-local TicketDistanceEspToggle = Tabs.ESP:Toggle({
+TicketDistanceEspToggle = Tabs.ESP:Toggle({
     Title = "Ticket Distance ESP",
     Value = false,
     Callback = function(state)
@@ -4093,7 +4639,7 @@ local TicketDistanceEspToggle = Tabs.ESP:Toggle({
     end
 })
 
-local HighlightsTicketEspToggle = Tabs.ESP:Toggle({
+HighlightsTicketEspToggle = Tabs.ESP:Toggle({
     Title = "Highlights Ticket ESP",
     Value = false,
     Callback = function(state)
@@ -4157,7 +4703,7 @@ local HighlightsTicketEspToggle = Tabs.ESP:Toggle({
     end
 })
 
-local TicketBoxEspToggle = Tabs.ESP:Toggle({
+TicketBoxEspToggle = Tabs.ESP:Toggle({
     Title = "Ticket Box ESP",
     Value = false,
     Callback = function(state)
@@ -4301,7 +4847,7 @@ local TicketBoxEspToggle = Tabs.ESP:Toggle({
     end
 })
 
-local BoxticketTypeDropdown = Tabs.ESP:Dropdown({
+BoxticketTypeDropdown = Tabs.ESP:Dropdown({
     Title = "Box Type",
     Values = {"2D", "3D"},
     Value = "2D",
@@ -4314,6 +4860,144 @@ local BoxticketTypeDropdown = Tabs.ESP:Dropdown({
 })
     -- Auto Tab
     Tabs.Auto:Section({ Title = "Auto", TextSize = 40 })
+    
+     AutoJoin = Tabs.Auto:Toggle({
+    Title = "Auto Join",
+    Value = false,
+    Callback = function(state)
+        getgenv().AutoJoinEnabled = state
+        
+        if state then
+            local Players = game:GetService("Players")
+            local ReplicatedStorage = game:GetService("ReplicatedStorage")
+            local LocalPlayer = Players.LocalPlayer
+
+            local statsFolder = workspace:WaitForChild("Game"):WaitForChild("Stats")
+            local hasRunThisRound = false
+            local isExecuting = false
+
+            local function isPlayerAlive()
+                local character = LocalPlayer.Character
+                if not character then return false end
+                
+                local humanoid = character:FindFirstChild("Humanoid")
+                if not humanoid then return false end
+                
+                return humanoid.Health > 0
+            end
+
+            local function executeScript()
+                if isExecuting then return end
+                
+                if isPlayerAlive() then
+                    return
+                end
+                
+                isExecuting = true
+                
+                local success = pcall(function()
+                    game:GetService("ReplicatedStorage").Events.Player.ChangePlayerMode:FireServer(true)
+                end)
+                
+                if success then
+                    hasRunThisRound = true
+                else
+                    hasRunThisRound = false
+                end
+                
+                isExecuting = false
+            end
+
+            local function checkTimerEnd()
+                local timerValue = statsFolder:GetAttribute("Timer")
+                local roundStarted = statsFolder:GetAttribute("RoundStarted")
+                
+                if timerValue == 0 and roundStarted == true then
+                    if not hasRunThisRound then
+                        executeScript()
+                    end
+                end
+                
+                if roundStarted == false then
+                    hasRunThisRound = false
+                end
+            end
+
+            local function onPlayerDied()
+                if not hasRunThisRound then
+                    executeScript()
+                end
+            end
+
+            local function onGetLives()
+                if not hasRunThisRound then
+                    executeScript()
+                end
+            end
+
+            getgenv().AutoJoinConnections = {
+                timerConnection = statsFolder:GetAttributeChangedSignal("Timer"):Connect(checkTimerEnd),
+                heartbeatConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                    local timerValue = statsFolder:GetAttribute("Timer")
+                    local roundStarted = statsFolder:GetAttribute("RoundStarted")
+                    
+                    if timerValue == 0 and roundStarted == true and not hasRunThisRound then
+                        executeScript()
+                    end
+                end),
+                roundConnection = statsFolder:GetAttributeChangedSignal("RoundStarted"):Connect(function()
+                    local roundStarted = statsFolder:GetAttribute("RoundStarted")
+                    if roundStarted == false then
+                        hasRunThisRound = false
+                    end
+                end)
+            }
+
+            getgenv().AutoJoinConnections.characterAddedConnection = LocalPlayer.CharacterAdded:Connect(function(character)
+                local humanoid = character:WaitForChild("Humanoid")
+                
+                getgenv().AutoJoinConnections.humanoidDiedConnection = humanoid.Died:Connect(function()
+                    local downed = character:GetAttribute("Downed")
+                    if downed ~= true then
+                        onPlayerDied()
+                    end
+                end)
+            end)
+
+            if LocalPlayer.Character then
+                local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+                if humanoid then
+                    getgenv().AutoJoinConnections.humanoidDiedConnection = humanoid.Died:Connect(function()
+                        local downed = LocalPlayer.Character:GetAttribute("Downed")
+                        if downed ~= true then
+                            onPlayerDied()
+                        end
+                    end)
+                end
+            end
+
+            getgenv().AutoJoinConnections.getLivesConnection = ReplicatedStorage.Events.Data.GetLives.OnClientEvent:Connect(function()
+                onGetLives()
+            end)
+
+            task.spawn(function()
+                local success = pcall(function()
+                    ReplicatedStorage.Events.Data.GetLives:FireServer()
+                end)
+            end)
+
+        else
+            if getgenv().AutoJoinConnections then
+                for name, connection in pairs(getgenv().AutoJoinConnections) do
+                    if connection then
+                        connection:Disconnect()
+                    end
+                end
+                getgenv().AutoJoinConnections = nil
+            end
+        end
+    end
+})
 getgenv().bhopMode = "Acceleration"
 getgenv().bhopAccelValue = -0.1
 getgenv().bhopHoldActive = false
@@ -4553,7 +5237,7 @@ player.CharacterAdded:Connect(function()
     setupJumpButton()
 end)
 
-local BhopToggle = Tabs.Auto:Toggle({
+BhopToggle = Tabs.Auto:Toggle({
     Title = "Bhop",
     Value = false,
     Callback = function(state)
@@ -4570,7 +5254,7 @@ local BhopToggle = Tabs.Auto:Toggle({
     end
 })
 
-local BhopHoldToggle = Tabs.Auto:Toggle({
+BhopHoldToggle = Tabs.Auto:Toggle({
     Title = "Bhop (Hold Space/Jump)",
     Value = false,
     Callback = function(state)
@@ -4582,7 +5266,7 @@ local BhopHoldToggle = Tabs.Auto:Toggle({
     end
 })
 
-local BhopShortcutToggle = Tabs.Auto:Toggle({
+BhopShortcutToggle = Tabs.Auto:Toggle({
     Title = "Bhop Shortcut",
     Desc = "Show Bhop GUI For quick Toggle or press B to Toggle Bhop (Auto jump)",
     Value = false,
@@ -4595,7 +5279,7 @@ local BhopShortcutToggle = Tabs.Auto:Toggle({
     end
 })
 
-local BhopModeDropdown = Tabs.Auto:Dropdown({
+BhopModeDropdown = Tabs.Auto:Dropdown({
     Title = "Bhop Mode",
     Values = {"Acceleration", "No Acceleration"},
     Value = "Noo Acceleration",
@@ -4604,7 +5288,7 @@ local BhopModeDropdown = Tabs.Auto:Dropdown({
     end
 })
 
-local BhopAccelInput = Tabs.Auto:Input({
+BhopAccelInput = Tabs.Auto:Input({
     Title = "Bhop Acceleration (Negative Only)",
     Placeholder = "-0.5",
     Numeric = true,
@@ -4647,7 +5331,7 @@ end)
 
 checkBhopState()
 
-local AutoCrouchModeDropdown = Tabs.Auto:Dropdown({
+AutoCrouchModeDropdown = Tabs.Auto:Dropdown({
     Title = "Auto Crouch Mode",
     Values = {"Air", "Normal", "Ground"},
     Value = "Air",
@@ -4656,14 +5340,14 @@ local AutoCrouchModeDropdown = Tabs.Auto:Dropdown({
     end
 })
 
-local AutoEmoteToggle = Tabs.Auto:Toggle({
+AutoEmoteToggle = Tabs.Auto:Toggle({
     Title = "Auto Emote (Hold Crouch Button)",
     Value = false,
     Callback = function(state)
         getgenv().EmoteEnabled = state
     end
 })
-local EmoteDropdown = Tabs.Auto:Dropdown({
+EmoteDropdown = Tabs.Auto:Dropdown({
     Title = "Select Emote",
     Values = emoteList,
     Multi = false,
@@ -4672,7 +5356,7 @@ local EmoteDropdown = Tabs.Auto:Dropdown({
     end
 })
 
-    local AutoCarryToggle = Tabs.Auto:Toggle({
+    AutoCarryToggle = Tabs.Auto:Toggle({
         Title = "loc:AUTO_CARRY",
         Value = false,
         Callback = function(state)
@@ -4854,7 +5538,7 @@ local function toggleAutoCarryGUI(state)
     end
 end
 
-local AutoCarryKeybindToggle = Tabs.Auto:Toggle({
+AutoCarryKeybindToggle = Tabs.Auto:Toggle({
     Title = "Auto carry keybind/button",
     Desc = "Toggle gui or keybind for quick enable auto carry",
     Icon = "toggle-right",
@@ -4865,7 +5549,7 @@ local AutoCarryKeybindToggle = Tabs.Auto:Toggle({
 })
 
 createAutoCarryGui(0)
-local FastReviveToggle = Tabs.Auto:Toggle({
+FastReviveToggle = Tabs.Auto:Toggle({
     Title = "Fast Revive",
     Value = false,
     Callback = function(state)
@@ -4878,7 +5562,7 @@ local FastReviveToggle = Tabs.Auto:Toggle({
     end
 })
 
-local FastReviveMethodDropdown = Tabs.Auto:Dropdown({
+FastReviveMethodDropdown = Tabs.Auto:Dropdown({
     Title = "Fast Revive Method",
     Values = {"Auto", "Interact"},
     Value = "Interact",
@@ -4895,7 +5579,7 @@ local FastReviveMethodDropdown = Tabs.Auto:Dropdown({
         end
     end
 })
-    local AutoVoteDropdown = Tabs.Auto:Dropdown({
+    AutoVoteDropdown = Tabs.Auto:Dropdown({
         Title = "loc:AUTO_VOTE_MAP",
         Values = {"Map 1", "Map 2", "Map 3", "Map 4"},
         Value = "Map 1",
@@ -4912,7 +5596,7 @@ local FastReviveMethodDropdown = Tabs.Auto:Dropdown({
         end
     })
 
-    local AutoVoteToggle = Tabs.Auto:Toggle({
+    AutoVoteToggle = Tabs.Auto:Toggle({
         Title = "loc:AUTO_VOTE",
         Value = false,
         Callback = function(state)
@@ -4924,7 +5608,7 @@ local FastReviveMethodDropdown = Tabs.Auto:Dropdown({
             end
         end
     })
-local AutoVoteModeToggle = Tabs.Auto:Toggle({
+AutoVoteModeToggle = Tabs.Auto:Toggle({
     Title = "Auto Vote Game Mode",
     Value = false,
     Callback = function(state)
@@ -4955,7 +5639,7 @@ local AutoVoteModeToggle = Tabs.Auto:Toggle({
     end
 })
 
-local AutoVoteModeDropdown = Tabs.Auto:Dropdown({
+AutoVoteModeDropdown = Tabs.Auto:Dropdown({
     Title = "Vote Mode",
     Values = {"Mode 1", "Mode 2", "Mode 3", "Mode 4"},
     Value = "Mode 1",
@@ -4971,7 +5655,7 @@ local AutoVoteModeDropdown = Tabs.Auto:Dropdown({
         end
     end
 })
-    local AutoSelfReviveToggle = Tabs.Auto:Toggle({
+    AutoSelfReviveToggle = Tabs.Auto:Toggle({
         Title = "loc:AUTO_SELF_REVIVE",
         Value = false,
         Callback = function(state)
@@ -4993,7 +5677,7 @@ local AutoVoteModeDropdown = Tabs.Auto:Dropdown({
         end
     })
 
-    local AutoWinToggle = Tabs.Auto:Toggle({
+    AutoWinToggle = Tabs.Auto:Toggle({
         Title = "loc:AUTO_WIN",
         Value = false,
         Callback = function(state)
@@ -5005,7 +5689,7 @@ local AutoVoteModeDropdown = Tabs.Auto:Dropdown({
             end
         end
     })
-    local AutoWhistleToggle = Tabs.Auto:Toggle({
+    AutoWhistleToggle = Tabs.Auto:Toggle({
     Title = "Auto Whistle",
     Value = false,
     Callback = function(state)
@@ -5018,7 +5702,7 @@ local AutoVoteModeDropdown = Tabs.Auto:Dropdown({
     end
 })
 
-    local AutoMoneyFarmToggle = Tabs.Auto:Toggle({
+    AutoMoneyFarmToggle = Tabs.Auto:Toggle({
         Title = "loc:AUTO_MONEY_FARM",
         Value = false,
         Callback = function(state)
@@ -5044,7 +5728,7 @@ local AutoVoteModeDropdown = Tabs.Auto:Dropdown({
             end
         end
     })
-local AutoTicketFarmToggle = Tabs.Auto:Toggle({
+AutoTicketFarmToggle = Tabs.Auto:Toggle({
     Title = "Auto ticket farm",
     Value = false,
     Callback = function(state)
@@ -5158,7 +5842,7 @@ local AutoTicketFarmToggle = Tabs.Auto:Toggle({
 })
 -- Utility Tab
 
-local FreeCamToggle = Tabs.Utility:Toggle({
+FreeCamToggle = Tabs.Utility:Toggle({
     Title = "Free Cam UI",
     Desc = "Note: Sometimes it's may be glitchy so don't use it too often, I can't really fix it",
     Icon = "camera",
@@ -5192,7 +5876,7 @@ local FreeCamSpeedSlider = Tabs.Utility:Slider({
     end
 })
 
-local TimeChangerInput = Tabs.Utility:Input({
+TimeChangerInput = Tabs.Utility:Input({
     Title = "Set Time (HH:MM)",
     Placeholder = "12:00",
     Value = "",
@@ -5528,7 +6212,7 @@ local function createLagGui(yOffset)
     end)
 end
 
-local LagSwitchToggle = Tabs.Utility:Toggle({
+LagSwitchToggle = Tabs.Utility:Toggle({
     Title = "Lag Switch",
     Icon = "zap",
     Value = false,
@@ -5549,7 +6233,7 @@ local LagSwitchToggle = Tabs.Utility:Toggle({
     end
 })
 
-local LagDurationInput = Tabs.Utility:Input({
+LagDurationInput = Tabs.Utility:Input({
     Title = "Lag Duration (seconds)",
     Placeholder = "0.5",
     Value = tostring(getgenv().lagDuration),
@@ -5572,7 +6256,7 @@ Players.PlayerRemoving:Connect(function(leavingPlayer)
 end)
 
 checkLagState()
-local GravityToggle = Tabs.Utility:Toggle({
+GravityToggle = Tabs.Utility:Toggle({
     Title = "Custom Gravity",
     Value = false,
     Callback = function(state)
@@ -5585,7 +6269,7 @@ local GravityToggle = Tabs.Utility:Toggle({
     end
 })
 
-local GravityInput = Tabs.Utility:Input({
+GravityInput = Tabs.Utility:Input({
     Title = "Gravity Value",
     Placeholder = tostring(originalGameGravity),
     Value = tostring(featureStates.GravityValue),
@@ -5601,7 +6285,7 @@ local GravityInput = Tabs.Utility:Input({
 })
 getgenv().gravityGuiVisible = false
 
-local GravityGUIToggle = Tabs.Utility:Toggle({
+GravityGUIToggle = Tabs.Utility:Toggle({
     Title = "Gravity toggle shortcuts",
     Desc = "Toggle gui or keybind for quick enable gravity",
     Icon = "toggle-right",
@@ -5627,7 +6311,156 @@ local GravityGUIToggle = Tabs.Utility:Toggle({
         end
     end
 })
+featureStates.NoRender = false
+featureStates.NoRenderColor = Color3.fromRGB(0, 0, 0)
 
+NoRenderToggle = Tabs.Utility:Toggle({
+    Title = "No Render",
+    Desc = "Disable 3D rendering for performance",
+    Value = false,
+    Callback = function(state)
+        featureStates.NoRender = state
+        game:GetService("RunService"):Set3dRenderingEnabled(not state)
+        
+        if state then
+            local gui = Instance.new("ScreenGui")
+            gui.Name = "NoRenderBackground"
+            gui.IgnoreGuiInset = true
+            gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+            gui.ResetOnSpawn = false
+            
+            local frame = Instance.new("Frame")
+            frame.Size = UDim2.new(1, 0, 1, 0)
+            frame.BackgroundColor3 = featureStates.NoRenderColor
+            frame.BorderSizePixel = 0
+            frame.Parent = gui
+            
+            gui.Parent = player.PlayerGui
+        else
+            local gui = player.PlayerGui:FindFirstChild("NoRenderBackground")
+            if gui then
+                gui:Destroy()
+            end
+        end
+    end
+})
+
+NoRenderColorPicker = Tabs.Utility:Colorpicker({
+    Title = "No Render Color",
+    Desc = "Choose background color when No Render is enabled",
+    Default = Color3.fromRGB(0, 0, 0),
+    Transparency = 0,
+    Callback = function(color)
+        featureStates.NoRenderColor = color
+        
+        if featureStates.NoRender then
+            local gui = player.PlayerGui:FindFirstChild("NoRenderBackground")
+            if gui then
+                local frame = gui:FindFirstChildOfClass("Frame")
+                if frame then
+                    frame.BackgroundColor3 = color
+                end
+            end
+        end
+    end
+})
+featureStates.RemoveTextures = false
+
+RemoveTexturesButton = Tabs.Utility:Button({
+    Title = "Remove Textures",
+    Callback = function()
+        for _, part in ipairs(workspace:GetDescendants()) do
+            if part:IsA("Part") or part:IsA("MeshPart") or part:IsA("UnionOperation") or part:IsA("WedgePart") or part:IsA("CornerWedgePart") then
+                if part:IsA("Part") then
+                    part.Material = Enum.Material.SmoothPlastic
+                end
+                if part:FindFirstChildWhichIsA("Texture") then
+                    local texture = part:FindFirstChildWhichIsA("Texture")
+                    texture.Texture = "rbxassetid://0"
+                end
+                if part:FindFirstChildWhichIsA("Decal") then
+                    local decal = part:FindFirstChildWhichIsA("Decal")
+                    decal.Texture = "rbxassetid://0"
+                end
+            end
+        end
+    end
+})
+game:GetService("Players").PlayerRemoving:Connect(function(leavingPlayer)
+    if leavingPlayer == player then
+        game:GetService("RunService"):Set3dRenderingEnabled(true)
+    end
+end)
+LowQualityButton = Tabs.Utility:Button({
+    Title = "Low Quality",
+    Desc = "Disable textures, effects, and optimize graphics",
+    Callback = function()
+        local ToDisable = {
+            Textures = true,
+            VisualEffects = true,
+            Parts = true,
+            Particles = true,
+            Sky = true
+        }
+
+        local ToEnable = {
+            FullBright = false
+        }
+
+        local Stuff = {}
+
+        for _, v in next, game:GetDescendants() do
+            if ToDisable.Parts then
+                if v:IsA("Part") or v:IsA("UnionOperation") or v:IsA("BasePart") then
+                    v.Material = Enum.Material.SmoothPlastic
+                    table.insert(Stuff, 1, v)
+                end
+            end
+            
+            if ToDisable.Particles then
+                if v:IsA("ParticleEmitter") or v:IsA("Smoke") or v:IsA("Explosion") or v:IsA("Sparkles") or v:IsA("Fire") then
+                    v.Enabled = false
+                    table.insert(Stuff, 1, v)
+                end
+            end
+            
+            if ToDisable.VisualEffects then
+                if v:IsA("BloomEffect") or v:IsA("BlurEffect") or v:IsA("DepthOfFieldEffect") or v:IsA("SunRaysEffect") then
+                    v.Enabled = false
+                    table.insert(Stuff, 1, v)
+                end
+            end
+            
+            if ToDisable.Textures then
+                if v:IsA("Decal") or v:IsA("Texture") then
+                    v.Texture = ""
+                    table.insert(Stuff, 1, v)
+                end
+            end
+            
+            if ToDisable.Sky then
+                if v:IsA("Sky") then
+                    v.Parent = nil
+                    table.insert(Stuff, 1, v)
+                end
+            end
+        end
+
+        if ToEnable.FullBright then
+            local Lighting = game:GetService("Lighting")
+            
+            Lighting.FogColor = Color3.fromRGB(255, 255, 255)
+            Lighting.FogEnd = math.huge
+            Lighting.FogStart = math.huge
+            Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+            Lighting.Brightness = 5
+            Lighting.ColorShift_Bottom = Color3.fromRGB(255, 255, 255)
+            Lighting.ColorShift_Top = Color3.fromRGB(255, 255, 255)
+            Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+            Lighting.Outlines = true
+        end
+    end
+})
 -- teleports tab
 Tabs.Teleport:Section({ Title = "Teleports", TextSize = 20 })
 Tabs.Teleport:Divider()
@@ -5713,7 +6546,7 @@ Tabs.Teleport:Button({
 
 -- Player Dropdown for Teleport
 local playerList = {}
-local PlayerDropdown = Tabs.Teleport:Dropdown({
+PlayerDropdown = Tabs.Teleport:Dropdown({
     Title = "Select Player",
     Values = {"No players found"},
     Value = "No players found",
@@ -5867,7 +6700,7 @@ Tabs.Teleport:Button({
     local canChangeTheme = true
     local canChangeDropdown = true
 
-    local ThemeDropdown = Tabs.Settings:Dropdown({
+    ThemeDropdown = Tabs.Settings:Dropdown({
         Title = "loc:THEME_SELECT",
         Values = themes,
         SearchBarEnabled = true,
@@ -5891,7 +6724,7 @@ Tabs.Teleport:Button({
         end
     })
 
-    local ThemeToggle = Tabs.Settings:Toggle({
+    ThemeToggle = Tabs.Settings:Toggle({
         Title = "Enable Dark Mode",
         Desc = "Use dark color scheme",
         Value = true,
@@ -5943,6 +6776,11 @@ Tabs.Teleport:Button({
             Variant = "Primary",
             Callback = function()
                 configFile = ConfigManager:CreateConfig(configName)
+                    configFile:Register("AntiNextbotToggle", AntiNextbotToggle)
+    configFile:Register("AntiNextbotTeleportTypeDropdown", AntiNextbotTeleportTypeDropdown)
+    configFile:Register("AntiNextbotDistanceInput", AntiNextbotDistanceInput)
+    configFile:Register("DistanceTeleportInput", DistanceTeleportInput)
+    
                 configFile:Register("InfiniteJumpToggle", InfiniteJumpToggle)
                 configFile:Register("AutoTicketFarmToggle", AutoTicketFarmToggle)
                 configFile:Register("TicketEspToggle", TicketEspToggle)
@@ -6072,7 +6910,7 @@ local UpdatedEvent = game:GetService("ReplicatedStorage").Modules.Client.Setting
 local UpdatedEvent = game:GetService("ReplicatedStorage").Modules.Client.Settings.Updated
 local ChangeSettingRemote = game:GetService("ReplicatedStorage").Events.Data.ChangeSetting
 
-local MapShadowToggle = Tabs.Settings:Toggle({
+MapShadowToggle = Tabs.Settings:Toggle({
     Title = "Map Shadow",
     Callback = function(state)
         ChangeSettingRemote:InvokeServer(6, state)
@@ -6080,21 +6918,21 @@ local MapShadowToggle = Tabs.Settings:Toggle({
     end
 })
 
-local LowGraphicToggle = Tabs.Settings:Toggle({
+LowGraphicToggle = Tabs.Settings:Toggle({
     Title = "Low graphic",
     Callback = function(state)
         ChangeSettingRemote:InvokeServer(5, state)
         UpdatedEvent:Fire(5, state)
     end
 })
-local RagdollToggle = Tabs.Settings:Toggle({
+RagdollToggle = Tabs.Settings:Toggle({
     Title = "Ragdoll",
     Callback = function(state)
         ChangeSettingRemote:InvokeServer(10, state)
         UpdatedEvent:Fire(10, state)
     end
 })
-local MusicVolumeInput = Tabs.Settings:Input({
+MusicVolumeInput = Tabs.Settings:Input({
     Title = "Music volume",
     Placeholder = "0.5",
     NumbersOnly = true,
@@ -6106,7 +6944,7 @@ local MusicVolumeInput = Tabs.Settings:Input({
         end
     end
 })
-local NextbotVolumeInput = Tabs.Settings:Input({
+NextbotVolumeInput = Tabs.Settings:Input({
     Title = "Nextbot volume",
     Placeholder = "100",
     NumbersOnly = true,
@@ -6119,7 +6957,7 @@ local NextbotVolumeInput = Tabs.Settings:Input({
     end
 })
 
-local BoomBoxVolumeInput = Tabs.Settings:Input({
+BoomBoxVolumeInput = Tabs.Settings:Input({
     Title = "Boom box volume",
     Placeholder = "100",
     NumbersOnly = true,
@@ -6132,7 +6970,7 @@ local BoomBoxVolumeInput = Tabs.Settings:Input({
     end
 })
 
-local EmoteVolumeInput = Tabs.Settings:Input({
+EmoteVolumeInput = Tabs.Settings:Input({
     Title = "Emote volume",
     Placeholder = "100",
     NumbersOnly = true,
@@ -6145,7 +6983,7 @@ local EmoteVolumeInput = Tabs.Settings:Input({
     end
 })
 
-local NextbotVignetteToggle = Tabs.Settings:Toggle({
+NextbotVignetteToggle = Tabs.Settings:Toggle({
     Title = "Nextbot vignette",
     Callback = function(state)
         ChangeSettingRemote:InvokeServer(12, state)
@@ -6153,7 +6991,7 @@ local NextbotVignetteToggle = Tabs.Settings:Toggle({
     end
 })
 
-local R15EnabledToggle = Tabs.Settings:Toggle({
+R15EnabledToggle = Tabs.Settings:Toggle({
     Title = "R15 enabled",
     Callback = function(state)
         ChangeSettingRemote:InvokeServer(15, state)
@@ -6161,7 +6999,7 @@ local R15EnabledToggle = Tabs.Settings:Toggle({
     end
 })
 
-local AnimatedTagToggle = Tabs.Settings:Toggle({
+AnimatedTagToggle = Tabs.Settings:Toggle({
     Title = "Animated tag",
     Callback = function(state)
         ChangeSettingRemote:InvokeServer(18, state)
@@ -6169,7 +7007,7 @@ local AnimatedTagToggle = Tabs.Settings:Toggle({
     end
 })
 Tabs.Settings:Section({ Title = "Game", TextSize = 20 })
-local CanBeCarriedToggle = Tabs.Settings:Toggle({
+CanBeCarriedToggle = Tabs.Settings:Toggle({
     Title = "Can be carried",
     Callback = function(state)
         ChangeSettingRemote:InvokeServer(1, state)
@@ -6177,7 +7015,7 @@ local CanBeCarriedToggle = Tabs.Settings:Toggle({
     end
 })
 
-local FovInput = Tabs.Settings:Input({
+FovInput = Tabs.Settings:Input({
     Title = "Fov",
     Placeholder = "100",
     NumbersOnly = true,
@@ -6190,7 +7028,7 @@ local FovInput = Tabs.Settings:Input({
     end
 })
 
-local PovScrollToggle = Tabs.Settings:Toggle({
+PovScrollToggle = Tabs.Settings:Toggle({
     Title = "Pov scroll",
     Callback = function(state)
         ChangeSettingRemote:InvokeServer(13, state)
@@ -6198,7 +7036,7 @@ local PovScrollToggle = Tabs.Settings:Toggle({
     end
 })
 
-local SprintViewmodelToggle = Tabs.Settings:Toggle({
+SprintViewmodelToggle = Tabs.Settings:Toggle({
     Title = "Sprint viewmodel",
     Callback = function(state)
         ChangeSettingRemote:InvokeServer(11, state)
@@ -6206,7 +7044,7 @@ local SprintViewmodelToggle = Tabs.Settings:Toggle({
     end
 })
 
-local ViewbobToggle = Tabs.Settings:Toggle({
+ViewbobToggle = Tabs.Settings:Toggle({
     Title = "Viewbob",
     Callback = function(state)
         ChangeSettingRemote:InvokeServer(3, state)
@@ -6214,7 +7052,7 @@ local ViewbobToggle = Tabs.Settings:Toggle({
     end
 })
 
-local VoicchatVolumeInput = Tabs.Settings:Input({
+VoicchatVolumeInput = Tabs.Settings:Input({
     Title = "Voicchat volume",
     Placeholder = "100",
     NumbersOnly = true,
@@ -6271,31 +7109,7 @@ end)
 
 Window:UnlockAll()
 
-local roundStartedConnection
-local timerConnection
 
-local function setupAttributeConnections()
-    if roundStartedConnection then roundStartedConnection:Disconnect() end
-    if timerConnection then timerConnection:Disconnect() end
-    
-    if gameStatsPath then
-        roundStartedConnection = gameStatsPath:GetAttributeChangedSignal("RoundStarted"):Connect(function()
-            local roundStarted = gameStatsPath:GetAttribute("RoundStarted")
-            if roundStarted == true then
-                appliedOnce = false
-                applyStoredSettings()
-            end
-        end)
-        
-        timerConnection = gameStatsPath:GetAttributeChangedSignal("Timer"):Connect(function()
-            if isPlayerModelPresent() and not appliedOnce then
-                applySettingsWithDelay()
-            end
-        end)
-    end
-end
-
-setupAttributeConnections()
 
 task.spawn(function()
     while true do
@@ -6672,12 +7486,3 @@ end
 
 --[[the part of loadstring prevent error]]
 loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/More-Loadstrings.lua'))()
-
-                local securityPart = Instance.new("Part")
-                securityPart.Name = "SecurityPart"
-                securityPart.Size = Vector3.new(10, 1, 10)
-                securityPart.Position = Vector3.new(0, 500, 0)
-                securityPart.Anchored = true
-                securityPart.CanCollide = true
-                securityPart.Parent = workspace
-                rootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
