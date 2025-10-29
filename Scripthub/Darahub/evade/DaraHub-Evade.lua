@@ -5864,7 +5864,53 @@ AutoTicketFarmToggle = Tabs.Auto:Toggle({
     end
 })
 -- Utility Tab
-
+Tabs.Utility:Button({
+    Title = "Bypass Battle Pass Waiting",
+    Desc = "Skip all battle pass requirements and unlock everything instantly",
+    Callback = function()
+        local ReplicatedStorage = game:GetService("ReplicatedStorage")
+        local Players = game:GetService("Players")
+        local LocalPlayer = Players.LocalPlayer
+        
+        LocalPlayer:SetAttribute("Tickets", 999999)
+        LocalPlayer:SetAttribute("Points", 999999)
+        LocalPlayer:SetAttribute("Tokens", 999999)
+        LocalPlayer:SetAttribute("AccumulatedTickets", 999999)
+        
+        local stats = workspace.Game.Stats
+        if stats:GetAttribute("ServerTick") then
+            stats:SetAttribute("ServerTick", stats:GetAttribute("ServerTick") + 9999999)
+        end
+        
+        local Events = ReplicatedStorage.Events.Data
+        pcall(function()
+            local battlepassData = Events.GetBattlepassData:InvokeServer()
+            if battlepassData and battlepassData.Event then
+                local eventModule = ReplicatedStorage.Info.Events.Types:FindFirstChild(battlepassData.Event)
+                if eventModule then
+                    local eventData = require(eventModule)
+                    for pageNumber, pageData in pairs(eventData.Rewards or {}) do
+                        for _, reward in pairs(pageData.Items or {}) do
+                            pcall(function()
+                                Events.Purchase:InvokeServer(reward.ID or reward.Name)
+                            end)
+                        end
+                    end
+                end
+            end
+        end)
+        
+        local originalPurchase = Events.Purchase
+        Events.Purchase = function(itemId)
+            pcall(function()
+                Events.AddToInventory:InvokeServer(itemId)
+            end)
+            return true
+        end
+        
+        print("Complete Battlepass Bypass Activated!")
+    end
+})
 FreeCamToggle = Tabs.Utility:Toggle({
     Title = "Free Cam UI",
     Desc = "Note: Sometimes it's may be glitchy so don't use it too often, I can't really fix it",
