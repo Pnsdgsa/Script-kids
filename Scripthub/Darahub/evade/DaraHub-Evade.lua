@@ -2147,6 +2147,10 @@ local function startAutoWin()
                 securityPart.Parent = workspace
                 rootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
             end
+            local securityPart = workspace:FindFirstChild("SecurityPartTemp")
+    if securityPart then
+        securityPart:Destroy()
+    end
         end
     end)
 end
@@ -2166,6 +2170,10 @@ local function startAutoMoneyFarm()
             if playersInGame then
                 for _, v in pairs(playersInGame:GetChildren()) do
                     if v:IsA("Model") and v:GetAttribute("Downed") then
+                        if v:FindFirstChild("RagdollConstraints") then
+                            continue
+                        end
+                        
                         rootPart.CFrame = v.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
                         ReplicatedStorage.Events.Character.Interact:FireServer("Revive", true, v)
                         task.wait(0.5)
@@ -2174,15 +2182,21 @@ local function startAutoMoneyFarm()
                     end
                 end
             end
-            local securityPart = Instance.new("Part")
-            securityPart.Name = "SecurityPartTemp"
-            securityPart.Size = Vector3.new(10, 1, 10)
-            securityPart.Position = Vector3.new(0, 500, 0)
-            securityPart.Anchored = true
-            securityPart.Transparency = 1
-            securityPart.CanCollide = true
-            securityPart.Parent = workspace
-            rootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
+            
+            local securityPart = workspace:FindFirstChild("SecurityPartTemp")
+            if not securityPart then
+                securityPart = Instance.new("Part")
+                securityPart.Name = "SecurityPartTemp"
+                securityPart.Size = Vector3.new(10, 1, 10)
+                securityPart.Position = Vector3.new(0, 500, 0)
+                securityPart.Anchored = true
+                securityPart.Transparency = 1
+                securityPart.CanCollide = true
+                securityPart.Parent = workspace
+            end
+            if not downedPlayerFound then
+                rootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
+            end
         end
     end)
 end
@@ -2191,6 +2205,11 @@ local function stopAutoMoneyFarm()
     if AutoMoneyFarmConnection then
         AutoMoneyFarmConnection:Disconnect()
         AutoMoneyFarmConnection = nil
+    end
+    
+    local securityPart = workspace:FindFirstChild("SecurityPartTemp")
+    if securityPart then
+        securityPart:Destroy()
     end
 end
 local autoWhistleHandle = nil
@@ -5739,10 +5758,10 @@ AutoTicketFarmToggle = Tabs.Auto:Toggle({
         local ticketProcessedTime = 0
 
         if state then
-            local securityPart = workspace:FindFirstChild("SecurityPart")
+            local securityPart = workspace:FindFirstChild("SecurityPartTemp")
             if not securityPart then
                 securityPart = Instance.new("Part")
-                securityPart.Name = "SecurityPart"
+                securityPart.Name = "SecurityPartTemp"
                 securityPart.Size = Vector3.new(10, 1, 10)
                 securityPart.Position = Vector3.new(0, 500, 0)
                 securityPart.Anchored = true
@@ -5838,6 +5857,10 @@ AutoTicketFarmToggle = Tabs.Auto:Toggle({
                 humanoidRootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
             end
         end
+        local securityPart = workspace:FindFirstChild("SecurityPartTemp")
+    if securityPart then
+        securityPart:Destroy()
+    end
     end
 })
 -- Utility Tab
@@ -6673,13 +6696,40 @@ Tabs.Teleport:Button({
     Desc = "Teleport to the safe SecurityPart location",
     Icon = "shield",
     Callback = function()
-        local securityPart = workspace:FindFirstChild("SecurityPart")
-        
-        if securityPart then
-            local character = player.Character
-            local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
+        local function createSecurityPart()
+            local existingPart = workspace:FindFirstChild("SecurityLifetimePart")
             
-            if humanoidRootPart then
+            if existingPart then
+                return existingPart
+            end
+            
+            local securityPart = Instance.new("Part")
+            securityPart.Name = "SecurityLifetimePart"
+            securityPart.Size = Vector3.new(10, 1, 10)
+            securityPart.Position = Vector3.new(0, 500, 0)
+            securityPart.Anchored = true
+            securityPart.CanCollide = true
+            securityPart.Material = Enum.Material.Plastic
+            securityPart.BrickColor = BrickColor.new("Bright red")
+            securityPart.Parent = workspace
+
+            local texture = Instance.new("Texture")
+            texture.Texture = "rbxasset://textures/studs.png"
+            texture.Face = "Top"
+            texture.StudsPerTileU = 4
+            texture.StudsPerTileV = 4
+            texture.Parent = securityPart
+            
+            return securityPart
+        end
+        
+        local securityPart = createSecurityPart()
+        local character = game.Players.LocalPlayer.Character
+        
+        if character then
+            local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+            
+            if humanoidRootPart and securityPart then
                 humanoidRootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
             end
         end
@@ -7486,3 +7536,29 @@ end
 
 --[[the part of loadstring prevent error]]
 loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/More-Loadstrings.lua'))()
+local function createSecurityPart()
+            local existingPart = workspace:FindFirstChild("SecurityLifetimePart")
+            
+            if existingPart then
+                return existingPart
+            end
+            
+            local securityPart = Instance.new("Part")
+            securityPart.Name = "SecurityLifetimePart"
+            securityPart.Size = Vector3.new(10, 1, 10)
+            securityPart.Position = Vector3.new(0, 500, 0)
+            securityPart.Anchored = true
+            securityPart.CanCollide = true
+            securityPart.Material = Enum.Material.Plastic
+            securityPart.BrickColor = BrickColor.new("Bright red")
+            securityPart.Parent = workspace
+
+            local texture = Instance.new("Texture")
+            texture.Texture = "rbxasset://textures/studs.png"
+            texture.Face = "Top"
+            texture.StudsPerTileU = 4
+            texture.StudsPerTileV = 4
+            texture.Parent = securityPart
+            
+            return securityPart
+        end
