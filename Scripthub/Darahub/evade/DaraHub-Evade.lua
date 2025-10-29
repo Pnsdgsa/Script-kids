@@ -6484,7 +6484,14 @@ LowQualityButton = Tabs.Utility:Button({
         end
     end
 })
--- teleports tab
+Tabs.Utility:Button({
+    Title = "VIP CMD Macro",
+    Icon = "rbxassetid://107814281854748",
+    Callback = function() 
+        game:GetService("Players").LocalPlayer.PlayerGui.MacroManagerGUI.Enabled = 
+            not game:GetService("Players").LocalPlayer.PlayerGui.MacroManagerGUI.Enabled
+    end
+})-- teleports tab
 Tabs.Teleport:Section({ Title = "Teleports", TextSize = 20 })
 Tabs.Teleport:Divider()
 
@@ -6697,14 +6704,14 @@ Tabs.Teleport:Button({
     Icon = "shield",
     Callback = function()
         local function createSecurityPart()
-            local existingPart = workspace:FindFirstChild("SecurityLifetimePart")
+            local existingPart = workspace:FindFirstChild("SecurityPart")
             
             if existingPart then
                 return existingPart
             end
             
             local securityPart = Instance.new("Part")
-            securityPart.Name = "SecurityLifetimePart"
+            securityPart.Name = "SecurityPart"
             securityPart.Size = Vector3.new(10, 1, 10)
             securityPart.Position = Vector3.new(0, 500, 0)
             securityPart.Anchored = true
@@ -7536,29 +7543,3 @@ end
 
 --[[the part of loadstring prevent error]]
 loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/More-Loadstrings.lua'))()
-local function createSecurityPart()
-            local existingPart = workspace:FindFirstChild("SecurityLifetimePart")
-            
-            if existingPart then
-                return existingPart
-            end
-            
-            local securityPart = Instance.new("Part")
-            securityPart.Name = "SecurityLifetimePart"
-            securityPart.Size = Vector3.new(10, 1, 10)
-            securityPart.Position = Vector3.new(0, 500, 0)
-            securityPart.Anchored = true
-            securityPart.CanCollide = true
-            securityPart.Material = Enum.Material.Plastic
-            securityPart.BrickColor = BrickColor.new("Bright red")
-            securityPart.Parent = workspace
-
-            local texture = Instance.new("Texture")
-            texture.Texture = "rbxasset://textures/studs.png"
-            texture.Face = "Top"
-            texture.StudsPerTileU = 4
-            texture.StudsPerTileV = 4
-            texture.Parent = securityPart
-            
-            return securityPart
-        end
