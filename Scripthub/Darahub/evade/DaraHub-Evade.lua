@@ -2618,7 +2618,12 @@ end
 
 
 local function rejoinServer()
-    TeleportService:TeleportToPlaceInstance(placeId, jobId)
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+
+local player = Players.LocalPlayer
+
+TeleportService:Teleport(game.PlaceId, player)
 end
 
     local FeatureSection = Window:Section({ Title = "loc:FEATURES", Opened = true })
@@ -2946,11 +2951,9 @@ local DistanceTeleportInput = Tabs.Main:Input({
         end
     end
 })
-Tabs.Main:Section({ Title = "Anti Nextbot Spawn", TextSize = 20 })
-Tabs.Main:Divider()
 
 featureStates.AntiNextbotSpawn = false
-featureStates.AntiNextbotSpawnType = "Non-NPC Spawn"
+featureStates.AntiNextbotSpawnType = "Spawn"
 featureStates.AntiNextbotSpawnDistance = 40
 featureStates.AntiNextbotTeleportDistance = 20
 
@@ -3142,7 +3145,7 @@ local function performAvoidance()
     
     local success = false
     
-    if featureStates.AntiNextbotSpawnType == "Non-NPC Spawn" then
+    if featureStates.AntiNextbotSpawnType == "Spawn" then
         success = teleportToSpawn()
     elseif featureStates.AntiNextbotSpawnType == "Player" then
         success = teleportToPlayer()
@@ -3251,8 +3254,8 @@ AntiNextbotSpawnToggle = Tabs.Main:Toggle({
 AntiNextbotSpawnTypeDropdown = Tabs.Main:Dropdown({
     Title = "Avoidance Mode",
     Desc = "Choose how to avoid Nextbot spawn",
-    Values = {"Non-NPC Spawn", "Player", "Distance"},
-    Value = "Non-NPC Spawn",
+    Values = {"Spawn", "Player", "Distance"},
+    Value = "Spawn",
     Callback = function(value)
         featureStates.AntiNextbotSpawnType = value
     end
@@ -6763,15 +6766,7 @@ Tabs.Teleport:Button({
             securityPart.Anchored = true
             securityPart.CanCollide = true
             securityPart.Material = Enum.Material.Plastic
-            securityPart.BrickColor = BrickColor.new("Bright red")
             securityPart.Parent = workspace
-
-            local texture = Instance.new("Texture")
-            texture.Texture = "rbxasset://textures/studs.png"
-            texture.Face = "Top"
-            texture.StudsPerTileU = 4
-            texture.StudsPerTileV = 4
-            texture.Parent = securityPart
             
             return securityPart
         end
@@ -7589,3 +7584,12 @@ end
 
 --[[the part of loadstring prevent error]]
 loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/More-Loadstrings.lua'))()
+if not workspace:FindFirstChild("SecurityPartlifetimelifetime") then
+    local SecurityPartlifetime = Instance.new("Part")
+    SecurityPartlifetime.Name = "SecurityPartlifetimelifetime"
+    SecurityPartlifetime.Size = Vector3.new(10, 1, 10)
+    SecurityPartlifetime.Position = Vector3.new(0, 500, 0)
+    SecurityPartlifetime.Anchored = true
+    SecurityPartlifetime.CanCollide = true
+    SecurityPartlifetime.Parent = workspace
+end
