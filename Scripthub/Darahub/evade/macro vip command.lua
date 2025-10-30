@@ -6,6 +6,7 @@ local HttpService      = game:GetService("HttpService")
 
 local Player   = Players.LocalPlayer
 local PlayerGui= Player:WaitForChild("PlayerGui")
+local CoreGui = game:GetService("CoreGui")
 
 local function getDpiScale()
 	local gui   = Instance.new("ScreenGui", PlayerGui)
@@ -57,7 +58,7 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "MacroManagerGUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Enabled = false 
-ScreenGui.Parent = PlayerGui
+ScreenGui.Parent = CoreGui
 
 local Main = Instance.new("Frame")
 Main.Name = "MainFrame"
@@ -114,29 +115,6 @@ Close.MouseButton1Click:Connect(function()
 	ScreenGui.Enabled = false
 end)
 
-local dragging,dragStart,startPos,dragConnection
-TitleBar.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = true
-		dragStart = UserInputService:GetMouseLocation()
-		startPos = Main.Position
-		if dragConnection then dragConnection:Disconnect() end
-		dragConnection = RunService.RenderStepped:Connect(function()
-			if not dragging then return end
-			local cur = UserInputService:GetMouseLocation()
-			local delta = cur - dragStart
-			Main.Position = UDim2.new(startPos.X.Scale,startPos.X.Offset+delta.X,
-			                         startPos.Y.Scale,startPos.Y.Offset+delta.Y)
-		end)
-	end
-end)
-UserInputService.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = false
-		if dragConnection then dragConnection:Disconnect(); dragConnection=nil end
-	end
-end)
-
 local Scroll = Instance.new("ScrollingFrame")
 Scroll.Name = "MacroScroll"
 Scroll.Size = UDim2.new(1,-16,1,-88)
@@ -175,16 +153,16 @@ CreateBtn.TextSize = 15*DPI
 CreateBtn.Parent = Main
 Instance.new("UICorner",CreateBtn).CornerRadius = UDim.new(0,8)
 
-local DelayUnits = {"Sec","Minute","Hour","Day","Week","Year"}
+local DelayUnits = {"Ms","Sec","Minute","Hour","Day","Week","Year"}
 local function toMs(v,u)
-	local m = {Sec=1000,Minute=60000,Hour=3600000,Day=86400000,Week=604800000,Year=31536000000}
-	return (v or 0) * (m[u] or 1000)
+	local m = {Ms=1,Sec=1000,Minute=60000,Hour=3600000,Day=86400000,Week=604800000,Year=31536000000}
+	return (v or 0) * (m[u] or 1)
 end
 
-local TimeUnits = {"Second","Minute","Hour","Day","Week","Month","Year"}
+local TimeUnits = {"Ms","Second","Minute","Hour","Day","Week","Month","Year"}
 local function toSeconds(v,u)
-	local m = {Second=1,Minute=60,Hour=3600,Day=86400,Week=604800,Month=2629800,Year=31557600}
-	return (v or 0) * (m[u] or 60)
+	local m = {Ms=0.001,Second=1,Minute=60,Hour=3600,Day=86400,Week=604800,Month=2629800,Year=31557600}
+	return (v or 0) * (m[u] or 1)
 end
 
 local function formatTimeRemaining(seconds)
@@ -590,9 +568,9 @@ function CmdEditMacro(editData, oldIdx, oldFrame)
 	if Popup then Popup:Destroy() end
 	local isEdit = editData ~= nil
 	local data = isEdit and table.clone(editData) or {
-		name="",command="",delayValue=1,delayUnit="Sec",
+		name="",command="",delayValue=1,delayUnit="Ms",
 		keybind=Enum.KeyCode.F,stopMode="indefinitely",
-		stopTime=5,stopTimeUnit="Minute",stopCycles=10
+		stopTime=5,stopTimeUnit="Second",stopCycles=10
 	}
 
 	Popup = Instance.new("Frame")
@@ -665,20 +643,20 @@ function CmdEditMacro(editData, oldIdx, oldFrame)
 	delayDrop.TextColor3 = Color3.new(1,1,1)
 	delayDrop.Font = Enum.Font.GothamBold
 	delayDrop.TextSize = 13*DPI
-	delayDrop.Text = data.delayUnit or "Sec"
+	delayDrop.Text = data.delayUnit or "Ms"
 	delayDrop.ZIndex = 11
 	delayDrop.Parent = Popup
 	Instance.new("UICorner",delayDrop)
 
 	local dropList = Instance.new("Frame")
-	dropList.Size = UDim2.new(0,90,0,168)
+	dropList.Size = UDim2.new(0,90,0,196)
 	dropList.Position = UDim2.new(0,106,0,152)
 	dropList.BackgroundColor3 = Color3.fromRGB(40,40,55)
 	dropList.Visible = false
 	dropList.ZIndex = 15
 	dropList.Parent = Popup
 	Instance.new("UICorner",dropList)
-	makeDropdown(delayDrop,dropList,DelayUnits,data.delayUnit or "Sec",function(u) data.delayUnit=u end)
+	makeDropdown(delayDrop,dropList,DelayUnits,data.delayUnit or "Ms",function(u) data.delayUnit=u end)
 
 	local keyBtn = Instance.new("TextButton")
 	keyBtn.Size = UDim2.new(1,-16,0,32)
@@ -798,7 +776,7 @@ function CmdEditMacro(editData, oldIdx, oldFrame)
 	timeInput.Font = Enum.Font.Gotham
 	timeInput.TextSize = 13*DPI
 	if data.stopMode=="time" and data.stopTime then
-		local unit = data.stopTimeUnit or "Minute"
+		local unit = data.stopTimeUnit or "Second"
 		local val = data.stopTime / toSeconds(1,unit)
 		timeInput.Text = tostring(math.floor(val+0.5))
 	else
@@ -817,20 +795,20 @@ function CmdEditMacro(editData, oldIdx, oldFrame)
 	timeDrop.TextColor3 = Color3.new(1,1,1)
 	timeDrop.Font = Enum.Font.GothamBold
 	timeDrop.TextSize = 13*DPI
-	timeDrop.Text = data.stopTimeUnit or "Minute"
+	timeDrop.Text = data.stopTimeUnit or "Second"
 	timeDrop.ZIndex = 11
 	timeDrop.Parent = timeRow
 	Instance.new("UICorner",timeDrop)
 
 	local tList = Instance.new("Frame")
-	tList.Size = UDim2.new(0,70,0,196)
+	tList.Size = UDim2.new(0,70,0,224)
 	tList.Position = UDim2.new(0,208,0,30)
 	tList.BackgroundColor3 = Color3.fromRGB(40,40,55)
 	tList.Visible = false
 	tList.ZIndex = 15
 	tList.Parent = timeRow
 	Instance.new("UICorner",tList)
-	makeDropdown(timeDrop,tList,TimeUnits,data.stopTimeUnit or "Minute",function(u) data.stopTimeUnit=u end)
+	makeDropdown(timeDrop,tList,TimeUnits,data.stopTimeUnit or "Second",function(u) data.stopTimeUnit=u end)
 
 	local cycleInput = Instance.new("TextBox")
 	cycleInput.Size = UDim2.new(0,100,0,28)
