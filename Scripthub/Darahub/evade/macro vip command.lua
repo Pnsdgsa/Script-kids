@@ -40,19 +40,43 @@ local CONFIG_FILE = CONFIG_DIR .. "/presets.json"
 if isfolder and not isfolder(CONFIG_DIR) then makefolder(CONFIG_DIR) end
 
 local Presets = {}
+local function serializeMacro(macro)
+	local ser = table.clone(macro)
+	ser.keybind = macro.keybind.Name
+	return ser
+end
+local function deserializeMacro(ser)
+	local macro = table.clone(ser)
+	macro.keybind = ser.keybind and Enum.KeyCode[ser.keybind] or Enum.KeyCode.F
+	return macro
+end
 local function loadPresets()
 	local data = safeReadFile(CONFIG_FILE)
 	if data then
 		local success, decoded = pcall(HttpService.JSONDecode, HttpService, data)
-		if success and typeof(decoded) == "table" then Presets = decoded end
+		if success and typeof(decoded) == "table" then
+			Presets = {}
+			for name, arr in pairs(decoded) do
+				Presets[name] = {}
+				for i, ser in ipairs(arr) do
+					Presets[name][i] = deserializeMacro(ser)
+				end
+			end
+		end
 	end
 end
-loadPresets()
-
 local function savePresets()
-	local json = HttpService:JSONEncode(Presets)
+	local toSave = {}
+	for name, macros in pairs(Presets) do
+		toSave[name] = {}
+		for i, macro in ipairs(macros) do
+			toSave[name][i] = serializeMacro(macro)
+		end
+	end
+	local json = HttpService:JSONEncode(toSave)
 	safeWriteFile(CONFIG_FILE, json)
 end
+loadPresets()
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "MacroManagerGUI"
@@ -303,7 +327,7 @@ local function makeEntry(data,idx)
 	info.Size = UDim2.new(1,-16,0,20)
 	info.Position = UDim2.new(0,8,0,44)
 	info.BackgroundTransparency = 1
-	info.Text = string.format("Delay: %d %s | Key: %s",data.delayValue,data.delayUnit,data.keybind.Name)
+	info.Text = string.format("Delay: %d %s | Key: %s",data.delayValue,data.delayUnit,(data.keybind and data.keybind.Name) or "F")
 	info.TextColor3 = Color3.fromRGB(120,200,255)
 	info.Font = Enum.Font.Gotham
 	info.TextSize = 10*DPI
@@ -661,7 +685,7 @@ function CmdEditMacro(editData, oldIdx, oldFrame)
 	local keyBtn = Instance.new("TextButton")
 	keyBtn.Size = UDim2.new(1,-16,0,32)
 	keyBtn.Position = UDim2.new(0,8,0,162)
-	keyBtn.Text = "Key: "..data.keybind.Name
+	keyBtn.Text = "Key: "..(data.keybind and data.keybind.Name or "F")
 	keyBtn.BackgroundColor3 = Color3.fromRGB(40,40,55)
 	keyBtn.TextColor3 = Color3.new(1,1,1)
 	keyBtn.Font = Enum.Font.Gotham
