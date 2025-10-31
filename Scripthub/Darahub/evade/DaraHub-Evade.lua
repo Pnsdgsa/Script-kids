@@ -6197,51 +6197,34 @@ AutoTicketFarmToggle = Tabs.Auto:Toggle({
     end
 })
 -- Utility Tab
-Tabs.Utility:Button({
+Tabs.Utility:Toggle({
+    Title = "Exchange Menu",
+    Default = false,
+    Callback = function(value)
+        game.Players.LocalPlayer.PlayerGui.Menu.Views.Battlepass.Exchange.Visible = value
+    end
+})
+
+Tabs.Utility:Toggle({
     Title = "Bypass Battle Pass Waiting",
     Desc = "Skip all battle pass requirements and unlock everything instantly",
-    Callback = function()
-        local ReplicatedStorage = game:GetService("ReplicatedStorage")
-        local Players = game:GetService("Players")
-        local LocalPlayer = Players.LocalPlayer
-        
-        LocalPlayer:SetAttribute("Tickets", 999999)
-        LocalPlayer:SetAttribute("Points", 999999)
-        LocalPlayer:SetAttribute("Tokens", 999999)
-        LocalPlayer:SetAttribute("AccumulatedTickets", 999999)
-        
-        local stats = workspace.Game.Stats
-        if stats:GetAttribute("ServerTick") then
-            stats:SetAttribute("ServerTick", stats:GetAttribute("ServerTick") + 9999999)
-        end
-        
-        local Events = ReplicatedStorage.Events.Data
-        pcall(function()
-            local battlepassData = Events.GetBattlepassData:InvokeServer()
-            if battlepassData and battlepassData.Event then
-                local eventModule = ReplicatedStorage.Info.Events.Types:FindFirstChild(battlepassData.Event)
-                if eventModule then
-                    local eventData = require(eventModule)
-                    for pageNumber, pageData in pairs(eventData.Rewards or {}) do
-                        for _, reward in pairs(pageData.Items or {}) do
-                            pcall(function()
-                                Events.Purchase:InvokeServer(reward.ID or reward.Name)
-                            end)
-                        end
-                    end
-                end
+    Callback = function(value)
+        if value then
+            -- Stop loop when true
+            if unlockLoop then
+                unlockLoop:Disconnect()
+                unlockLoop = nil
             end
-        end)
-        
-        local originalPurchase = Events.Purchase
-        Events.Purchase = function(itemId)
-            pcall(function()
-                Events.AddToInventory:InvokeServer(itemId)
+            game:GetService("Players").LocalPlayer.PlayerGui.Menu.Views.Battlepass.ViewPass.Center.ViewPass.Unlocked.Visible = true
+        else
+            -- Start loop when false
+            unlockLoop = game:GetService("RunService").Heartbeat:Connect(function()
+                local unlocked = game:GetService("Players").LocalPlayer.PlayerGui.Menu.Views.Battlepass.ViewPass.Center.ViewPass.Unlocked
+                if unlocked and unlocked.Parent then
+                    unlocked.Visible = false
+                end
             end)
-            return true
         end
-        
-        print("Complete Battlepass Bypass Activated!")
     end
 })
 
