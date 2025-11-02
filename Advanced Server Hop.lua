@@ -1,9 +1,282 @@
+local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local function createPopup()
+    local settingsFile = "darahub/serverfindertipspopup_settings.txt"
+    
+    local function fileExists(path)
+        local success, _ = pcall(function()
+            readfile(path)
+        end)
+        return success
+    end
+    
+    local function loadSettings()
+        if fileExists(settingsFile) then
+            local content = readfile(settingsFile)
+            return content == "true"
+        end
+        return false
+    end
+    
+    local function saveSettings(neverShowAgain)
+        local content = neverShowAgain and "true" or "false"
+        writefile(settingsFile, content)
+    end
+    
+    if loadSettings() then
+        return
+    end
+
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "ImportantTipsPopup"
+    screenGui.Parent = CoreGui
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+    screenGui.DisplayOrder = 999999
+    screenGui.ResetOnSpawn = false
+
+    local backgroundFrame = Instance.new("TextButton")
+    backgroundFrame.Size = UDim2.new(1, 0, 1, 0)
+    backgroundFrame.Position = UDim2.new(0, 0, 0, 0)
+    backgroundFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+    backgroundFrame.BackgroundTransparency = 0.3
+    backgroundFrame.Text = ""
+    backgroundFrame.AutoButtonColor = false
+    backgroundFrame.Parent = screenGui
+
+    local popupFrame = Instance.new("Frame")
+    popupFrame.Size = UDim2.new(0, 400, 0, 350)
+    popupFrame.Position = UDim2.new(0.5, -200, 0.5, -175)
+    popupFrame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+    popupFrame.BorderSizePixel = 0
+    popupFrame.Parent = screenGui
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = popupFrame
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.new(0.3, 0.3, 0.3)
+    stroke.Thickness = 2
+    stroke.Parent = popupFrame
+
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, 0, 0, 50)
+    titleLabel.Position = UDim2.new(0, 0, 0, 0)
+    titleLabel.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+    titleLabel.BorderSizePixel = 0
+    titleLabel.Text = "Important tips, read this before use"
+    titleLabel.TextColor3 = Color3.new(1, 1, 1)
+    titleLabel.TextScaled = true
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.Parent = popupFrame
+
+    local titleCorner = Instance.new("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 8)
+    titleCorner.Parent = titleLabel
+
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Size = UDim2.new(1, -20, 1, -170)
+    scrollFrame.Position = UDim2.new(0, 10, 0, 60)
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.BorderSizePixel = 0
+    scrollFrame.ScrollBarThickness = 6
+    scrollFrame.Parent = popupFrame
+
+    local contentLabel = Instance.new("TextLabel")
+    contentLabel.Size = UDim2.new(1, 0, 0, 0)
+    contentLabel.AutomaticSize = Enum.AutomaticSize.Y
+    contentLabel.BackgroundTransparency = 1
+    contentLabel.Text = "In order to make all features work please use good executor and disable verify teleport other wise some feature will not work.\n\nsometimes this script may search duplicated server list, refresh the server to solve the problem, this bug will be patching soon.\n\nWait 10s to able to click okay"
+    contentLabel.TextColor3 = Color3.new(1, 1, 1)
+    contentLabel.TextSize = 14
+    contentLabel.TextWrapped = true
+    contentLabel.Font = Enum.Font.Gotham
+    contentLabel.TextXAlignment = Enum.TextXAlignment.Left
+    contentLabel.TextYAlignment = Enum.TextYAlignment.Top
+    contentLabel.Parent = scrollFrame
+
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, contentLabel.TextBounds.Y)
+
+    local checkboxFrame = Instance.new("Frame")
+    checkboxFrame.Size = UDim2.new(1, -20, 0, 30)
+    checkboxFrame.Position = UDim2.new(0, 10, 1, -110)
+    checkboxFrame.BackgroundTransparency = 1
+    checkboxFrame.Parent = popupFrame
+
+    local checkboxButton = Instance.new("TextButton")
+    checkboxButton.Size = UDim2.new(0, 20, 0, 20)
+    checkboxButton.Position = UDim2.new(0, 0, 0, 5)
+    checkboxButton.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+    checkboxButton.BorderSizePixel = 0
+    checkboxButton.Text = ""
+    checkboxButton.TextColor3 = Color3.new(1, 1, 1)
+    checkboxButton.TextSize = 14
+    checkboxButton.Font = Enum.Font.GothamBold
+    checkboxButton.AutoButtonColor = true
+    checkboxButton.Parent = checkboxFrame
+
+    local checkboxCorner = Instance.new("UICorner")
+    checkboxCorner.CornerRadius = UDim.new(0, 4)
+    checkboxCorner.Parent = checkboxButton
+
+    local checkboxStroke = Instance.new("UIStroke")
+    checkboxStroke.Color = Color3.new(0.5, 0.5, 0.5)
+    checkboxStroke.Thickness = 1
+    checkboxStroke.Parent = checkboxButton
+
+    local checkboxLabel = Instance.new("TextLabel")
+    checkboxLabel.Size = UDim2.new(1, -30, 1, 0)
+    checkboxLabel.Position = UDim2.new(0, 25, 0, 0)
+    checkboxLabel.BackgroundTransparency = 1
+    checkboxLabel.Text = "Never show this message again"
+    checkboxLabel.TextColor3 = Color3.new(1, 1, 1)
+    checkboxLabel.TextSize = 12
+    checkboxLabel.TextXAlignment = Enum.TextXAlignment.Left
+    checkboxLabel.Font = Enum.Font.Gotham
+    checkboxLabel.Parent = checkboxFrame
+
+    local neverShowAgain = false
+
+    checkboxButton.MouseButton1Click:Connect(function()
+        neverShowAgain = not neverShowAgain
+        
+        if neverShowAgain then
+            checkboxButton.Text = "✓"
+            checkboxButton.BackgroundColor3 = Color3.new(0.2, 0.6, 1)
+        else
+            checkboxButton.Text = ""
+            checkboxButton.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+        end
+    end)
+
+    local okButton = Instance.new("TextButton")
+    okButton.Size = UDim2.new(0, 120, 0, 40)
+    okButton.Position = UDim2.new(0.5, -60, 1, -60)
+    okButton.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+    okButton.BorderSizePixel = 0
+    okButton.Text = "Please wait 10s..."
+    okButton.TextColor3 = Color3.new(0.5, 0.5, 0.5)
+    okButton.TextSize = 14
+    okButton.Font = Enum.Font.Gotham
+    okButton.AutoButtonColor = false
+    okButton.Parent = popupFrame
+
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 6)
+    buttonCorner.Parent = okButton
+
+    local countdown = 10
+    local countdownConnection
+    local startTime = os.time()
+
+    local function formatTime(seconds)
+        return string.format("%ds", math.ceil(seconds))
+    end
+
+    local function updateButtonText()
+        okButton.Text = "Please wait " .. formatTime(countdown) .. "..."
+    end
+
+    local function enableButton()
+        if countdownConnection then
+            countdownConnection:Disconnect()
+        end
+        okButton.Text = "OK"
+        okButton.BackgroundColor3 = Color3.new(0.2, 0.6, 1)
+        okButton.TextColor3 = Color3.new(1, 1, 1)
+        okButton.AutoButtonColor = true
+    end
+
+    local function closePopup()
+        okButton.AutoButtonColor = false
+        
+        if neverShowAgain then
+            saveSettings(true)
+        end
+
+        local clickTween = TweenService:Create(okButton, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            BackgroundColor3 = Color3.new(0.1, 0.4, 0.8),
+            Size = UDim2.new(0, 110, 0, 38)
+        })
+        clickTween:Play()
+        
+        clickTween.Completed:Wait()
+        
+        local returnTween = TweenService:Create(okButton, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, 120, 0, 40)
+        })
+        returnTween:Play()
+        
+        returnTween.Completed:Wait()
+        
+        local closeTween = TweenService:Create(popupFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+            Size = UDim2.new(0, 0, 0, 0),
+            Position = UDim2.new(0.5, 0, 0.5, 0),
+            BackgroundTransparency = 1
+        })
+        
+        local backgroundTween = TweenService:Create(backgroundFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            BackgroundTransparency = 1
+        })
+        
+        closeTween:Play()
+        backgroundTween:Play()
+        
+        closeTween.Completed:Connect(function()
+            screenGui:Destroy()
+        end)
+    end
+
+    countdownConnection = RunService.Heartbeat:Connect(function()
+        local elapsed = os.time() - startTime
+        countdown = math.max(0, 10 - elapsed)
+        
+        if countdown <= 0 then
+            enableButton()
+        else
+            updateButtonText()
+        end
+    end)
+
+    okButton.MouseButton1Click:Connect(function()
+        if countdown <= 0 then
+            closePopup()
+        end
+    end)
+
+    backgroundFrame.MouseButton1Click:Connect(function()
+    end)
+
+    popupFrame.Size = UDim2.new(0, 0, 0, 0)
+    popupFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    popupFrame.BackgroundTransparency = 1
+    backgroundFrame.BackgroundTransparency = 1
+    
+    local bgTween = TweenService:Create(backgroundFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        BackgroundTransparency = 0.3
+    })
+    bgTween:Play()
+    
+    local popupTween = TweenService:Create(popupFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 400, 0, 350),
+        Position = UDim2.new(0.5, -200, 0.5, -175),
+        BackgroundTransparency = 0
+    })
+    popupTween:Play()
+end
+
+createPopup()
+
 local S_T = game:GetService("TeleportService")
 local S_H = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local GuiService = game:GetService("GuiService")
 local StarterGui = game:GetService("StarterGui")
 local AS = game:GetService("AssetService")
+local MarketplaceService = game:GetService("MarketplaceService")
 
 local AllIDs = {}
 local foundAnything = ""
@@ -181,7 +454,7 @@ local function createGUI()
     ScreenGui.Name = "ServerHopGUI"
     ScreenGui.Parent = game:GetService("CoreGui")
     ScreenGui.ResetOnSpawn = false
-    ScreenGui.DisplayOrder = 999999999
+    ScreenGui.DisplayOrder = 99
 
     local UIScale = Instance.new("UIScale")
     UIScale.Name = "UIScale_ScreenGui"
@@ -254,7 +527,7 @@ local function createGUI()
 
     local AdvancedControlsFrame = Instance.new("Frame")
     AdvancedControlsFrame.Name = "AdvancedControlsFrame"
-    AdvancedControlsFrame.Size = UDim2.new(0, 260, 0, 400)
+    AdvancedControlsFrame.Size = UDim2.new(0, 260, 0, 450)
     AdvancedControlsFrame.Position = UDim2.new(0, 340, 0, 50)
     AdvancedControlsFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
     AdvancedControlsFrame.BorderSizePixel = 0
@@ -276,6 +549,7 @@ local function createGUI()
     ServersListTitle.Font = Enum.Font.SourceSansBold
     ServersListTitle.TextScaled = true
     ServersListTitle.TextWrapped = true
+    ServersListTitle.TextTruncate = Enum.TextTruncate.AtEnd
     ServersListTitle.TextXAlignment = Enum.TextXAlignment.Center
     ServersListTitle.Parent = MainFrame
 
@@ -361,10 +635,24 @@ local function createGUI()
     CheckboxLabel.TextXAlignment = Enum.TextXAlignment.Left
     CheckboxLabel.Parent = CheckboxFrame
 
+    local GameNameLabel = Instance.new("TextLabel")
+    GameNameLabel.Name = "GameNameLabel"
+    GameNameLabel.Size = UDim2.new(0, 250, 0, 30)
+    GameNameLabel.Position = UDim2.new(0, 5, 0, 105)
+    GameNameLabel.BackgroundTransparency = 1
+    GameNameLabel.Text = "Game: Unknown"
+    GameNameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    GameNameLabel.TextSize = 16
+    GameNameLabel.Font = Enum.Font.SourceSansBold
+    GameNameLabel.TextScaled = true
+    GameNameLabel.TextWrapped = true
+    GameNameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    GameNameLabel.Parent = AdvancedControlsFrame
+
     local PlaceIdInput = Instance.new("TextBox")
     PlaceIdInput.Name = "PlaceIdInput"
     PlaceIdInput.Size = UDim2.new(0, 250, 0, 40)
-    PlaceIdInput.Position = UDim2.new(0, 5, 0, 110)
+    PlaceIdInput.Position = UDim2.new(0, 5, 0, 140)
     PlaceIdInput.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
     PlaceIdInput.TextColor3 = Color3.fromRGB(255, 255, 255)
     PlaceIdInput.TextSize = 18
@@ -385,7 +673,7 @@ local function createGUI()
     local PlayerCountInput = Instance.new("TextBox")
     PlayerCountInput.Name = "PlayerCountInput"
     PlayerCountInput.Size = UDim2.new(0, 250, 0, 40)
-    PlayerCountInput.Position = UDim2.new(0, 5, 0, 160)
+    PlayerCountInput.Position = UDim2.new(0, 5, 0, 190)
     PlayerCountInput.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
     PlayerCountInput.TextColor3 = Color3.fromRGB(255, 255, 255)
     PlayerCountInput.TextSize = 18
@@ -406,7 +694,7 @@ local function createGUI()
     local ServerIdInput = Instance.new("TextBox")
     ServerIdInput.Name = "ServerIdInput"
     ServerIdInput.Size = UDim2.new(0, 250, 0, 40)
-    ServerIdInput.Position = UDim2.new(0, 5, 0, 210)
+    ServerIdInput.Position = UDim2.new(0, 5, 0, 240)
     ServerIdInput.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
     ServerIdInput.TextColor3 = Color3.fromRGB(255, 255, 255)
     ServerIdInput.TextSize = 18
@@ -427,7 +715,7 @@ local function createGUI()
     local SearchInput = Instance.new("TextBox")
     SearchInput.Name = "SearchInput"
     SearchInput.Size = UDim2.new(0, 250, 0, 40)
-    SearchInput.Position = UDim2.new(0, 5, 0, 260)
+    SearchInput.Position = UDim2.new(0, 5, 0, 290)
     SearchInput.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
     SearchInput.TextColor3 = Color3.fromRGB(255, 255, 255)
     SearchInput.TextSize = 18
@@ -448,7 +736,7 @@ local function createGUI()
     local HopButton = Instance.new("TextButton")
     HopButton.Name = "HopButton"
     HopButton.Size = UDim2.new(0, 120, 0, 40)
-    HopButton.Position = UDim2.new(0, 5, 0, 310)
+    HopButton.Position = UDim2.new(0, 5, 0, 340)
     HopButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
     HopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
     HopButton.TextSize = 18
@@ -466,7 +754,7 @@ local function createGUI()
     local JoinServerButton = Instance.new("TextButton")
     JoinServerButton.Name = "JoinServerButton"
     JoinServerButton.Size = UDim2.new(0, 120, 0, 40)
-    JoinServerButton.Position = UDim2.new(0, 135, 0, 310)
+    JoinServerButton.Position = UDim2.new(0, 135, 0, 340)
     JoinServerButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
     JoinServerButton.TextColor3 = Color3.fromRGB(255, 255, 255)
     JoinServerButton.TextSize = 18
@@ -484,7 +772,7 @@ local function createGUI()
     local RefreshButton = Instance.new("TextButton")
     RefreshButton.Name = "RefreshButton"
     RefreshButton.Size = UDim2.new(0, 120, 0, 40)
-    RefreshButton.Position = UDim2.new(0, 5, 0, 360)
+    RefreshButton.Position = UDim2.new(0, 5, 0, 390)
     RefreshButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
     RefreshButton.TextColor3 = Color3.fromRGB(255, 255, 255)
     RefreshButton.TextSize = 18
@@ -797,6 +1085,7 @@ local function createGUI()
                 RowFrame.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
                 RowFrame.LayoutOrder = layoutOrder
                 RowFrame.Parent = GamesScrollingFrame
+                RowFrame.ClipsDescendants = true
 
                 local UICornerRow = Instance.new("UICorner")
                 UICornerRow.Name = "UICorner_RowFrame_" .. sanitizedName
@@ -983,6 +1272,188 @@ local function createGUI()
         ScrollingFrame.CanvasPosition = Vector2.new(0, 0)
 
         local placeId = tonumber(PlaceIdInput.Text) or game.PlaceId
+        local gameName = "Unknown Game"
+        pcall(function()
+            local info = MarketplaceService:GetProductInfo(placeId)
+            gameName = info.Name or "Unknown Game"
+        end)
+        GameNameLabel.Text = "Game: " .. gameName
+
+        local showCurrent = placeId == game.PlaceId
+        local layoutOrder = 0
+
+        local currentServerPlaying = "?"
+        local currentServerId = game.JobId
+        local currentMaxPlayers = "?"
+
+        if showCurrent then
+            local servers, err = findServers(placeId)
+            if not err then
+                for _, server in pairs(servers) do
+                    if server.id == game.JobId then
+                        currentServerPlaying = server.playing .. "/" .. server.maxPlayers
+                        currentMaxPlayers = server.maxPlayers
+                        break
+                    end
+                end
+            end
+
+            local HeaderFrame = Instance.new("Frame")
+            HeaderFrame.Name = "CurrentServerHeader"
+            HeaderFrame.Size = UDim2.new(1, -10, 0, 180)
+            HeaderFrame.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+            HeaderFrame.LayoutOrder = layoutOrder
+            HeaderFrame.Parent = ScrollingFrame
+
+            local UICornerHeader = Instance.new("UICorner")
+            UICornerHeader.Name = "UICorner_CurrentServerHeader"
+            UICornerHeader.CornerRadius = UDim.new(0, 8)
+            UICornerHeader.Parent = HeaderFrame
+
+            local UIStrokeHeader = Instance.new("UIStroke")
+            UIStrokeHeader.Name = "UIStroke_CurrentServerHeader"
+            UIStrokeHeader.Color = Color3.fromRGB(0, 90, 160)
+            UIStrokeHeader.Thickness = 1
+            UIStrokeHeader.Transparency = 0.5
+            UIStrokeHeader.Parent = HeaderFrame
+
+            local HeaderLabel = Instance.new("TextLabel")
+            HeaderLabel.Name = "HeaderLabel_CurrentServer"
+            HeaderLabel.Size = UDim2.new(1, -20, 0, 30)
+            HeaderLabel.Position = UDim2.new(0, 10, 0, 5)
+            HeaderLabel.BackgroundTransparency = 1
+            HeaderLabel.Text = "You're currently in this server"
+            HeaderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            HeaderLabel.TextSize = 28
+            HeaderLabel.Font = Enum.Font.SourceSansBold
+            HeaderLabel.TextXAlignment = Enum.TextXAlignment.Center
+            HeaderLabel.TextYAlignment = Enum.TextYAlignment.Center
+            HeaderLabel.Parent = HeaderFrame
+
+            local ServerFrame = Instance.new("Frame")
+            ServerFrame.Name = "CurrentServerFrame"
+            ServerFrame.Size = UDim2.new(1, -20, 0, 140)
+            ServerFrame.Position = UDim2.new(0, 10, 0, 35)
+            ServerFrame.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+            ServerFrame.Parent = HeaderFrame
+
+            local UICornerServer = Instance.new("UICorner")
+            UICornerServer.Name = "UICorner_CurrentServerFrame"
+            UICornerServer.CornerRadius = UDim.new(0, 8)
+            UICornerServer.Parent = ServerFrame
+
+            local UIStrokeServer = Instance.new("UIStroke")
+            UIStrokeServer.Name = "UIStroke_CurrentServerFrame"
+            UIStrokeServer.Color = Color3.fromRGB(60, 60, 60)
+            UIStrokeServer.Thickness = 1
+            UIStrokeServer.Transparency = 0.3
+            UIStrokeServer.Parent = ServerFrame
+
+            local PlayersLabel = Instance.new("TextLabel")
+            PlayersLabel.Name = "PlayersLabel_CurrentServer"
+            PlayersLabel.Size = UDim2.new(1, 0, 0, 30)
+            PlayersLabel.Position = UDim2.new(0, 0, 0, 10)
+            PlayersLabel.BackgroundTransparency = 1
+            PlayersLabel.Text = currentServerPlaying .. " players"
+            PlayersLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            PlayersLabel.TextSize = 18
+            PlayersLabel.Font = Enum.Font.SourceSansBold
+            PlayersLabel.TextScaled = true
+            PlayersLabel.TextWrapped = true
+            PlayersLabel.TextXAlignment = Enum.TextXAlignment.Left
+            PlayersLabel.Parent = ServerFrame
+
+            local IdLabel = Instance.new("TextLabel")
+            IdLabel.Name = "IdLabel_CurrentServer"
+            IdLabel.Size = UDim2.new(1, 0, 0, 60)
+            IdLabel.Position = UDim2.new(0, 0, 0, 40)
+            IdLabel.BackgroundTransparency = 1
+            IdLabel.Text = "Server ID: " .. currentServerId
+            IdLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+            IdLabel.TextSize = 16
+            IdLabel.Font = Enum.Font.SourceSans
+            IdLabel.TextScaled = true
+            IdLabel.TextWrapped = true
+            IdLabel.TextXAlignment = Enum.TextXAlignment.Left
+            IdLabel.Parent = ServerFrame
+
+            local ButtonsFrame = Instance.new("Frame")
+            ButtonsFrame.Name = "ButtonsFrame_CurrentServer"
+            ButtonsFrame.Size = UDim2.new(1, 0, 0, 35)
+            ButtonsFrame.Position = UDim2.new(0, 0, 0, 100)
+            ButtonsFrame.BackgroundTransparency = 1
+            ButtonsFrame.Parent = ServerFrame
+
+            local ButtonsLayout = Instance.new("UIListLayout")
+            ButtonsLayout.Name = "UIListLayout_ButtonsFrame_CurrentServer"
+            ButtonsLayout.FillDirection = Enum.FillDirection.Horizontal
+            ButtonsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+            ButtonsLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+            ButtonsLayout.Padding = UDim.new(0, 5)
+            ButtonsLayout.Parent = ButtonsFrame
+
+            local RejoinButton = Instance.new("TextButton")
+            RejoinButton.Name = "RejoinButton_CurrentServer"
+            RejoinButton.Size = UDim2.new(0, 140, 1, 0)
+            RejoinButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+            RejoinButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+            RejoinButton.TextSize = 14
+            RejoinButton.Font = Enum.Font.SourceSansBold
+            RejoinButton.Text = "Rejoin"
+            RejoinButton.TextScaled = true
+            RejoinButton.TextWrapped = true
+            RejoinButton.Parent = ButtonsFrame
+
+            local UICornerRejoin = Instance.new("UICorner")
+            UICornerRejoin.Name = "UICorner_RejoinButton_CurrentServer"
+            UICornerRejoin.CornerRadius = UDim.new(0, 6)
+            UICornerRejoin.Parent = RejoinButton
+
+            RejoinButton.MouseButton1Click:Connect(function()
+                if not guiVisible then return end
+                Status.Text = "Rejoining current server..."
+                local success, err = pcall(function()
+                    S_T:TeleportToPlaceInstance(placeId, game.JobId, Players.LocalPlayer)
+                end)
+                if not success then
+                    Status.Text = "Rejoin failed: " .. tostring(err)
+                end
+            end)
+
+            local CopyButton = Instance.new("TextButton")
+            CopyButton.Name = "CopyButton_CurrentServer"
+            CopyButton.Size = UDim2.new(0, 140, 1, 0)
+            CopyButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+            CopyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+            CopyButton.TextSize = 14
+            CopyButton.Font = Enum.Font.SourceSansBold
+            CopyButton.Text = "Copy Server Link"
+            CopyButton.TextScaled = true
+            CopyButton.TextWrapped = true
+            CopyButton.Parent = ButtonsFrame
+
+            local UICornerCopy = Instance.new("UICorner")
+            UICornerCopy.Name = "UICorner_CopyButton_CurrentServer"
+            UICornerCopy.CornerRadius = UDim.new(0, 6)
+            UICornerCopy.Parent = CopyButton
+
+            CopyButton.MouseButton1Click:Connect(function()
+                if not guiVisible then return end
+                local serverLink = "https://www.roblox.com/games/start?placeId=" .. placeId .. "&jobId=" .. game.JobId
+                pcall(function()
+                    setclipboard(serverLink)
+                    StarterGui:SetCore("SendNotification", {
+                        Title = "Server Link Copied",
+                        Text = "Current server link copied to clipboard!",
+                        Duration = 3
+                    })
+                end)
+                Status.Text = "Current server link copied!"
+            end)
+
+            layoutOrder = 1
+        end
+
         local servers, err = findServers(placeId)
         if err then
             Status.Text = err
@@ -990,11 +1461,20 @@ local function createGUI()
         end
         serverList = servers
 
-        local filteredServers = serverList
+        local filteredServers = {}
         if filterPlayerCount and filterPlayerCount >= 0 then
-            filteredServers = {}
             for _, server in pairs(serverList) do
-                if server.playing == filterPlayerCount then
+                if showCurrent and server.id == game.JobId then
+                else
+                    if server.playing == filterPlayerCount then
+                        table.insert(filteredServers, server)
+                    end
+                end
+            end
+        else
+            for _, server in pairs(serverList) do
+                if showCurrent and server.id == game.JobId then
+                else
                     table.insert(filteredServers, server)
                 end
             end
@@ -1024,7 +1504,7 @@ local function createGUI()
             ServerFrame.Size = UDim2.new(1, -10, 0, 140)
             ServerFrame.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
             ServerFrame.BorderSizePixel = 0
-            ServerFrame.LayoutOrder = i
+            ServerFrame.LayoutOrder = layoutOrder + i - 1
             ServerFrame.Parent = ScrollingFrame
 
             local UICornerServer = Instance.new("UICorner")
@@ -1127,7 +1607,8 @@ local function createGUI()
             end)
         end
 
-        Status.Text = "Found " .. #filteredServers .. " servers for Place ID: " .. placeId
+        local serverCountText = showCurrent and #filteredServers + 1 or #filteredServers
+        Status.Text = "Found " .. serverCountText .. " servers for Place ID: " .. placeId
     end
 
     local function restrictInput(textbox, maxLength, numbersOnly)
@@ -1312,5 +1793,3 @@ end
 function module:JoinServerById(placeId, serverId)
     return joinServerById(placeId, serverId)
 end
-
-return module
