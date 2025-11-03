@@ -246,3 +246,102 @@ UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
         }):Set(getgenv().autoJumpEnabled)
     end
 end)
+
+
+-- auto emote removed 
+
+
+local emoteList = {}
+
+local success, emotesFolder = pcall(function()
+    return game:GetService("ReplicatedStorage").Items.Emotes
+end)
+
+if success and typeof(emotesFolder) == "Instance" then
+    for _, emote in ipairs(emotesFolder:GetChildren()) do
+        if emote:IsA("ModuleScript") or emote:IsA("LocalScript") or emote:IsA("Script") then
+            table.insert(emoteList, emote.Name)
+        end
+    end
+end
+
+getgenv().SelectedEmote = nil
+getgenv().EmoteEnabled = false
+local AutoEmoteToggle = Tabs.Auto:Toggle({
+    Title = "Auto Emote (Hold Crouch Button)",
+    Value = false,
+    Callback = function(state)
+        getgenv().EmoteEnabled = state
+    end
+})
+local EmoteDropdown = Tabs.Auto:Dropdown({
+    Title = "Select Emote",
+    Values = emoteList,
+    Multi = false,
+    Callback = function(option)
+        getgenv().SelectedEmote = option
+    end
+})
+
+    local AutoCarryToggle = Tabs.Auto:Toggle({
+        Title = "loc:AUTO_CARRY",
+        Value = false,
+        Callback = function(state)
+            featureStates.AutoCarry = state
+            if state then
+                startAutoCarry()
+            else
+                stopAutoCarry()
+            end
+        end
+    })
+EmoteDropdown", EmoteDropdown)
+configFile:Register("AutoEmoteToggle", AutoEmoteToggle)
+
+task.spawn(function()
+    local Players = game:GetService("Players")
+    local player = Players.LocalPlayer
+    local guiPath = { "PlayerGui", "Shared", "HUD", "Mobile", "Right", "Mobile", "CrouchButton" }
+
+    local function waitForDescendant(parent, name)
+        local found = parent:FindFirstChild(name, true)
+        while not found do
+            parent.DescendantAdded:Wait()
+            found = parent:FindFirstChild(name, true)
+        end
+        return found
+    end
+
+    local function connectCrouchButton()
+        local gui = player:WaitForChild(guiPath[1])
+        for i = 2, #guiPath do
+            gui = waitForDescendant(gui, guiPath[i])
+        end
+        local button = gui
+
+        local holding = false
+        local validHold = false
+
+        button.MouseButton1Down:Connect(function()
+            holding = true
+            validHold = true
+            task.delay(0.5, function()
+                if holding and validHold and getgenv().EmoteEnabled and getgenv().SelectedEmote then
+                    local args = { [1] = getgenv().SelectedEmote }
+                    game:GetService("ReplicatedStorage"):WaitForChild("Events", 9e9):WaitForChild("Character", 9e9):WaitForChild("Emote", 9e9):FireServer(unpack(args))
+                end
+            end)
+        end)
+
+        button.MouseButton1Up:Connect(function()
+            holding = false
+            validHold = false
+        end)
+    end
+
+    while true do
+        pcall(connectCrouchButton)
+        task.wait(1)
+    end
+end)
+end
