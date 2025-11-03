@@ -818,22 +818,6 @@ local currentSettings = {
     JumpCap = "1",
     AirStrafeAcceleration = "187"
 }
-local emoteList = {}
-
-local success, emotesFolder = pcall(function()
-    return game:GetService("ReplicatedStorage").Items.Emotes
-end)
-
-if success and typeof(emotesFolder) == "Instance" then
-    for _, emote in ipairs(emotesFolder:GetChildren()) do
-        if emote:IsA("ModuleScript") or emote:IsA("LocalScript") or emote:IsA("Script") then
-            table.insert(emoteList, emote.Name)
-        end
-    end
-end
-
-getgenv().SelectedEmote = nil
-getgenv().EmoteEnabled = false
 local appliedOnce = false
 local playerModelPresent = false
 local gameStatsPath = workspace:WaitForChild("Game"):WaitForChild("Stats")
@@ -3413,6 +3397,169 @@ task.spawn(function()
 end)
 
 restartSystemOnEvents()
+local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+
+Tabs.Main:Section({ Title = "Emote Crouch", TextSize = 20 })
+Tabs.Main:Divider()
+
+local emoteInputs = {}
+for i = 1, 12 do
+    emoteInputs[i] = Tabs.Main:Input({
+        Title = "Emote " .. i,
+        Placeholder = "Emote Name Here",
+        Callback = function(value)
+            featureStates["Emote" .. i] = value
+        end
+    })
+end
+
+local emoteGui = nil
+local emoteGuiButton = nil
+local emoteInputConnection = nil
+local emoteGuiVisible = false
+
+local function makeDraggable(frame)
+    frame.Active = true
+    frame.Draggable = true
+    pcall(function()
+        local dragDetector = Instance.new("UIDragDetector")
+        dragDetector.Parent = frame
+    end)
+    local originalBackground = frame.BackgroundColor3
+    local originalTransparency = frame.BackgroundTransparency
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            frame.BackgroundTransparency = originalTransparency - 0.1
+        end
+    end)
+    frame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            frame.BackgroundTransparency = originalTransparency
+        end
+    end)
+end
+
+local function triggerRandomEmote()
+    local validEmotes = {}
+    for i = 1, 12 do
+        local emoteName = featureStates["Emote" .. i]
+        if emoteName and emoteName ~= "" then
+            table.insert(validEmotes, emoteName)
+        end
+    end
+    if #validEmotes > 0 then
+        local ohTable1 = { ["Key"] = "Crouch", ["Down"] = true }
+        pcall(function()
+            player.PlayerScripts.Events.temporary_events.UseKeybind:Fire(ohTable1)
+        end)
+        local randomEmote = validEmotes[math.random(1, #validEmotes)]
+        pcall(function()
+            ReplicatedStorage.Events.Character.Emote:FireServer(randomEmote)
+        end)
+    end
+end
+
+local function createEmoteGui(yOffset)
+    local emoteGuiOld = playerGui:FindFirstChild("EmoteGui")
+    if emoteGuiOld then emoteGuiOld:Destroy() end
+    emoteGui = Instance.new("ScreenGui")
+    emoteGui.Name = "EmoteGui"
+    emoteGui.IgnoreGuiInset = true
+    emoteGui.ResetOnSpawn = false
+    emoteGui.Enabled = emoteGuiVisible and isMobile
+    emoteGui.Parent = playerGui
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 60, 0, 60)
+    frame.Position = UDim2.new(0.5, -30, 0.12 + (yOffset or 0), 0)
+    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    frame.BackgroundTransparency = 0.35
+    frame.BorderSizePixel = 0
+    frame.Parent = emoteGui
+    makeDraggable(frame)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = frame
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(150, 150, 150)
+    stroke.Thickness = 2
+    stroke.Parent = frame
+    local label = Instance.new("TextLabel")
+    label.Text = "Emote Crouch"
+    label.Size = UDim2.new(0.9, 0, 0.5, 0)
+    label.Position = UDim2.new(0.05, 0, 0, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Font = Enum.Font.Roboto
+    label.TextSize = 16
+    label.TextXAlignment = Enum.TextXAlignment.Center
+    label.TextYAlignment = Enum.TextYAlignment.Center
+    label.TextScaled = true
+    label.Parent = frame
+    emoteGuiButton = Instance.new("TextButton")
+    emoteGuiButton.Name = "TriggerButton"
+    emoteGuiButton.Text = "Start"
+    emoteGuiButton.Size = UDim2.new(0.9, 0, 0.5, 0)
+    emoteGuiButton.Position = UDim2.new(0.05, 0, 0.5, 0)
+    emoteGuiButton.BackgroundColor3 = Color3.fromRGB(0, 120, 80)
+    emoteGuiButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    emoteGuiButton.Font = Enum.Font.Roboto
+    emoteGuiButton.TextSize = 14
+    emoteGuiButton.TextXAlignment = Enum.TextXAlignment.Center
+    emoteGuiButton.TextYAlignment = Enum.TextYAlignment.Center
+    emoteGuiButton.TextScaled = true
+    emoteGuiButton.Parent = frame
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 4)
+    buttonCorner.Parent = emoteGuiButton
+    emoteGuiButton.MouseButton1Click:Connect(function()
+        triggerRandomEmote()
+    end)
+end
+
+EmoteGUIToggle = Tabs.Main:Toggle({
+    Title = "Emote Crouch",
+    Desc = "Press J keybind if you have keyboard, Only type emote name without space and inside your emote slot will work",
+    Value = false,
+    Callback = function(state)
+        emoteGuiVisible = state
+        if state then
+            if emoteInputConnection then
+                emoteInputConnection:Disconnect()
+            end
+            spawn(function()
+                emoteInputConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+                    if gameProcessed then return end
+                    if input.KeyCode == Enum.KeyCode.J then
+                        triggerRandomEmote()
+                    end
+                end)
+            end)
+            
+            if isMobile and not emoteGui then
+                createEmoteGui(0)
+            elseif emoteGui then
+                emoteGui.Enabled = isMobile
+            end
+        else
+            if emoteGui then
+                emoteGui:Destroy()
+                emoteGui = nil
+                emoteGuiButton = nil
+            end
+            if emoteInputConnection then
+                emoteInputConnection:Disconnect()
+                emoteInputConnection = nil
+            end
+        end
+    end
+})
+
+player.CharacterAdded:Connect(function()
+    if emoteGuiVisible and isMobile and not emoteGui then
+        createEmoteGui(0)
+    end
+end)
+
    -- Player Tabs
    Tabs.Player:Section({ Title = "Player", TextSize = 40 })
     Tabs.Player:Divider()
@@ -5668,34 +5815,6 @@ AutoCrouchModeDropdown = Tabs.Auto:Dropdown({
     end
 })
 
-AutoEmoteToggle = Tabs.Auto:Toggle({
-    Title = "Auto Emote (Hold Crouch Button)",
-    Value = false,
-    Callback = function(state)
-        getgenv().EmoteEnabled = state
-    end
-})
-EmoteDropdown = Tabs.Auto:Dropdown({
-    Title = "Select Emote",
-    Values = emoteList,
-    Multi = false,
-    Callback = function(option)
-        getgenv().SelectedEmote = option
-    end
-})
-
-    AutoCarryToggle = Tabs.Auto:Toggle({
-        Title = "loc:AUTO_CARRY",
-        Value = false,
-        Callback = function(state)
-            featureStates.AutoCarry = state
-            if state then
-                startAutoCarry()
-            else
-                stopAutoCarry()
-            end
-        end
-    })
 
 getgenv().autoCarryGuiVisible = false
 
@@ -7264,8 +7383,6 @@ Tabs.Teleport:Button({
                 configFile:Register("NextbotRainbowTracersToggle", NextbotRainbowTracersToggle)
                 configFile:Register("DownedBoxESPToggle", DownedBoxESPToggle)
                 configFile:Register("DownedBoxTypeDropdown", DownedBoxTypeDropdown)
-                configFile:Register("EmoteDropdown", EmoteDropdown)
-configFile:Register("AutoEmoteToggle", AutoEmoteToggle)
  configFile:Register("NoFogToggle", NoFogToggle)
                 configFile:Register("DownedTracerToggle", DownedTracerToggle)
                 configFile:Register("DownedNameESPToggle", DownedNameESPToggle)
@@ -7717,56 +7834,7 @@ MainTab.Input = function(self, config)
     }
     return input
 end
-
-
-task.spawn(function()
-    local Players = game:GetService("Players")
-    local player = Players.LocalPlayer
-    local guiPath = { "PlayerGui", "Shared", "HUD", "Mobile", "Right", "Mobile", "CrouchButton" }
-
-    local function waitForDescendant(parent, name)
-        local found = parent:FindFirstChild(name, true)
-        while not found do
-            parent.DescendantAdded:Wait()
-            found = parent:FindFirstChild(name, true)
-        end
-        return found
-    end
-
-    local function connectCrouchButton()
-        local gui = player:WaitForChild(guiPath[1])
-        for i = 2, #guiPath do
-            gui = waitForDescendant(gui, guiPath[i])
-        end
-        local button = gui
-
-        local holding = false
-        local validHold = false
-
-        button.MouseButton1Down:Connect(function()
-            holding = true
-            validHold = true
-            task.delay(0.5, function()
-                if holding and validHold and getgenv().EmoteEnabled and getgenv().SelectedEmote then
-                    local args = { [1] = getgenv().SelectedEmote }
-                    game:GetService("ReplicatedStorage"):WaitForChild("Events", 9e9):WaitForChild("Character", 9e9):WaitForChild("Emote", 9e9):FireServer(unpack(args))
-                end
-            end)
-        end)
-
-        button.MouseButton1Up:Connect(function()
-            holding = false
-            validHold = false
-        end)
-    end
-
-    while true do
-        pcall(connectCrouchButton)
-        task.wait(1)
-    end
-end)
 end
-
 if not featureStates then
     featureStates = {
         CustomGravity = false,
