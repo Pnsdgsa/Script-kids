@@ -5265,7 +5265,7 @@ BoxticketTypeDropdown = Tabs.ESP:Dropdown({
     end
 })
 getgenv().bhopMode = "Acceleration"
-getgenv().bhopAccelValue = -0.5  -- Changed to -0.5 for faster acceleration
+getgenv().bhopAccelValue = -0.5
 getgenv().bhopHoldActive = false
 featureStates.BhopGuiVisible = false
 
@@ -5274,31 +5274,21 @@ local isMobile = isMobile or UserInputService.TouchEnabled
 local bhopConnection = nil
 local bhopLoaded = false
 local bhopKeyConnection = nil
-local frictionTables = {}  -- Cache for tables with Friction {obj, original}
-
-local LastJump = 0
-local JUMP_COOLDOWN = 0.1
+local frictionTables = {}
 
 local function findFrictionTables()
     frictionTables = {}
     for _, t in pairs(getgc(true)) do
         if type(t) == "table" and rawget(t, "Friction") then
-            table.insert(frictionTables, {obj = t, original = t.Friction})
+            frictionTables[#frictionTables + 1] = t
         end
     end
 end
 
 local function setFriction(value)
-    for _, e in ipairs(frictionTables) do
-        e.obj.Friction = value
+    for _, t in ipairs(frictionTables) do
+        t.Friction = value
     end
-end
-
-local function resetBhopFriction()
-    for _, e in ipairs(frictionTables) do
-        e.obj.Friction = e.original
-    end
-    frictionTables = {}
 end
 
 local function applyBhopFriction()
@@ -5307,21 +5297,13 @@ local function applyBhopFriction()
             findFrictionTables()
         end
         setFriction(getgenv().bhopAccelValue or -0.5)
-    else
-        resetBhopFriction()
     end
 end
 
-local function IsOnGround(character, humanoid)
-    local root = character:FindFirstChild("HumanoidRootPart")
-    if not root then return false end
-    
-    local params = RaycastParams.new()
-    params.FilterDescendantsInstances = {character}
-    params.FilterType = Enum.RaycastFilterType.Exclude
-    
-    local rayResult = workspace:Raycast(root.Position, Vector3.new(0, - (humanoid.HipHeight + 0.1), 0), params)
-    return rayResult ~= nil
+local function resetBhopFriction()
+    if #frictionTables > 0 then
+        setFriction(5)
+    end
 end
 
 local function makeDraggable(frame)
@@ -5358,12 +5340,8 @@ local function updateBhop()
 
     local isBhopActive = getgenv().autoJumpEnabled or getgenv().bhopHoldActive
 
-    if isBhopActive then
-        local now = tick()
-        if IsOnGround(character, humanoid) and (now - LastJump) > JUMP_COOLDOWN then
-            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-            LastJump = now
-        end
+    if isBhopActive and humanoid:GetState() ~= Enum.HumanoidStateType.Jumping and humanoid:GetState() ~= Enum.HumanoidStateType.Freefall then
+        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
     end
 end
 
@@ -5376,6 +5354,11 @@ local function loadBhop()
         bhopConnection:Disconnect()
     end
     bhopConnection = RunService.Heartbeat:Connect(updateBhop)
+    
+    local isBhopActive = getgenv().autoJumpEnabled or getgenv().bhopHoldActive
+    if isBhopActive then
+        applyBhopFriction()
+    end
 end
 
 local function unloadBhop()
@@ -5388,17 +5371,22 @@ local function unloadBhop()
         bhopConnection = nil
     end
     
+    resetBhopFriction()
     getgenv().bhopHoldActive = false
 end
 
 local function checkBhopState()
     local shouldLoad = getgenv().autoJumpEnabled or getgenv().bhopHoldActive
     
-    if shouldLoad then
+    if shouldLoad and not bhopLoaded then
         loadBhop()
+    elseif not shouldLoad and bhopLoaded then
+        unloadBhop()
+    end
+    
+    if shouldLoad then
         applyBhopFriction()
     else
-        unloadBhop()
         resetBhopFriction()
     end
 end
@@ -5535,7 +5523,6 @@ setupBhopKeybind()
 
 player.CharacterAdded:Connect(function()
     setupJumpButton()
-    LastJump = 0
 end)
 
 BhopToggle = Tabs.Auto:Toggle({
@@ -5599,7 +5586,9 @@ BhopAccelInput = Tabs.Auto:Input({
             local n = tonumber(value)
             if n then
                 getgenv().bhopAccelValue = n
-                checkBhopState()
+                if getgenv().bhopMode == "Acceleration" then
+                    applyBhopFriction()
+                end
             end
         end
     end
@@ -5623,7 +5612,6 @@ end)
 Players.PlayerRemoving:Connect(function(leavingPlayer)
     if leavingPlayer == player then
         unloadBhop()
-        resetBhopFriction()
         if jumpGui then
             jumpGui:Destroy()
         end
