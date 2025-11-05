@@ -112,7 +112,7 @@ if featureStates.DisableCameraShake == nil then
 end
 Window:SetIconSize(48)
 Window:Tag({
-    Title = "v1.2.7",
+    Title = "v1.2.8",
     Color = Color3.fromHex("#30ff6a")
 })
 
@@ -794,6 +794,92 @@ local featureStates = {
     TimerDisplay = false
 }
 -- Variables
+local Events = ReplicatedStorage:WaitForChild("Events",10)
+local CharacterFolder = Events:WaitForChild("Character",10)
+local EmoteRemote = CharacterFolder:WaitForChild("Emote",10)
+local PassCharacterInfo = CharacterFolder:WaitForChild("PassCharacterInfo",10)
+
+local remoteSignal = PassCharacterInfo and PassCharacterInfo.OnClientEvent
+local currentTag = nil
+local currentEmotes = table.create(12,"")
+local selectEmotes = table.create(12,"")
+local emoteEnabled = table.create(12,false)
+
+local function readTagFromFolder(f)
+    local a = f:GetAttribute("Tag")
+    if a ~= nil then return a end
+    local o = f:FindFirstChild("Tag")
+    if o and o:IsA("ValueBase") then return o.Value end
+    return nil
+end
+
+local function onRespawn()
+    repeat task.wait() until workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players")
+    local pf = workspace.Game.Players:WaitForChild(player.Name,10)
+    if not pf then warn("Player folder missing after respawn"); currentTag=nil; return end
+    currentTag = readTagFromFolder(pf)
+    if currentTag then
+        local b = tonumber(currentTag)
+        if b and b>=0 and b<=255 then
+            print(string.format("Respawn to TAG captured: %d",b))
+        else
+            warn(string.format("Respawn to Invalid TAG: %s",tostring(currentTag)))
+            currentTag=nil
+        end
+    else
+        print("Respawn to No TAG found")
+        currentTag=nil
+    end
+end
+
+local pendingSlot = nil
+local function fireSelect(slot)
+    if not currentTag then return end
+    local b = tonumber(currentTag)
+    local buf = buffer.create(2)
+    buffer.writeu8(buf,0,b)
+    buffer.writeu8(buf,1,17)
+    if remoteSignal then
+        firesignal(remoteSignal,buf,{selectEmotes[slot]})
+        print(string.format("Fired %s with byte \\%d\\17 (TAG=%d)",selectEmotes[slot],b,b))
+    end
+end
+
+if PassCharacterInfo then
+    PassCharacterInfo.OnClientEvent:Connect(function()
+        if not pendingSlot then return end
+        fireSelect(pendingSlot)
+        pendingSlot = nil
+    end)
+
+    local oldNamecall
+    oldNamecall = hookmetamethod(game,"__namecall",function(self,...)
+        local m = getnamecallmethod()
+        local a = {...}
+        if m=="FireServer" and self==EmoteRemote and type(a[1])=="string" then
+            for i=1,12 do
+                if emoteEnabled[i] and currentEmotes[i]~="" and a[1]==currentEmotes[i] then
+                    pendingSlot = i
+                    print("Detected current emote:",currentEmotes[i],"to waiting for PassCharacterInfo...")
+                    task.spawn(function()
+                        task.wait(0.5)
+                        if pendingSlot == i then
+                            fireSelect(i)
+                            pendingSlot = nil
+                        end
+                    end)
+                    return
+                end
+            end
+        end
+        return oldNamecall(self,...)
+    end)
+
+    if player.Character then
+        onRespawn()
+    end
+    player.CharacterAdded:Connect(onRespawn)
+end
 local character, humanoid, rootPart
 local isJumpHeld = false
 local hasRevived = false
@@ -4256,6 +4342,56 @@ TimerDisplayToggle = Tabs.Visuals:Toggle({
         end
     end
 })
+    Tabs.Visuals:Section({ Title = "Emote Changer", TextSize = 20 })
+    Tabs.Visuals:Divider()
+    
+    for i=1,12 do
+        Tabs.Visuals:Input({
+            Title="Current Emote "..i,
+            Placeholder="Enter current emote name",
+            Value=currentEmotes[i],
+            Callback=function(v) 
+                currentEmotes[i]=v:gsub("%s+", "")
+            end
+        })
+    end
+    
+    Tabs.Visuals:Divider()
+    
+    for i=1,12 do
+        Tabs.Visuals:Input({
+            Title="Select Emote "..i,
+            Placeholder="Enter select emote name",
+            Value=selectEmotes[i],
+            Callback=function(v) 
+                selectEmotes[i]=v:gsub("%s+", "")
+            end
+        })
+    end
+    
+    Tabs.Visuals:Button({
+        Title="Apply Emote Mappings",
+        Icon="refresh-cw",
+        Callback=function()
+            for i=1,12 do
+                emoteEnabled[i] = (currentEmotes[i]~="" and selectEmotes[i]~="")
+            end
+            WindUI:Notify({Title="Emote Changer",Content="Emote mappings applied!"})
+        end
+    })
+
+    Tabs.Visuals:Button({
+        Title="Reset All Emotes",
+        Icon="trash-2",
+        Callback=function()
+            for i=1,12 do
+                currentEmotes[i]=""
+                selectEmotes[i]=""
+                emoteEnabled[i]=false
+            end
+            WindUI:Notify({Title="Emote Changer",Content="All emotes reset!"})
+        end
+    })
     -- ESP Tab
     Tabs.ESP:Section({ Title = "ESP", TextSize = 40 })
     Tabs.ESP:Divider()
