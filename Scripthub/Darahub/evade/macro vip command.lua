@@ -34,8 +34,8 @@ local function safeWriteFile(path, data)
 	return success
 end
 
-local CONFIG_DIR = "MacroManager"
-local CONFIG_FILE = CONFIG_DIR .. "/presets.json"
+local CONFIG_DIR = "DaraHub"
+local CONFIG_FILE = CONFIG_DIR .. "/EvadeMacroVipCMD.json"
 
 if isfolder and not isfolder(CONFIG_DIR) then makefolder(CONFIG_DIR) end
 
