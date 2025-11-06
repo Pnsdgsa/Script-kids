@@ -1,3 +1,7 @@
+Nov 7th v1.3 added Cola Modifier 
+Such As Unlimited Cola remote Blocking 
+Cola Speed booster
+
 nov 6th V1.2.9 Added Speed pad booster 
 jump pad booster 
 and Cosmetics Changer
