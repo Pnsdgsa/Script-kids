@@ -223,3 +223,72 @@ autoSaveConfig()
 
 
 loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/macro%20vip%20command.lua'))()
+
+
+
+
+-- revote button fixed
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local globalGui = playerGui:WaitForChild("Global", 10)
+if not globalGui then warn("Global GUI not found") return end
+
+local canDisable = globalGui:WaitForChild("CanDisable", 10)
+if not canDisable then warn("CanDisable not found") return end
+
+local voteActive = canDisable:WaitForChild("VoteActive", 10)
+if not voteActive then warn("VoteActive not found") return end
+
+local voteWindow = canDisable:WaitForChild("Vote", 10)
+if not voteWindow then warn("Vote not found") return end
+
+-- Get the button: Prioritize Revote if visible (keyboard), else MaximizeButton
+local button
+if voteActive:FindFirstChild("Revote") and voteActive.Revote.Visible then
+    button = voteActive.Revote
+    print("Using Revote button")
+else
+    button = voteActive:WaitForChild("MaximizeButton", 5)
+    print("Using MaximizeButton")
+end
+
+if not button then warn("Button not found") return end
+
+local function onButtonActivated()
+    local success, err = pcall(function()
+        local debounce = voteActive:GetAttribute("LastRevote") or 0
+        if tick() - debounce <= 1 then
+            warn("Revote debounced")
+            return
+        end
+        voteActive:SetAttribute("LastRevote", tick())
+        
+        voteWindow.Visible = true
+        voteActive.Visible = false
+        
+        print("Map revote button triggered successfully!")
+    end)
+    
+    if not success then
+        warn("Error in button activation: " .. tostring(err))
+        voteWindow.Visible = true
+        voteActive.Visible = false
+        print("Fallback: Forced map voting window open.")
+    end
+end
+
+local connection
+connection = button.Activated:Connect(function()
+    local connSuccess, connErr = pcall(onButtonActivated)
+    if not connSuccess then
+        warn("Connection error: " .. tostring(connErr))
+    end
+end)
+
+print("Button fixed with error handling. Connection ID:", connection)
+
+player.AncestryChanged:Connect(function()
+    if connection then connection:Disconnect() end
+end)
