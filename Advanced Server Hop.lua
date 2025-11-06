@@ -2,6 +2,7 @@ local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local GuiService = game:GetService("GuiService")
 
 local function createPopup()
     local settingsFile = "darahub/serverfindertipspopup_settings.txt"
@@ -37,6 +38,15 @@ local function createPopup()
     screenGui.DisplayOrder = 999999
     screenGui.ResetOnSpawn = false
 
+    local UIScale = Instance.new("UIScale")
+    UIScale.Name = "UIScale_Popup"
+    UIScale.Parent = screenGui
+    local screenSize = GuiService:GetScreenResolution()
+    if screenSize then
+        local baseResolution = 1920
+        UIScale.Scale = math.min(1.5, screenSize.X / baseResolution)
+    end
+
     local backgroundFrame = Instance.new("TextButton")
     backgroundFrame.Size = UDim2.new(1, 0, 1, 0)
     backgroundFrame.Position = UDim2.new(0, 0, 0, 0)
@@ -47,8 +57,8 @@ local function createPopup()
     backgroundFrame.Parent = screenGui
 
     local popupFrame = Instance.new("Frame")
-    popupFrame.Size = UDim2.new(0, 400, 0, 350)
-    popupFrame.Position = UDim2.new(0.5, -200, 0.5, -175)
+    popupFrame.Size = UDim2.new(0, 560, 0, 490)
+    popupFrame.Position = UDim2.new(0.5, -280, 0.5, -245)
     popupFrame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
     popupFrame.BorderSizePixel = 0
     popupFrame.Parent = screenGui
@@ -59,11 +69,11 @@ local function createPopup()
 
     local stroke = Instance.new("UIStroke")
     stroke.Color = Color3.new(0.3, 0.3, 0.3)
-    stroke.Thickness = 2
+    stroke.Thickness = 3
     stroke.Parent = popupFrame
 
     local titleLabel = Instance.new("TextLabel")
-    titleLabel.Size = UDim2.new(1, 0, 0, 50)
+    titleLabel.Size = UDim2.new(1, 0, 0, 70)
     titleLabel.Position = UDim2.new(0, 0, 0, 0)
     titleLabel.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
     titleLabel.BorderSizePixel = 0
@@ -78,11 +88,11 @@ local function createPopup()
     titleCorner.Parent = titleLabel
 
     local scrollFrame = Instance.new("ScrollingFrame")
-    scrollFrame.Size = UDim2.new(1, -20, 1, -170)
-    scrollFrame.Position = UDim2.new(0, 10, 0, 60)
+    scrollFrame.Size = UDim2.new(1, -28, 1, -238)
+    scrollFrame.Position = UDim2.new(0, 14, 0, 84)
     scrollFrame.BackgroundTransparency = 1
     scrollFrame.BorderSizePixel = 0
-    scrollFrame.ScrollBarThickness = 6
+    scrollFrame.ScrollBarThickness = 8
     scrollFrame.Parent = popupFrame
 
     local contentLabel = Instance.new("TextLabel")
@@ -91,7 +101,7 @@ local function createPopup()
     contentLabel.BackgroundTransparency = 1
     contentLabel.Text = "In order to make all features work please use good executor and disable verify teleport other wise some feature will not work.\n\nsometimes this script may search duplicated server list, refresh the server to solve the problem, this bug will be patching soon.\n\nWait 10s to able to click okay"
     contentLabel.TextColor3 = Color3.new(1, 1, 1)
-    contentLabel.TextSize = 14
+    contentLabel.TextSize = 20
     contentLabel.TextWrapped = true
     contentLabel.Font = Enum.Font.Gotham
     contentLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -101,19 +111,19 @@ local function createPopup()
     scrollFrame.CanvasSize = UDim2.new(0, 0, 0, contentLabel.TextBounds.Y)
 
     local checkboxFrame = Instance.new("Frame")
-    checkboxFrame.Size = UDim2.new(1, -20, 0, 30)
-    checkboxFrame.Position = UDim2.new(0, 10, 1, -110)
+    checkboxFrame.Size = UDim2.new(1, -28, 0, 42)
+    checkboxFrame.Position = UDim2.new(0, 14, 1, -154)
     checkboxFrame.BackgroundTransparency = 1
     checkboxFrame.Parent = popupFrame
 
     local checkboxButton = Instance.new("TextButton")
-    checkboxButton.Size = UDim2.new(0, 20, 0, 20)
-    checkboxButton.Position = UDim2.new(0, 0, 0, 5)
+    checkboxButton.Size = UDim2.new(0, 28, 0, 28)
+    checkboxButton.Position = UDim2.new(0, 0, 0, 7)
     checkboxButton.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
     checkboxButton.BorderSizePixel = 0
     checkboxButton.Text = ""
     checkboxButton.TextColor3 = Color3.new(1, 1, 1)
-    checkboxButton.TextSize = 14
+    checkboxButton.TextSize = 20
     checkboxButton.Font = Enum.Font.GothamBold
     checkboxButton.AutoButtonColor = true
     checkboxButton.Parent = checkboxFrame
@@ -129,11 +139,11 @@ local function createPopup()
 
     local checkboxLabel = Instance.new("TextLabel")
     checkboxLabel.Size = UDim2.new(1, -30, 1, 0)
-    checkboxLabel.Position = UDim2.new(0, 25, 0, 0)
+    checkboxLabel.Position = UDim2.new(0, 35, 0, 0)
     checkboxLabel.BackgroundTransparency = 1
     checkboxLabel.Text = "Never show this message again"
     checkboxLabel.TextColor3 = Color3.new(1, 1, 1)
-    checkboxLabel.TextSize = 12
+    checkboxLabel.TextSize = 17
     checkboxLabel.TextXAlignment = Enum.TextXAlignment.Left
     checkboxLabel.Font = Enum.Font.Gotham
     checkboxLabel.Parent = checkboxFrame
@@ -153,19 +163,19 @@ local function createPopup()
     end)
 
     local okButton = Instance.new("TextButton")
-    okButton.Size = UDim2.new(0, 120, 0, 40)
-    okButton.Position = UDim2.new(0.5, -60, 1, -60)
+    okButton.Size = UDim2.new(0, 168, 0, 56)
+    okButton.Position = UDim2.new(0.5, -84, 1, -84)
     okButton.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
     okButton.BorderSizePixel = 0
     okButton.Text = "Please wait 10s..."
     okButton.TextColor3 = Color3.new(0.5, 0.5, 0.5)
-    okButton.TextSize = 14
+    okButton.TextSize = 20
     okButton.Font = Enum.Font.Gotham
     okButton.AutoButtonColor = false
     okButton.Parent = popupFrame
 
     local buttonCorner = Instance.new("UICorner")
-    buttonCorner.CornerRadius = UDim.new(0, 6)
+    buttonCorner.CornerRadius = UDim.new(0, 8)
     buttonCorner.Parent = okButton
 
     local countdown = 10
@@ -199,14 +209,14 @@ local function createPopup()
 
         local clickTween = TweenService:Create(okButton, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
             BackgroundColor3 = Color3.new(0.1, 0.4, 0.8),
-            Size = UDim2.new(0, 110, 0, 38)
+            Size = UDim2.new(0, 154, 0, 53)
         })
         clickTween:Play()
         
         clickTween.Completed:Wait()
         
         local returnTween = TweenService:Create(okButton, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            Size = UDim2.new(0, 120, 0, 40)
+            Size = UDim2.new(0, 168, 0, 56)
         })
         returnTween:Play()
         
@@ -261,8 +271,8 @@ local function createPopup()
     bgTween:Play()
     
     local popupTween = TweenService:Create(popupFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, 400, 0, 350),
-        Position = UDim2.new(0.5, -200, 0.5, -175),
+        Size = UDim2.new(0, 560, 0, 490),
+        Position = UDim2.new(0.5, -280, 0.5, -245),
         BackgroundTransparency = 0
     })
     popupTween:Play()
