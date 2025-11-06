@@ -112,7 +112,7 @@ if featureStates.DisableCameraShake == nil then
 end
 Window:SetIconSize(48)
 Window:Tag({
-    Title = "v1.2.9",
+    Title = "v1.3",
     Color = Color3.fromHex("#30ff6a")
 })
 
@@ -7170,11 +7170,9 @@ local partRadiusInput = Tabs.Utility:Input({
     end
 })
 
--- Add these variables at the top of the script, near other global variables like featureStates
 local speedPadConnection = nil
 local speedPadCharAddedConn = nil
 
--- Update featureStates to include SpeedPad settings
 if not featureStates.SpeedPadValue then
     featureStates.SpeedPadValue = 1.3
 end
@@ -7354,6 +7352,136 @@ JumpPadValueInput = Tabs.Utility:Input({
         local num = tonumber(text)
         if num then
             featureStates.JumpPadValue = num
+        end
+    end
+})
+local UnlimitedColaToggle = Tabs.Utility:Toggle({
+    Title = "Unlimited Cola",
+    Desc = "Block The ''ToolAction:FireServer'' remote when the value is ''(0, 19)'' This feature is a visual So no one can see you drink, Have fun of trick your viewer",
+    Value = false,
+    Callback = function(state)
+        featureStates.UnlimitedCola = state
+        
+        if state then
+            local ReplicatedStorage = game:GetService("ReplicatedStorage")
+            local RemoteEvent = ReplicatedStorage.Events.Character.ToolAction
+
+            local mt = getrawmetatable(RemoteEvent)
+            local oldNamecall = mt.__namecall
+
+            local recentBlockTime = 0
+            local blockCooldown = 0.1
+
+            setreadonly(mt, false)
+
+            mt.__namecall = newcclosure(function(self, ...)
+                local method = getnamecallmethod()
+                local args = {...}
+                
+                if method == "FireServer" and args[2] == 19 then
+                    local currentTime = tick()
+                    
+                    -- Only block if we haven't blocked recently
+                    if currentTime - recentBlockTime >= blockCooldown then
+                        print("Blocked FireServer call with value 19")
+                        recentBlockTime = currentTime
+                        return nil
+                    else
+                        print("Value 19 detected but allowing call (cooldown active)")
+                    end
+                end
+                
+                return oldNamecall(self, ...)
+            end)
+
+            setreadonly(mt, true)
+
+            featureStates.ColaMetatableHook = {
+                mt = mt,
+                oldNamecall = oldNamecall
+            }
+
+            local Players = game:GetService("Players")
+            local player = Players.LocalPlayer
+            local events = player.PlayerScripts.Events.temporary_events
+
+            featureStates.ColaEventConnection = events.UseKeybind.Event:Connect(function(args)
+                if args.Forced and args.Key == "Cola" and args.Down then
+                    wait(2.15)
+                    firesignal(game:GetService("ReplicatedStorage").Events.Character.SpeedBoost.OnClientEvent, "Cola", 1.4, 3.5, Color3.fromRGB(199, 141, 93))
+                end
+            end)
+
+        else
+            if featureStates.ColaMetatableHook then
+                local mt = featureStates.ColaMetatableHook.mt
+                local oldNamecall = featureStates.ColaMetatableHook.oldNamecall
+                
+                setreadonly(mt, false)
+                mt.__namecall = oldNamecall
+                setreadonly(mt, true)
+                
+                featureStates.ColaMetatableHook = nil
+            end
+            
+            if featureStates.ColaEventConnection then
+                featureStates.ColaEventConnection:Disconnect()
+                featureStates.ColaEventConnection = nil
+            end
+        end
+    end
+})
+local ColaSpeedBoosterToggle = Tabs.Utility:Toggle({
+    Title = "Cola Speed Booster",
+    Value = false,
+    Callback = function(state)
+        featureStates.ColaSpeedBooster = state
+        
+        if state then
+            local Players = game:GetService("Players")
+            local player = Players.LocalPlayer
+            local events = player.PlayerScripts.Events.temporary_events
+
+            featureStates.ColaSpeedEventConnection = events.UseKeybind.Event:Connect(function(args)
+                if args.Forced and args.Key == "Cola" and args.Down then
+                    wait(2.14)
+                    
+                    local speed = featureStates.ColaSpeedValue or 1.4
+                    local duration = featureStates.ColaDurationValue or 3.5
+                    
+                    firesignal(game:GetService("ReplicatedStorage").Events.Character.SpeedBoost.OnClientEvent, "Cola", speed, duration, Color3.fromRGB(199, 141, 93))
+                end
+            end)
+
+        else
+            if featureStates.ColaSpeedEventConnection then
+                featureStates.ColaSpeedEventConnection:Disconnect()
+                featureStates.ColaSpeedEventConnection = nil
+            end
+        end
+    end
+})
+
+local ColaSpeedInput = Tabs.Utility:Input({
+    Title = "Speed Value",
+    Placeholder = "1.4",
+    NumbersOnly = true,
+    Callback = function(value)
+        local num = tonumber(value)
+        if num and num > 0 then
+            featureStates.ColaSpeedValue = num
+        end
+    end
+})
+
+local ColaDurationInput = Tabs.Utility:Input({
+    Title = "Duration",
+    Placeholder = "3.5",
+    NumbersOnly = true,
+    Callback = function(value)
+        local num = tonumber(value)
+        if num and num > 0 then
+            featureStates.ColaDurationValue = num
         end
     end
 })
