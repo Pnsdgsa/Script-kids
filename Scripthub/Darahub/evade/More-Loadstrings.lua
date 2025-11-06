@@ -292,3 +292,51 @@ print("Button fixed with error handling. Connection ID:", connection)
 player.AncestryChanged:Connect(function()
     if connection then connection:Disconnect() end
 end)
+
+--[[ Shit codes ]]
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local events = player.PlayerScripts.Events.temporary_events
+
+events.UseKeybind.Event:Connect(function(args)
+	if args.Forced and args.Key == "Cola" and args.Down then
+local SoundService = game:GetService("SoundService")
+local Players = game:GetService("Players")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+
+local sounds = {
+    "rbxassetid://6911756259",
+    "rbxassetid://6911756959", 
+    "rbxassetid://608509471"
+}
+
+local function playSoundAndWait(soundId, soundName)
+    local sound = Instance.new("Sound")
+    sound.SoundId = soundId
+    sound.Parent = character:FindFirstChild("Head") or character
+    sound.Name = soundName
+    
+    print("Playing: " .. soundName)
+    sound:Play()
+    
+    sound.Ended:Wait()
+    print("Finished: " .. soundName)
+    
+    sound:Destroy()
+end
+
+local function playSequentialSounds()
+    print("Starting sequential sound playback...")
+    
+    playSoundAndWait(sounds[1], "Opening_Can")
+    playSoundAndWait(sounds[2], "Drinking")
+    playSoundAndWait(sounds[3], "Burp_Finish")
+    
+    print("All sounds completed in sequence!")
+end
+
+playSequentialSounds()
+	end
+end)
