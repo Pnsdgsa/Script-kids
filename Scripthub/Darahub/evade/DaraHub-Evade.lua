@@ -7274,6 +7274,32 @@ end
 if not featureStates.JumpPadValue then
     featureStates.JumpPadValue = 0
 end
+
+local function setupJumpPadBooster(character)
+    if jumpPadConnection then
+        jumpPadConnection:Disconnect()
+        jumpPadConnection = nil
+    end
+    
+    local humanoid = character:WaitForChild("Humanoid")
+    local rootPart = character:WaitForChild("HumanoidRootPart")
+    local jumpPad = workspace.Game.Effects.Deployables:WaitForChild("JumpPad")
+    local deployableEvent = ReplicatedStorage.Events.Other.DeployableUsed.OnClientEvent
+
+    local function onDeployableUsed(deployable, usedOnPlayerModel)
+        if deployable ~= jumpPad then return end
+
+        if not usedOnPlayerModel or not usedOnPlayerModel.Parent then return end
+        if usedOnPlayerModel.Name ~= player.Name then return end
+        if usedOnPlayerModel.Parent ~= workspace.Game.Players then return end
+
+        rootPart.Velocity = Vector3.new(0, featureStates.JumpPadValue, 0)
+        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+
+    jumpPadConnection = deployableEvent:Connect(onDeployableUsed)
+end
+
 JumpPadToggle = Tabs.Utility:Toggle({
     Title = "Jump Pad Booster",
     Value = false,
@@ -7281,31 +7307,14 @@ JumpPadToggle = Tabs.Utility:Toggle({
         featureStates.JumpPadBooster = state
         if state then
             local character = player.Character or player.CharacterAdded:Wait()
-            local humanoid = character:WaitForChild("Humanoid")
-            local rootPart = character:WaitForChild("HumanoidRootPart")
-            local jumpPad = workspace.Game.Effects.Deployables:WaitForChild("JumpPad")
-            local deployableEvent = ReplicatedStorage.Events.Other.DeployableUsed.OnClientEvent
-
-            local function onDeployableUsed(deployable, usedOnPlayerModel)
-                if deployable ~= jumpPad then return end
-
-                if not usedOnPlayerModel or not usedOnPlayerModel.Parent then return end
-                if usedOnPlayerModel.Name ~= player.Name then return end
-                if usedOnPlayerModel.Parent ~= workspace.Game.Players then return end
-
-                rootPart.Velocity = Vector3.new(0, featureStates.JumpPadValue, 0)
-                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-            end
-
-            jumpPadConnection = deployableEvent:Connect(onDeployableUsed)
+            setupJumpPadBooster(character)
 
             if jumpPadCharAddedConn then
                 jumpPadCharAddedConn:Disconnect()
             end
             jumpPadCharAddedConn = player.CharacterAdded:Connect(function(newChar)
-                character = newChar
-                humanoid = newChar:WaitForChild("Humanoid")
-                rootPart = newChar:WaitForChild("HumanoidRootPart")
+                task.wait(1)
+                setupJumpPadBooster(newChar)
             end)
 
             if humanoid.FloorMaterial == Enum.Material.Air then
