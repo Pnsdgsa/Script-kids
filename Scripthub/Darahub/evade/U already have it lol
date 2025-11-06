@@ -1,5 +1,4 @@
--- no ads link for 1 week, enjoy 
---[[ local validLoadstring = 'loadstring(game:HttpGet("https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/main-loader.lua"))()'
+local validLoadstring = 'loadstring(game:HttpGet("https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/main-loader.lua"))()'
 local CONFIG_DIR = "DaraHub"
 local CONFIG_FILE_NAME = CONFIG_DIR .. "/DaraHubBigThxForSupport.lua"
 
@@ -23,5 +22,3 @@ local function autoSaveConfig()
 end
 
 autoSaveConfig()
-]]
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/main-loader.lua"))()
