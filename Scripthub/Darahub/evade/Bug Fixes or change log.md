@@ -1,7 +1,9 @@
+<br><b> Not upload yet still development</b><br>
+<div></div>
 Nov 7th-8th added new self revive method "Fake revive"<br>
 added Emote speed Multiplier.<br>
 added Reset when takes damage avoid getting died.
-<div></div><br>
+<div></div><br> <hr>
 Nov 7th v1.3 added Cola Modifier 
 <div></div>
 Such As Unlimited Cola remote Blocking 
