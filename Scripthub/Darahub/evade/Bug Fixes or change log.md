@@ -24,4 +24,4 @@ Nov 4th, V1.2.7 optimized bhop lag (Not sure it's fixed)
 
 
 <div></div>
---older updates I'm lazy to post--
+--older updates I'm lazy to write--
