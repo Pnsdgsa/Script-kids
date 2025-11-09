@@ -1,8 +1,7 @@
-<br><b> Not upload yet still development</b><br>
-<div></div>
+<br>Nov 9th V1.3.1 added NameTag Changer<b>
+<div>Added Speed Multiplier for emote</div>
 
 Nov 7th-8th added Reset when takes damage avoid getting died.
-<hr>
  added new self revive method "Fake revive"<br>
 added Emote speed Multiplier.<br>
 <div></div><br>
