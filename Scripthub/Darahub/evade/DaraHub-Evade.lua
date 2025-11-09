@@ -4741,7 +4741,7 @@ TimerDisplayToggle = Tabs.Visuals:Toggle({
             WindUI:Notify({Title="Emote Changer",Content="All emotes reset!"})
         end
      })
-     Tabs.Visual:Section({ Title = "Character", TextSize = 20 })
+     Tabs.Visuals:Section({ Title = "Character", TextSize = 20 })
 VisualNametagDropdown = Tabs.Visuals:Dropdown({
     Title = "Visual Nametag",
     Desc = "Select nametag appearance",
