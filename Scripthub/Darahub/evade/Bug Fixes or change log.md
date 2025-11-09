@@ -1,4 +1,4 @@
-<br>Nov 9th V1.3.1 added NameTag Changer<b>
+<b><br>Nov 9th V1.3.1 added NameTag Changer<b>
 <div>Added Speed Multiplier for emote</div>
 
 Nov 7th-8th added Reset when takes damage avoid getting died.
