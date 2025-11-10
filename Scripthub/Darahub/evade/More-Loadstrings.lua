@@ -228,10 +228,7 @@ loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/r
 
 
 -- revote button fixed
---[[
-	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
-	Improved version: Dynamic waits, better button detection, and enhanced debugging.
-]]
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")  -- For potential heartbeats if needed
 
