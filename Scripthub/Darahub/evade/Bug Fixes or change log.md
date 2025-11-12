@@ -1,4 +1,4 @@
-<b>Nov 12th</b> added NPC hitbox <br> added Highlights esp <br> fix esp not working 
+<b>Nov 12th v1.3.2</b> added NPC hitbox <br> added Highlights esp <br> fix esp not working 
 
 <b><br>Nov 9th V1.3.1 added NameTag Changer<b>
 <div>Added Speed Multiplier for emote</div>
