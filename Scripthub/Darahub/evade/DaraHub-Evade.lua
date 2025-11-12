@@ -42,7 +42,6 @@ local Localization = WindUI:Localization({
             ["JUMP_HEIGHT"] = "Jump Height",
             ["JUMP_POWER"] = "Jump Height",
             ["ANTI_AFK"] = "Anti AFK",
-            ["FULL_BRIGHT"] = "FullBright",
             ["NO_FOG"] = "Remove Fog",
             ["PLAYER_NAME_ESP"] = "Player Name ESP",
             ["PLAYER_BOX_ESP"] = "Player Box ESP",
@@ -753,7 +752,6 @@ local featureStates = {
     JumpBoost = false,
     AntiAFK = false,
     AutoCarry = false,
-    FullBright = false,
     NoFog = false,
     AutoVote = false,
     AutoSelfRevive = false,
@@ -1926,23 +1924,6 @@ local function stopAutoCarry()
     end
 end
 
-local function startFullBright()
-    originalBrightness = Lighting.Brightness
-    originalOutdoorAmbient = Lighting.OutdoorAmbient
-    originalAmbient = Lighting.Ambient
-    originalGlobalShadows = Lighting.GlobalShadows
-    Lighting.Brightness = 2
-    Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
-    Lighting.Ambient = Color3.fromRGB(255, 255, 255)
-    Lighting.GlobalShadows = false
-end
-
-local function stopFullBright()
-    Lighting.Brightness = originalBrightness
-    Lighting.OutdoorAmbient = originalOutdoorAmbient
-    Lighting.Ambient = originalAmbient
-    Lighting.GlobalShadows = originalGlobalShadows
-end
 local function getServerLink()
     local placeId = game.PlaceId
     local jobId = game.JobId
@@ -2585,82 +2566,6 @@ Tabs.Main:Button({
    })
    Tabs.Main:Section({ Title = "Misc", TextSize = 20 })
    Tabs.Main:Divider()
-   local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-
-local featureStates = {
-    ResetWhenTakeDamage = false,
-    ResetDamageType = "Any Damage"
-}
-
-local function monitorAnyDamage()
-    local function setupCharacter(character)
-        local humanoid = character:WaitForChild("Humanoid")
-        local lastHealth = humanoid.Health
-        local isAlive = true
-        
-        local function checkAliveStatus()
-            if character:GetAttribute("Downed") then
-                return false
-            end
-            
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            if humanoid and humanoid.Health > 0 then
-                return true
-            end
-            
-            return false
-        end
-        
-        humanoid.HealthChanged:Connect(function(currentHealth)
-            local wasAlive = isAlive
-            isAlive = checkAliveStatus()
-            
-            if featureStates.ResetWhenTakeDamage and isAlive and currentHealth < lastHealth then
-                if featureStates.ResetDamageType == "Any Damage" then
-                    game:GetService("ReplicatedStorage").Events.Character.ToolAction:FireServer(-2)
-                    
-                    local sound = Instance.new("Sound")
-                    sound.SoundId = "rbxassetid://8164951181"
-                    sound.Volume = 3
-                    sound.Parent = game:GetService("SoundService")
-                    sound:Play()
-                    
-                    sound.Ended:Connect(function()
-                        sound:Destroy()
-                    end)
-                elseif featureStates.ResetDamageType == "Low Health" and currentHealth <= 25 then
-                    game:GetService("ReplicatedStorage").Events.Character.ToolAction:FireServer(-2)
-                    
-                    local sound = Instance.new("Sound")
-                    sound.SoundId = "rbxassetid://8164951181"
-                    sound.Volume = 3
-                    sound.Parent = game:GetService("SoundService")
-                    sound:Play()
-                    
-                    sound.Ended:Connect(function()
-                        sound:Destroy()
-                    end)
-                end
-            end
-            
-            lastHealth = currentHealth
-        end)
-        
-        character:GetAttributeChangedSignal("Downed"):Connect(function()
-            isAlive = not character:GetAttribute("Downed")
-        end)
-        
-        isAlive = checkAliveStatus()
-    end
-    
-    if player.Character then
-        setupCharacter(player.Character)
-    end
-    player.CharacterAdded:Connect(setupCharacter)
-end
-
-monitorAnyDamage()
 
 ResetWhenTakeDamageToggle = Tabs.Main:Toggle({
     Title = "Reset when take damage",
@@ -4520,17 +4425,62 @@ game.Players.LocalPlayer.CharacterAdded:Connect(function()
 end)
 
 	    FullBrightToggle = Tabs.Visuals:Toggle({
-        Title = "loc:FULL_BRIGHT",
-        Value = false,
-        Callback = function(state)
-            featureStates.FullBright = state
-            if state then
-                startFullBright()
-            else
-                stopFullBright()
+    Title = "Full Bright",
+    Desc = "Ya Like drinking Night Vision while mining in da cave and sceard of creeper blow you up dawg?",
+    Value = false,
+    Callback = function(state)
+        featureStates.FullBright = state
+        if state then
+            Lighting = game:GetService("Lighting")
+            
+            featureStates.originalBrightness = Lighting.Brightness
+            featureStates.originalAmbient = Lighting.Ambient
+            featureStates.originalOutdoorAmbient = Lighting.OutdoorAmbient
+            featureStates.originalColorShiftBottom = Lighting.ColorShift_Bottom
+            featureStates.originalColorShiftTop = Lighting.ColorShift_Top
+            
+            Lighting.Brightness = 2
+            Lighting.Ambient = Color3.new(1, 1, 1)
+            Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
+            Lighting.ColorShift_Bottom = Color3.new(1, 1, 1)
+            Lighting.ColorShift_Top = Color3.new(1, 1, 1)
+            
+            for _, obj in pairs(Lighting:GetDescendants()) do
+                if obj:IsA("BloomEffect") or obj:IsA("BlurEffect") or obj:IsA("ColorCorrectionEffect") or obj:IsA("SunRaysEffect") then
+                    obj.Enabled = false
+                end
+            end
+            
+            featureStates.fullBrightConnection = game.Players.LocalPlayer.CharacterAdded:Connect(function()
+                Lighting.Brightness = 2
+                Lighting.Ambient = Color3.new(1, 1, 1)
+                Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
+                Lighting.ColorShift_Bottom = Color3.new(1, 1, 1)
+                Lighting.ColorShift_Top = Color3.new(1, 1, 1)
+            end)
+        else
+            if featureStates.fullBrightConnection then
+                featureStates.fullBrightConnection:Disconnect()
+                featureStates.fullBrightConnection = nil
+            end
+            
+            if featureStates.originalBrightness then
+                Lighting = game:GetService("Lighting")
+                Lighting.Brightness = featureStates.originalBrightness
+                Lighting.Ambient = featureStates.originalAmbient
+                Lighting.OutdoorAmbient = featureStates.originalOutdoorAmbient
+                Lighting.ColorShift_Bottom = featureStates.originalColorShiftBottom
+                Lighting.ColorShift_Top = featureStates.originalColorShiftTop
+            end
+            
+            for _, obj in pairs(Lighting:GetDescendants()) do
+                if obj:IsA("BloomEffect") or obj:IsA("BlurEffect") or obj:IsA("ColorCorrectionEffect") or obj:IsA("SunRaysEffect") then
+                    obj.Enabled = true
+                end
             end
         end
-    })
+    end
+})
 
 NoFogToggle = Tabs.Visuals:Toggle({
     Title = "loc:NO_FOG",
@@ -8969,3 +8919,79 @@ if not workspace:FindFirstChild("SecurityPart") then
     SecurityPart.CanCollide = true
     SecurityPart.Parent = workspace
 end
+   local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local featureStates = {
+    ResetWhenTakeDamage = false,
+    ResetDamageType = "Any Damage"
+}
+
+local function monitorAnyDamage()
+    local function setupCharacter(character)
+        local humanoid = character:WaitForChild("Humanoid")
+        local lastHealth = humanoid.Health
+        local isAlive = true
+        
+        local function checkAliveStatus()
+            if character:GetAttribute("Downed") then
+                return false
+            end
+            
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            if humanoid and humanoid.Health > 0 then
+                return true
+            end
+            
+            return false
+        end
+        
+        humanoid.HealthChanged:Connect(function(currentHealth)
+            local wasAlive = isAlive
+            isAlive = checkAliveStatus()
+            
+            if featureStates.ResetWhenTakeDamage and isAlive and currentHealth < lastHealth then
+                if featureStates.ResetDamageType == "Any Damage" then
+                    game:GetService("ReplicatedStorage").Events.Character.ToolAction:FireServer(-2)
+                    
+                    local sound = Instance.new("Sound")
+                    sound.SoundId = "rbxassetid://8164951181"
+                    sound.Volume = 3
+                    sound.Parent = game:GetService("SoundService")
+                    sound:Play()
+                    
+                    sound.Ended:Connect(function()
+                        sound:Destroy()
+                    end)
+                elseif featureStates.ResetDamageType == "Low Health" and currentHealth <= 25 then
+                    game:GetService("ReplicatedStorage").Events.Character.ToolAction:FireServer(-2)
+                    
+                    local sound = Instance.new("Sound")
+                    sound.SoundId = "rbxassetid://8164951181"
+                    sound.Volume = 3
+                    sound.Parent = game:GetService("SoundService")
+                    sound:Play()
+                    
+                    sound.Ended:Connect(function()
+                        sound:Destroy()
+                    end)
+                end
+            end
+            
+            lastHealth = currentHealth
+        end)
+        
+        character:GetAttributeChangedSignal("Downed"):Connect(function()
+            isAlive = not character:GetAttribute("Downed")
+        end)
+        
+        isAlive = checkAliveStatus()
+    end
+    
+    if player.Character then
+        setupCharacter(player.Character)
+    end
+    player.CharacterAdded:Connect(setupCharacter)
+end
+
+monitorAnyDamage()
