@@ -843,6 +843,13 @@ local function fireSelect(slot)
     end
 end
 
+local function fireEmoteDirectly(emoteName)
+    pcall(function()
+        EmoteRemote:FireServer(emoteName)
+        print(string.format("Fallback: Directly fired emote: %s", emoteName))
+    end)
+end
+
 if PassCharacterInfo then
     PassCharacterInfo.OnClientEvent:Connect(function()
         if not pendingSlot then return end
@@ -858,14 +865,21 @@ if PassCharacterInfo then
             for i=1,12 do
                 if emoteEnabled[i] and currentEmotes[i]~="" and a[1]==currentEmotes[i] then
                     pendingSlot = i
-                    print("Detected current emote:",currentEmotes[i],"to waiting for PassCharacterInfo...")
-                    task.spawn(function()
-                        task.wait(0.5)
+                    local targetEmote = selectEmotes[i]
+                    print("Detected current emote:",currentEmotes[i],"waiting for PassCharacterInfo...")
+                     local timeoutTask = task.spawn(function()
+                        local startTime = tick()
+                        while pendingSlot == i and (tick() - startTime) < 2 do 
+                            task.wait(0.1)
+                        end
+                        
                         if pendingSlot == i then
-                            fireSelect(i)
+                            print(string.format("Timeout: PassCharacterInfo failed after 2s, firing emote directly: %s", targetEmote))
+                            fireEmoteDirectly(targetEmote)
                             pendingSlot = nil
                         end
                     end)
+                    
                     return
                 end
             end
@@ -877,6 +891,23 @@ if PassCharacterInfo then
         onRespawn()
     end
     player.CharacterAdded:Connect(onRespawn)
+else
+    warn("PassCharacterInfo not found, using direct emote firing")
+    local oldNamecall = hookmetamethod(game,"__namecall",function(self,...)
+        local m = getnamecallmethod()
+        local a = {...}
+        if m=="FireServer" and self==EmoteRemote and type(a[1])=="string" then
+            for i=1,12 do
+                if emoteEnabled[i] and currentEmotes[i]~="" and a[1]==currentEmotes[i] then
+                    local targetEmote = selectEmotes[i]
+                    print(string.format("Direct emote replacement: %s -> %s", currentEmotes[i], targetEmote))
+                    fireEmoteDirectly(targetEmote)
+                    return
+                end
+            end
+        end
+        return oldNamecall(self,...)
+    end)
 end
 local character, humanoid, rootPart
 local isJumpHeld = false
