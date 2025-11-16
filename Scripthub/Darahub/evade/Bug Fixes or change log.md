@@ -1,3 +1,5 @@
+<b>Nov 12th v1.3.</b> Fixed Shit Bug<br> added More visual Item Modifier<br>
+
 <b>Nov 12th v1.3.2</b> added NPC hitbox <br> added Highlights esp <br> fix esp not working 
 
 <b><br>Nov 9th V1.3.1 added NameTag Changer<b>
