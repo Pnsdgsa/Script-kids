@@ -4376,7 +4376,7 @@ if not workspace:FindFirstChild("SecurityPart") then
     local SecurityPart = Instance.new("Part")
     SecurityPart.Name = "SecurityPart"
     SecurityPart.Size = Vector3.new(10, 1, 10)
-    SecurityPart.Position = Vector3.new(0, 500, 0)
+    SecurityPart.Position = Vector3.new(50000, 50000, 50000)
     SecurityPart.Anchored = true
     SecurityPart.CanCollide = true
     SecurityPart.Parent = workspace
