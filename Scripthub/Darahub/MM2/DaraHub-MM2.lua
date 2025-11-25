@@ -1449,7 +1449,16 @@ local function safeTeleport(cframe)
     end)
 end
 
+local function hasKnife()
+    return player.Backpack:FindFirstChild("Knife") or (player.Character and player.Character:FindFirstChild("Knife"))
+end
+
 local function collectAllGunDrops()
+    if hasKnife() then
+        WindUI:Notify({Title = "Gun System", Content = "You already have a knife!", Icon = "x-circle", Duration = 3})
+        return
+    end
+    
     local currentPosition = humanoidRootPart.Position
     ScanForGunDrops()
     
@@ -1471,6 +1480,11 @@ local function collectAllGunDrops()
 end
 
 local function ManualGrab()
+    if hasKnife() then
+        WindUI:Notify({Title = "Gun System", Content = "You already have a knife!", Icon = "x-circle", Duration = 3})
+        return false
+    end
+    
     if GunSystem.Mode == "Grab only" then
         collectAllGunDrops()
     elseif GunSystem.Mode == "Grab & shoot murderer" then
@@ -1523,6 +1537,8 @@ local function ImprovedGrabOnly()
 
     local function teleportLoop()
         if isTeleporting then return end
+        if hasKnife() then return end
+        
         isTeleporting = true
         
         local currentPosition = humanoidRootPart.Position
@@ -1546,13 +1562,20 @@ local function ImprovedGrabOnly()
     end
 
     while GunSystem.AutoGrabEnabled and GunSystem.Mode == "Grab only" do
-        teleportLoop()
+        if not hasKnife() then
+            teleportLoop()
+        end
         task.wait(teleportDelay)
     end
 end
 
 local function AutoGrabGun()
     while GunSystem.AutoGrabEnabled do
+        if hasKnife() then
+            task.wait(GunSystem.GunDropCheckInterval)
+            continue
+        end
+        
         if GunSystem.Mode == "Grab only" then
             ImprovedGrabOnly()
         elseif GunSystem.Mode == "Grab & shoot murderer" then
@@ -2153,11 +2176,360 @@ end
 })
 local FOVSlider = Tabs.Visuals:Slider({
     Title = "Field of View",
-    Value = { Min = 10, Max = 120, Default = originalFOV, Step = 1 },
+    Value = { Min = 1, Max = 120, Default = originalFOV, Step = 1 },
     Callback = function(value)
         workspace.CurrentCamera.FieldOfView = tonumber(value)
     end
 })
+local roundTimerEnabled = false
+local roundTimerGui = nil
+local roundTimerLabel = nil
+local roundTimerConnection = nil
+local clearTweensConnection = nil
+local loadingMapConnection = nil
+local roleSelectConnection = nil
+local victoryConnection = nil
+local lastTimerText = ""
+local freezeCheckTime = 0
+local freezeThreshold = 3
+local isWaitingForMapVote = false
+local isLoadingMap = false
+local roleDisplayTime = 0
+local roleDisplayDuration = 5
+local countdownStartTime = 0
+local isInCountdown = false
+local timeUpDisplayTime = 0
+local timeUpDisplayDuration = 3
+local victoryDisplayTime = 0
+local victoryDisplayDuration = 5
+
+local function createRoundTimerGui()
+    if roundTimerGui then
+        roundTimerGui:Destroy()
+        roundTimerGui = nil
+    end
+    
+    roundTimerGui = Instance.new("ScreenGui")
+    roundTimerGui.Name = "RoundTimerGui"
+    roundTimerGui.IgnoreGuiInset = true
+    roundTimerGui.ResetOnSpawn = false
+    roundTimerGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    roundTimerGui.Parent = playerGui
+
+    local uiScale = Instance.new("UIScale")
+    uiScale.Parent = roundTimerGui
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 200, 0, 40)
+    frame.Position = UDim2.new(0.5, -100, 0, 20)
+    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    frame.BackgroundTransparency = 0.3
+    frame.BorderSizePixel = 0
+    frame.Parent = roundTimerGui
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = frame
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(255, 255, 255)
+    stroke.Thickness = 2
+    stroke.Parent = frame
+
+    roundTimerLabel = Instance.new("TextLabel")
+    roundTimerLabel.Size = UDim2.new(1, 0, 1, 0)
+    roundTimerLabel.BackgroundTransparency = 1
+    roundTimerLabel.Text = "Round Timer: --:--"
+    roundTimerLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    roundTimerLabel.Font = Enum.Font.RobotoMono
+    roundTimerLabel.TextSize = 18
+    roundTimerLabel.TextScaled = false
+    roundTimerLabel.TextXAlignment = Enum.TextXAlignment.Center
+    roundTimerLabel.TextYAlignment = Enum.TextYAlignment.Center
+    roundTimerLabel.Parent = frame
+end
+
+local function checkRoleSelectorCountdown()
+    local mainGUI = player.PlayerGui:FindFirstChild("MainGUI")
+    if not mainGUI then return false end
+    
+    local gameFrame = mainGUI:FindFirstChild("Game")
+    if not gameFrame then return false end
+    
+    local roleSelector = gameFrame:FindFirstChild("RoleSelector")
+    if not roleSelector or not roleSelector.Visible then return false end
+    
+    local roleText = roleSelector:FindFirstChild("Role")
+    if not roleText then return false end
+    
+    local text = roleText.Text
+    local number = tonumber(text)
+    
+    if number then
+        roundTimerLabel.Text = "Round start in " .. number
+        countdownStartTime = tick()
+        isInCountdown = true
+        return true
+    end
+    
+    return false
+end
+
+local function updateRoundTimer()
+    if not roundTimerEnabled or not roundTimerLabel then return end
+    
+    if tick() - victoryDisplayTime < victoryDisplayDuration then
+        return
+    end
+    
+    if tick() - timeUpDisplayTime < timeUpDisplayDuration then
+        return
+    end
+    
+    if isInCountdown then
+        if tick() - countdownStartTime >= 1 then
+            isInCountdown = false
+        else
+            return
+        end
+    end
+    
+    if checkRoleSelectorCountdown() then
+        return
+    end
+    
+    if tick() - roleDisplayTime < roleDisplayDuration then
+        return
+    end
+    
+    if isLoadingMap then
+        roundTimerLabel.Text = "Loading map..."
+        return
+    end
+    
+    if isWaitingForMapVote then
+        roundTimerLabel.Text = "Waiting for map vote"
+        return
+    end
+    
+    local timerPart = workspace:FindFirstChild("RoundTimerPart")
+    if not timerPart then
+        roundTimerLabel.Text = "Round Timer: --:--"
+        lastTimerText = ""
+        freezeCheckTime = tick()
+        return
+    end
+    
+    local surfaceGui = timerPart:FindFirstChildOfClass("SurfaceGui")
+    if not surfaceGui then
+        roundTimerLabel.Text = "Round Timer: --:--"
+        lastTimerText = ""
+        freezeCheckTime = tick()
+        return
+    end
+    
+    local timerLabel = surfaceGui:FindFirstChild("Timer")
+    if not timerLabel then
+        roundTimerLabel.Text = "Round Timer: --:--"
+        lastTimerText = ""
+        freezeCheckTime = tick()
+        return
+    end
+    
+    local currentText = timerLabel.Text
+    local displayText = "Round Timer: " .. currentText
+    
+    if currentText == "1s" or currentText == "0s" then
+        roundTimerLabel.Text = "Time's up"
+        timeUpDisplayTime = tick()
+        return
+    end
+    
+    if currentText == lastTimerText then
+        if tick() - freezeCheckTime >= freezeThreshold then
+            roundTimerLabel.Text = displayText
+            return
+        end
+    else
+        lastTimerText = currentText
+        freezeCheckTime = tick()
+    end
+    
+    roundTimerLabel.Text = displayText
+end
+
+local function setupClearTweensListener()
+    if clearTweensConnection then
+        clearTweensConnection:Disconnect()
+        clearTweensConnection = nil
+    end
+    
+    local ClientTweenEvents = ReplicatedStorage:WaitForChild("ClientTweenEvents")
+    local ClearTweens = ClientTweenEvents:WaitForChild("ClearTweens")
+    
+    clearTweensConnection = ClearTweens.OnClientEvent:Connect(function(...)
+        if roundTimerEnabled and roundTimerLabel then
+            isWaitingForMapVote = true
+            isLoadingMap = false
+            lastTimerText = ""
+            freezeCheckTime = tick()
+            timeUpDisplayTime = 0
+            victoryDisplayTime = 0
+        end
+    end)
+end
+
+local function setupLoadingMapListener()
+    if loadingMapConnection then
+        loadingMapConnection:Disconnect()
+        loadingMapConnection = nil
+    end
+    
+    local Remotes = ReplicatedStorage:WaitForChild("Remotes")
+    local Gameplay = Remotes:WaitForChild("Gameplay")
+    local LoadingMap = Gameplay:WaitForChild("LoadingMap")
+    
+    loadingMapConnection = LoadingMap.OnClientEvent:Connect(function(mapName)
+        if roundTimerEnabled and roundTimerLabel then
+            isLoadingMap = true
+            isWaitingForMapVote = false
+            lastTimerText = ""
+            freezeCheckTime = tick()
+            timeUpDisplayTime = 0
+            victoryDisplayTime = 0
+        end
+    end)
+end
+
+local function setupRoleSelectListener()
+    if roleSelectConnection then
+        roleSelectConnection:Disconnect()
+        roleSelectConnection = nil
+    end
+    
+    local RoleSelect = ReplicatedStorage.Remotes.Gameplay.RoleSelect
+    roleSelectConnection = RoleSelect.OnClientEvent:Connect(function(role, ...)
+        if roundTimerEnabled and roundTimerLabel then
+            local roleName = role or "Unknown"
+            roundTimerLabel.Text = "Your role is " .. roleName
+            roleDisplayTime = tick()
+            isLoadingMap = false
+            isWaitingForMapVote = false
+            timeUpDisplayTime = 0
+            victoryDisplayTime = 0
+        end
+    end)
+end
+
+local function setupVictoryListener()
+    if victoryConnection then
+        victoryConnection:Disconnect()
+        victoryConnection = nil
+    end
+    
+    local VictoryRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Gameplay"):WaitForChild("VictoryScreen")
+    
+    victoryConnection = VictoryRemote.OnClientEvent:Connect(function(arg1, arg2, arg3, arg4, arg5)
+        if roundTimerEnabled and roundTimerLabel then
+            if arg2 == "MurdererLeft" then
+                roundTimerLabel.Text = "Murder left"
+            elseif arg2 == "MurdererWin" then
+                roundTimerLabel.Text = "Murder Win"
+            else
+                roundTimerLabel.Text = arg2 .. " win"
+            end
+            victoryDisplayTime = tick()
+            timeUpDisplayTime = 0
+        end
+    end)
+end
+
+local function startRoundTimer()
+    if roundTimerConnection then return end
+    
+    createRoundTimerGui()
+    setupClearTweensListener()
+    setupLoadingMapListener()
+    setupRoleSelectListener()
+    setupVictoryListener()
+    
+    lastTimerText = ""
+    freezeCheckTime = tick()
+    isWaitingForMapVote = false
+    isLoadingMap = false
+    roleDisplayTime = 0
+    countdownStartTime = 0
+    isInCountdown = false
+    timeUpDisplayTime = 0
+    victoryDisplayTime = 0
+    
+    roundTimerConnection = RunService.Heartbeat:Connect(function()
+        updateRoundTimer()
+    end)
+end
+
+local function stopRoundTimer()
+    if roundTimerConnection then
+        roundTimerConnection:Disconnect()
+        roundTimerConnection = nil
+    end
+    
+    if clearTweensConnection then
+        clearTweensConnection:Disconnect()
+        clearTweensConnection = nil
+    end
+    
+    if loadingMapConnection then
+        loadingMapConnection:Disconnect()
+        loadingMapConnection = nil
+    end
+    
+    if roleSelectConnection then
+        roleSelectConnection:Disconnect()
+        roleSelectConnection = nil
+    end
+    
+    if victoryConnection then
+        victoryConnection:Disconnect()
+        victoryConnection = nil
+    end
+    
+    if roundTimerGui then
+        roundTimerGui:Destroy()
+        roundTimerGui = nil
+        roundTimerLabel = nil
+    end
+    
+    lastTimerText = ""
+    freezeCheckTime = 0
+    isWaitingForMapVote = false
+    isLoadingMap = false
+    roleDisplayTime = 0
+    countdownStartTime = 0
+    isInCountdown = false
+    timeUpDisplayTime = 0
+    victoryDisplayTime = 0
+end
+
+RoundTimerToggle = Tabs.Visuals:Toggle({
+    Title = "Round Timer Display",
+    Desc = "Show round timer in top middle of screen",
+    Value = false,
+    Callback = function(state)
+        roundTimerEnabled = state
+        if state then
+            startRoundTimer()
+        else
+            stopRoundTimer()
+        end
+    end
+})
+
+Players.PlayerRemoving:Connect(function(leavingPlayer)
+    if leavingPlayer == player then
+        stopRoundTimer()
+    end
+end)
 setupCameraStretch()
 innocentEspElements = {}
 murderEspElements = {}
@@ -3722,7 +4094,123 @@ Tabs.Misc:Slider({
         AutoFarm.CoinCheckInterval = value
     end
 })
+local function getPlayerRole(playerName)
+    local success, roles = pcall(function()
+        return ReplicatedStorage:FindFirstChild("GetPlayerData", true):InvokeServer()
+    end)
+    
+    if success and roles then
+        local playerData = roles[playerName]
+        if playerData then
+            return playerData.Role
+        end
+    end
+    return nil
+end
 
+local function findMurderer()
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr.Backpack:FindFirstChild("Knife") or (plr.Character and plr.Character:FindFirstChild("Knife")) then
+            return plr
+        end
+    end
+    return nil
+end
+
+local function findSheriffOrHero()
+    local success, roles = pcall(function()
+        return ReplicatedStorage:FindFirstChild("GetPlayerData", true):InvokeServer()
+    end)
+    
+    if success and roles then
+        for playerName, data in pairs(roles) do
+            if data.Role == "Sheriff" or data.Role == "Hero" then
+                return Players:FindFirstChild(playerName), data.Role
+            end
+        end
+    end
+    return nil, nil
+end
+
+Tabs.Misc:Section({ Title = "Role Revealer", TextSize = 20 })
+Tabs.Misc:Divider()
+
+local function findMurderer()
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr.Backpack:FindFirstChild("Knife") or (plr.Character and plr.Character:FindFirstChild("Knife")) then
+            return plr
+        end
+    end
+    return nil
+end
+
+local function findSheriff()
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr.Backpack:FindFirstChild("Gun") or (plr.Character and plr.Character:FindFirstChild("Gun")) then
+            return plr
+        end
+    end
+    return nil
+end
+
+local function findHero()
+    local success, roles = pcall(function()
+        return ReplicatedStorage:FindFirstChild("GetPlayerData", true):InvokeServer()
+    end)
+    
+    if success and roles then
+        for playerName, data in pairs(roles) do
+            if data.Role == "Hero" then
+                return Players:FindFirstChild(playerName)
+            end
+        end
+    end
+    return nil
+end
+
+Tabs.Misc:Button({
+    Title = "Reveal Murderer",
+    Desc = "Reveal murderer in chat",
+    Icon = "user-x",
+    Callback = function()
+        local textchannels = game:GetService("TextChatService"):WaitForChild("TextChannels"):GetChildren()
+        for _, textchannel in ipairs(textchannels) do
+            if textchannel.Name == "RBXSystem" then continue end
+            local murd = findMurderer()
+            if murd then
+                local message = string.format("%s Is Murderer | Script Used: Dara Hub", murd.Name)
+                textchannel:SendAsync(message)
+            else
+                local message = "No Murderer Found | Script Used: Dara Hub"
+                textchannel:SendAsync(message)
+            end
+        end
+    end
+})
+
+Tabs.Misc:Button({
+    Title = "Reveal Sheriff/Hero",
+    Desc = "Reveal sheriff or hero in chat",
+    Icon = "user-check",
+    Callback = function()
+        local textchannels = game:GetService("TextChatService"):WaitForChild("TextChannels"):GetChildren()
+        for _, textchannel in ipairs(textchannels) do
+            if textchannel.Name == "RBXSystem" then continue end
+            local sher = findSheriff()
+            local hero = findHero()
+            if sher then 
+                local message = string.format("%s Is Sheriff | Script Used: Dara Hub", sher.Name)
+                textchannel:SendAsync(message)
+            elseif hero then
+                local message = string.format("%s Is Hero | Script Used: Dara Hub", hero.Name)
+                textchannel:SendAsync(message)
+            else
+                local message = "No Sheriff/Hero Found | Script Used: Dara Hub"
+                textchannel:SendAsync(message)
+            end
+        end
+    end
+})
 Tabs.Utility:Button(
     {
         Title = "Dupe Emote All (Not working idk why)",
@@ -3835,6 +4323,796 @@ Tabs.Utility:Button({
         loadstring(game:HttpGet("https://raw.githubusercontent.com/FilteringEnabled/FE/main/punch"))()
     end
 })
+
+local flingActive = false
+local flingMode = 1
+local currentInput = ""
+local processedPlayers = {}
+local localPlayer = game.Players.LocalPlayer
+local roles = {}
+local Murder = nil
+local Sheriff = nil
+local Hero = nil
+
+local function IsAlive(Player)
+    for i, v in pairs(roles) do
+        if Player.Name == i then
+            if not v.Killed and not v.Dead then
+                return true
+            else
+                return false
+            end
+        end
+    end
+    return false
+end
+
+local function updateRoles()
+    local success, result = pcall(function()
+        return ReplicatedStorage:FindFirstChild("GetPlayerData", true):InvokeServer()
+    end)
+    
+    if success and result then
+        roles = result
+        Murder = nil
+        Sheriff = nil
+        Hero = nil
+        
+        for i, v in pairs(roles) do
+            if v.Role == "Murderer" then
+                Murder = i
+            elseif v.Role == 'Sheriff' then
+                Sheriff = i
+            elseif v.Role == 'Hero' then
+                Hero = i
+            end
+        end
+    end
+end
+
+RunService.RenderStepped:Connect(function()
+    updateRoles()
+end)
+
+local function sortPlayersAlphabetically(players)
+    table.sort(players, function(a, b)
+        return string.lower(a.Name) < string.lower(b.Name)
+    end)
+    return players
+end
+
+local function getPlayers(input)
+    local players = {}
+    input = string.lower(input or "")
+    
+    if input == "all" then
+        for _, player in ipairs(game.Players:GetPlayers()) do
+            if player ~= localPlayer then
+                table.insert(players, player)
+            end
+        end
+        players = sortPlayersAlphabetically(players)
+    elseif input == "nonfriends" then
+        for _, player in ipairs(game.Players:GetPlayers()) do
+            if player ~= localPlayer then
+                local success, isFriend = pcall(function()
+                    return player:IsFriendsWith(localPlayer.UserId)
+                end)
+                if not (success and isFriend) then
+                    table.insert(players, player)
+                end
+            end
+        end
+        players = sortPlayersAlphabetically(players)
+    elseif input == "murder" then
+        if Murder then
+            local murdererPlayer = game.Players:FindFirstChild(Murder)
+            if murdererPlayer and murdererPlayer ~= localPlayer and murdererPlayer.Character and IsAlive(murdererPlayer) then
+                table.insert(players, murdererPlayer)
+            end
+        end
+    elseif input == "sheriff" or input == "hero" then
+        if Sheriff then
+            local sheriffPlayer = game.Players:FindFirstChild(Sheriff)
+            if sheriffPlayer and sheriffPlayer ~= localPlayer and sheriffPlayer.Character and IsAlive(sheriffPlayer) then
+                table.insert(players, sheriffPlayer)
+            end
+        end
+        if Hero then
+            local heroPlayer = game.Players:FindFirstChild(Hero)
+            if heroPlayer and heroPlayer ~= localPlayer and heroPlayer.Character and IsAlive(heroPlayer) then
+                table.insert(players, heroPlayer)
+            end
+        end
+    else
+        local searchTerms = {}
+        for term in string.gmatch(input, "([^,]+)") do
+            term = string.match(term, "^%s*(.-)%s*$")
+            if term ~= "" then
+                table.insert(searchTerms, term)
+            end
+        end
+        
+        for _, player in ipairs(game.Players:GetPlayers()) do
+            if player ~= localPlayer then
+                local playerName = string.lower(player.Name)
+                local displayName = player.DisplayName and string.lower(player.DisplayName) or ""
+                
+                for _, term in ipairs(searchTerms) do
+                    if string.find(playerName, term) or string.find(displayName, term) then
+                        table.insert(players, player)
+                        break
+                    end
+                end
+            end
+        end
+    end
+    
+    return players
+end
+
+local function SkidFling(TargetPlayer, duration)
+    local startTime = tick()
+    local Character = localPlayer.Character
+    local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+    local RootPart = Humanoid and Humanoid.RootPart
+
+    local TCharacter = TargetPlayer.Character
+    local THumanoid
+    local TRootPart
+    local THead
+    local Accessory
+    local Handle
+
+    if TCharacter:FindFirstChildOfClass("Humanoid") then
+        THumanoid = TCharacter:FindFirstChildOfClass("Humanoid")
+    end
+    if THumanoid and THumanoid.RootPart then
+        TRootPart = THumanoid.RootPart
+    end
+    if TCharacter:FindFirstChild("Head") then
+        THead = TCharacter.Head
+    end
+    if TCharacter:FindFirstChildOfClass("Accessory") then
+        Accessory = TCharacter:FindFirstChildOfClass("Accessory")
+    end
+    if Accessory and Accessory:FindFirstChild("Handle") then
+        Handle = Accessory.Handle
+    end
+
+    if Character and Humanoid and RootPart then
+        if RootPart.Velocity.Magnitude < 50 then
+            getgenv().OldPos = RootPart.CFrame
+        end
+        if THead then
+            workspace.CurrentCamera.CameraSubject = THead
+        elseif not THead and Handle then
+            workspace.CurrentCamera.CameraSubject = Handle
+        elseif THumanoid and TRootPart then
+            workspace.CurrentCamera.CameraSubject = THumanoid
+        end
+        if not TCharacter:FindFirstChildWhichIsA("BasePart") then
+            return
+        end
+        
+        local FPos = function(BasePart, Pos, Ang)
+            RootPart.CFrame = CFrame.new(BasePart.Position) * Pos * Ang
+            Character:SetPrimaryPartCFrame(CFrame.new(BasePart.Position) * Pos * Ang)
+            RootPart.Velocity = Vector3.new(9e7, 9e7 * 10, 9e7)
+            RootPart.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
+        end
+        
+        local SFBasePart = function(BasePart)
+            local TimeToWait = duration or 2
+            local Time = tick()
+            local Angle = 0
+
+            repeat
+                if RootPart and THumanoid then
+                    if BasePart.Velocity.Magnitude < 50 then
+                        Angle = Angle + 100
+
+                        FPos(BasePart, CFrame.new(0, 1.5, 0) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle),0 ,0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, -1.5, 0) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(2.25, 1.5, -2.25) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(-2.25, -1.5, 2.25) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, 1.5, 0) + THumanoid.MoveDirection,CFrame.Angles(math.rad(Angle), 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, -1.5, 0) + THumanoid.MoveDirection,CFrame.Angles(math.rad(Angle), 0, 0))
+                        task.wait()
+                    else
+                        FPos(BasePart, CFrame.new(0, 1.5, THumanoid.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, -1.5, -THumanoid.WalkSpeed), CFrame.Angles(0, 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, 1.5, THumanoid.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
+                        task.wait()
+                        
+                        FPos(BasePart, CFrame.new(0, 1.5, TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, -1.5, -TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(0, 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, 1.5, TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(90), 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, -1.5 ,0), CFrame.Angles(math.rad(-90), 0, 0))
+                        task.wait()
+
+                        FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
+                        task.wait()
+                    end
+                else
+                    break
+                end
+            until not flingActive or BasePart.Velocity.Magnitude > 500 or BasePart.Parent ~= TargetPlayer.Character or TargetPlayer.Parent ~= game.Players or not TargetPlayer.Character == TCharacter or THumanoid.Sit or tick() > Time + TimeToWait
+        end
+        
+        local previousDestroyHeight = workspace.FallenPartsDestroyHeight
+        workspace.FallenPartsDestroyHeight = 0/0
+        
+        local BV = Instance.new("BodyVelocity")
+        BV.Name = "EpixVel"
+        BV.Parent = RootPart
+        BV.Velocity = Vector3.new(9e8, 9e8, 9e8)
+        BV.MaxForce = Vector3.new(1/0, 1/0, 1/0)
+        
+        Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+        
+        if TRootPart and THead then
+            if (TRootPart.CFrame.p - THead.CFrame.p).Magnitude > 5 then
+                SFBasePart(THead)
+            else
+                SFBasePart(TRootPart)
+            end
+        elseif TRootPart and not THead then
+            SFBasePart(TRootPart)
+        elseif not TRootPart and THead then
+            SFBasePart(THead)
+        elseif not TRootPart and not THead and Accessory and Handle then
+            SFBasePart(Handle)
+        end
+        
+        BV:Destroy()
+        Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+        workspace.CurrentCamera.CameraSubject = Humanoid
+        
+        repeat
+            if Character and Humanoid and RootPart and getgenv().OldPos then
+                RootPart.CFrame = getgenv().OldPos * CFrame.new(0, .5, 0)
+                Character:SetPrimaryPartCFrame(getgenv().OldPos * CFrame.new(0, .5, 0))
+                Humanoid:ChangeState("GettingUp")
+                for _, x in pairs(Character:GetChildren()) do
+                    if x:IsA("BasePart") then
+                        x.Velocity, x.RotVelocity = Vector3.new(), Vector3.new()
+                    end
+                end
+            end
+            task.wait()
+        until not flingActive or (RootPart and getgenv().OldPos and (RootPart.Position - getgenv().OldPos.p).Magnitude < 25)
+        workspace.FallenPartsDestroyHeight = previousDestroyHeight
+    end
+end
+
+local function shhhlol(TargetPlayer)
+    local Character = localPlayer.Character
+    local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+    local RootPart = Humanoid and Humanoid.RootPart
+
+    local TCharacter = TargetPlayer.Character
+    local THumanoid = TCharacter and TCharacter:FindFirstChildOfClass("Humanoid")
+    local TRootPart = THumanoid and THumanoid.RootPart
+    local THead = TCharacter and TCharacter:FindFirstChild("Head")
+
+    if Character and Humanoid and RootPart then
+        if RootPart.Velocity.Magnitude < 50 then
+            getgenv().OldPos = RootPart.CFrame
+        end
+
+        if not TCharacter:FindFirstChildWhichIsA("BasePart") then return end
+
+        local function mmmm(comkid, Pos, Ang)
+            RootPart.CFrame = CFrame.new(comkid.Position) * Pos * Ang
+            RootPart.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
+        end
+
+        local function wtf(comkid)
+            local TimeToWait = 0.134
+            local Time = tick()
+            
+            local Att1 = Instance.new("Attachment", RootPart)
+            local Att2 = Instance.new("Attachment", comkid)
+
+            repeat
+                if RootPart and THumanoid then
+                    if comkid.Velocity.Magnitude < 30 then
+                        mmmm(
+                            comkid,
+                            CFrame.new(0, 1.5, 0) + THumanoid.MoveDirection * comkid.Velocity.Magnitude / 5,
+                            CFrame.Angles(
+                                math.random(1, 2) == 1 and math.rad(0) or math.rad(180),
+                                math.random(1, 2) == 1 and math.rad(0) or math.rad(180),
+                                math.random(1, 2) == 1 and math.rad(0) or math.rad(180)
+                            )
+                        )
+                        task.wait()
+
+                        mmmm(
+                            comkid,
+                            CFrame.new(0, 1.5, 0) + THumanoid.MoveDirection * comkid.Velocity.Magnitude / 1.25,
+                            CFrame.Angles(
+                                math.random(1, 2) == 1 and math.rad(0) or math.rad(180),
+                                math.random(1, 2) == 1 and math.rad(0) or math.rad(180),
+                                math.random(1, 2) == 1 and math.rad(0) or math.rad(180)
+                            )
+                        )
+                        task.wait()
+
+                        mmmm(
+                            comkid,
+                            CFrame.new(0, -1.5, 0) + THumanoid.MoveDirection * comkid.Velocity.Magnitude / 1.25,
+                            CFrame.Angles(
+                                math.random(1, 2) == 1 and math.rad(0) or math.rad(180),
+                                math.random(1, 2) == 1 and math.rad(0) or math.rad(180),
+                                math.random(1, 2) == 1 and math.rad(0) or math.rad(180)
+                            )
+                        )
+                        task.wait()
+                    else
+                        mmmm(comkid, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(0), 0, 0))
+                        task.wait()
+                    end
+                else
+                    break
+                end
+            until comkid.Velocity.Magnitude > 1000 or 
+                  comkid.Parent ~= TargetPlayer.Character or
+                  TargetPlayer.Parent ~= game.Players or
+                  not TargetPlayer.Character == TCharacter or
+                  Humanoid.Health <= 0 or
+                  tick() > Time + TimeToWait or
+                  not flingActive
+
+            Att1:Destroy()
+            Att2:Destroy()
+        end
+
+        local previousDestroyHeight = workspace.FallenPartsDestroyHeight
+        workspace.FallenPartsDestroyHeight = 0/0
+        
+        local BV = Instance.new("BodyVelocity")
+        BV.Parent = RootPart
+        BV.Velocity = Vector3.new(-9e99, 9e99, -9e99)
+        BV.MaxForce = Vector3.new(-9e9, 9e9, -9e9)
+
+        local BodyGyro = Instance.new("BodyGyro")
+        BodyGyro.CFrame = CFrame.new(RootPart.Position)
+        BodyGyro.D = 9e8
+        BodyGyro.MaxTorque = Vector3.new(-9e9, 9e9, -9e9)
+        BodyGyro.P = -9e9
+
+        local BodyPosition = Instance.new("BodyPosition")
+        BodyPosition.Position = RootPart.Position
+        BodyPosition.D = 9e8
+        BodyPosition.MaxForce = Vector3.new(-9e9, 9e9, -9e9)
+        BodyPosition.P = -9e9
+
+        if TRootPart and THead then
+            if (TRootPart.CFrame.p - THead.CFrame.p).Magnitude > 5 then
+                wtf(THead)
+            else
+                wtf(TRootPart)
+            end
+        elseif TRootPart and not THead then
+            wtf(TRootPart)
+        elseif not TRootPart and THead then
+            wtf(THead)
+        end
+
+        BV:Destroy()
+        BodyGyro:Destroy()
+        BodyPosition:Destroy()
+        
+        repeat
+            if Character and Humanoid and RootPart and getgenv().OldPos then
+                RootPart.CFrame = getgenv().OldPos * CFrame.new(0, .5, 0)
+                Character:SetPrimaryPartCFrame(getgenv().OldPos * CFrame.new(0, .5, 0))
+                Humanoid:ChangeState("GettingUp")
+                for _, x in pairs(Character:GetDescendants()) do
+                    if x:IsA("BasePart") then
+                        x.Velocity, x.RotVelocity = Vector3.new(), Vector3.new()
+                    end
+                end
+            end
+            task.wait()
+        until not flingActive or (RootPart and getgenv().OldPos and (RootPart.Position - getgenv().OldPos.p).Magnitude < 25)
+        
+        workspace.FallenPartsDestroyHeight = previousDestroyHeight
+    end
+end
+
+local function yeet(targetPlayer)
+    local character = localPlayer.Character
+    local targetCharacter = targetPlayer.Character
+
+    if not character or not targetCharacter or not targetCharacter:FindFirstChild("HumanoidRootPart") then
+        return false
+    end
+
+    if character.HumanoidRootPart.Velocity.Magnitude < 50 then
+        getgenv().OldPos = character.HumanoidRootPart.CFrame
+    end
+
+    local existingForce = character.HumanoidRootPart:FindFirstChild("YeetForce")
+    if existingForce then
+        existingForce:Destroy()
+    end
+
+    local Thrust = Instance.new('BodyThrust', character.HumanoidRootPart)
+    Thrust.Force = Vector3.new(9999, 9999, 9999)
+    Thrust.Name = "YeetForce"
+
+    local previousDestroyHeight = workspace.FallenPartsDestroyHeight
+    workspace.FallenPartsDestroyHeight = 0/0
+
+    local startTime = tick()
+    local duration = (currentInput == "all" or currentInput == "nonfriends") and 5 or math.huge
+
+    local yeetConnection
+    yeetConnection = game:GetService("RunService").Heartbeat:Connect(function()
+        if not targetCharacter or not targetCharacter:FindFirstChild("HumanoidRootPart") or not flingActive or tick() > startTime + duration then
+            yeetConnection:Disconnect()
+            Thrust:Destroy()
+            workspace.FallenPartsDestroyHeight = previousDestroyHeight
+
+            if character and character.HumanoidRootPart and getgenv().OldPos then
+                character.HumanoidRootPart.CFrame = getgenv().OldPos * CFrame.new(0, .5, 0)
+                character.Humanoid:ChangeState("GettingUp")
+                for _, x in pairs(character:GetDescendants()) do
+                    if x:IsA("BasePart") then
+                        x.Velocity, x.RotVelocity = Vector3.new(), Vector3.new()
+                    end
+                end
+            end
+            return
+        end
+
+        local targetHRP = targetCharacter.HumanoidRootPart
+        local targetVelocity = targetHRP.Velocity
+        local speed = targetVelocity.Magnitude
+        local direction = targetVelocity.Unit
+
+        local offsetPosition
+        if speed > 0.1 then
+            offsetPosition = targetHRP.Position + (direction * speed)
+        else
+            offsetPosition = targetHRP.Position + Vector3.new(0, 0, 0)
+        end
+
+        character.HumanoidRootPart.CFrame = CFrame.new(offsetPosition)
+
+        Thrust.Location = targetHRP.Position
+    end)
+
+    return true
+end
+
+local function flingPlayers()
+    local players = {}
+    for player, _ in pairs(processedPlayers) do
+        if player and player.Character and player.Character.Parent ~= nil then
+            table.insert(players, player)
+        end
+    end
+    
+    if currentInput == "all" or currentInput == "nonfriends" then
+        players = sortPlayersAlphabetically(players)
+    end
+    
+    for _, player in ipairs(players) do
+        if not flingActive then break end
+        
+        if player and player.Character and player.Character.Parent ~= nil then
+            local duration = (currentInput == "all" or currentInput == "nonfriends") and 1.5 or nil
+            
+            if flingMode == 1 then
+                SkidFling(player, duration)
+            elseif flingMode == 2 then
+                shhhlol(player)
+            elseif flingMode == 3 then
+                yeet(player)
+                if currentInput == "all" or currentInput == "nonfriends" then
+                    task.wait(1.5)
+                end
+            end
+        end
+    end
+    
+    if flingActive then
+        task.wait()
+        flingPlayers()
+    end
+end
+
+local function addPlayerToProcessed(player)
+    if not player or player == localPlayer then return end
+    
+    local matchesFilter = false
+    local input = string.lower(currentInput)
+    
+    if input == "all" then
+        matchesFilter = true
+    elseif input == "nonfriends" then
+        local success, isFriend = pcall(function()
+            return player:IsFriendsWith(localPlayer.UserId)
+        end)
+        matchesFilter = not (success and isFriend)
+    elseif input == "murder" then
+        if Murder and player.Name == Murder then
+            matchesFilter = IsAlive(player)
+        end
+    elseif input == "sheriff" or input == "hero" then
+        if (Sheriff and player.Name == Sheriff) or (Hero and player.Name == Hero) then
+            matchesFilter = IsAlive(player)
+        end
+    else
+        local searchTerms = {}
+        for term in string.gmatch(input, "([^,]+)") do
+            term = string.match(term, "^%s*(.-)%s*$")
+            if term ~= "" then
+                table.insert(searchTerms, term)
+            end
+        end
+        
+        local playerName = string.lower(player.Name)
+        local displayName = player.DisplayName and string.lower(player.DisplayName) or ""
+        
+        for _, term in ipairs(searchTerms) do
+            if string.find(playerName, term) or string.find(displayName, term) then
+                matchesFilter = true
+                break
+            end
+        end
+    end
+    
+    if matchesFilter then
+        processedPlayers[player] = true
+    end
+end
+
+local flingInputValue = ""
+FlingInput = Tabs.Utility:Input({
+    Title = "Fling Target",
+    Placeholder = "nickname, all, nonfriends, murder, sheriff",
+    Callback = function(value)
+        flingInputValue = value
+        currentInput = string.lower(value)
+    end
+})
+
+FlingModeDropdown = Tabs.Utility:Dropdown({
+    Title = "Fling Mode",
+    Values = {"SkidFling", "Shhhlol", "Yeet"},
+    Value = "SkidFling",
+    Callback = function(value)
+        if value == "SkidFling" then
+            flingMode = 1
+        elseif value == "Shhhlol" then
+            flingMode = 2
+        elseif value == "Yeet" then
+            flingMode = 3
+        end
+    end
+})
+
+FlingToggle = Tabs.Utility:Toggle({
+    Title = "Fling Players",
+    Value = false,
+    Callback = function(state)
+        flingActive = state
+        
+        if flingActive then
+            currentInput = string.lower(flingInputValue or "")
+            local players = getPlayers(currentInput)
+            
+            if #players == 0 then
+                WindUI:Notify({
+                    Title = "Fling Target",
+                    Content = "Invalid Input: " .. currentInput,
+                    Duration = 3
+                })
+                flingActive = false
+                FlingToggle:Set(false)
+                return
+            end
+            
+            processedPlayers = {}
+            for _, player in ipairs(players) do
+                addPlayerToProcessed(player)
+            end
+            
+            WindUI:Notify({
+                Title = "Fling Target",
+                Content = "Flinging " .. #players .. " players",
+                Duration = 3
+            })
+            
+            coroutine.wrap(flingPlayers)()
+        else
+            processedPlayers = {}
+        end
+    end
+})
+
+Tabs.Utility:Button({
+    Title = "Fling Murderer",
+    Callback = function()
+        if flingActive then
+            WindUI:Notify({
+                Title = "Fling Target",
+                Content = "Stop current fling first",
+                Duration = 2
+            })
+            return
+        end
+        
+        currentInput = "murder"
+        local players = getPlayers(currentInput)
+        
+        if #players == 0 then
+            WindUI:Notify({
+                Title = "Fling Target",
+                Content = "No alive murderer found",
+                Duration = 3
+            })
+            return
+        end
+        
+        flingActive = true
+        processedPlayers = {}
+        for _, player in ipairs(players) do
+            addPlayerToProcessed(player)
+        end
+        
+        WindUI:Notify({
+            Title = "Fling Target",
+            Content = "Flinging murderer: " .. players[1].Name .. " for 10 seconds",
+            Duration = 3
+        })
+        
+        local stopTimer = 10
+        local startTime = tick()
+        
+        coroutine.wrap(function()
+            while flingActive and tick() - startTime < stopTimer do
+                task.wait(1)
+            end
+            if flingActive then
+                flingActive = false
+                processedPlayers = {}
+                FlingToggle:Set(false)
+            end
+        end)()
+        
+        coroutine.wrap(flingPlayers)()
+    end
+})
+
+Tabs.Utility:Button({
+    Title = "Fling Sheriff/Hero",
+    Callback = function()
+        if flingActive then
+            WindUI:Notify({
+                Title = "Fling Target",
+                Content = "Stop current fling first",
+                Duration = 2
+            })
+            return
+        end
+        
+        currentInput = "sheriff"
+        local players = getPlayers(currentInput)
+        
+        if #players == 0 then
+            WindUI:Notify({
+                Title = "Fling Target",
+                Content = "No alive sheriff or hero found",
+                Duration = 3
+            })
+            return
+        end
+        
+        flingActive = true
+        processedPlayers = {}
+        for _, player in ipairs(players) do
+            addPlayerToProcessed(player)
+        end
+        
+        local targetNames = ""
+        for i, player in ipairs(players) do
+            targetNames = targetNames .. player.Name
+            if i < #players then
+                targetNames = targetNames .. ", "
+            end
+        end
+        
+        WindUI:Notify({
+            Title = "Fling Target",
+            Content = "Flinging: " .. targetNames .. " for 10 seconds",
+            Duration = 3
+        })
+        
+        local stopTimer = 10
+        local startTime = tick()
+        
+        coroutine.wrap(function()
+            while flingActive and tick() - startTime < stopTimer do
+                task.wait(1)
+            end
+            if flingActive then
+                flingActive = false
+                processedPlayers = {}
+                FlingToggle:Set(false)
+            end
+        end)()
+        
+        coroutine.wrap(flingPlayers)()
+    end
+})
+game.Players.PlayerAdded:Connect(function(player)
+    if flingActive then
+        addPlayerToProcessed(player)
+        if player.Character then
+            if flingMode == 1 then
+                local duration = (currentInput == "all" or currentInput == "nonfriends") and 1.5 or nil
+                SkidFling(player, duration)
+            elseif flingMode == 2 then
+                shhhlol(player)
+            elseif flingMode == 3 then
+                yeet(player)
+            end
+        else
+            player.CharacterAdded:Connect(function()
+                if flingActive then
+                    addPlayerToProcessed(player)
+                    if flingMode == 1 then
+                        local duration = (currentInput == "all" or currentInput == "nonfriends") and 1.5 or nil
+                        SkidFling(player, duration)
+                    elseif flingMode == 2 then
+                        shhhlol(player)
+                    elseif flingMode == 3 then
+                        yeet(player)
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+localPlayer.CharacterAdded:Connect(function()
+    if flingActive then
+        task.wait(1)
+        coroutine.wrap(flingPlayers)()
+    end
+end)
 local antiVoidActive = false
 local originalDestroyHeight = workspace.FallenPartsDestroyHeight
 
@@ -4331,60 +5609,55 @@ LowQualityButton = Tabs.Utility:Button({
         end
     end
 })
-local disablePlayerCollisions = false
-local collisionConnection = nil
 
-local function disableAllPlayerCollisions()
-    for _, targetPlayer in ipairs(Players:GetPlayers()) do
-        if targetPlayer.Character and targetPlayer ~= player then
-            for _, part in ipairs(targetPlayer.Character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                end
-            end
+local antiFlingEnabled = false
+local antiFlingConnection = nil
+
+local function setCanCollideOfModelDescendants(model, bval)
+    if not model then return end
+    for _, v in pairs(model:GetDescendants()) do
+        if v:IsA("BasePart") then
+            v.CanCollide = bval
         end
     end
 end
 
-local function enableAllPlayerCollisions()
-    for _, targetPlayer in ipairs(Players:GetPlayers()) do
-        if targetPlayer.Character and targetPlayer ~= player then
-            for _, part in ipairs(targetPlayer.Character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = true
-                end
-            end
-        end
-    end
-end
-
-local function startCollisionDisable()
-    if collisionConnection then return end
+local function startAntiFling()
+    if antiFlingConnection then return end
     
-    collisionConnection = RunService.Heartbeat:Connect(function()
-        if disablePlayerCollisions then
-            disableAllPlayerCollisions()
+    antiFlingConnection = RunService.Stepped:Connect(function()
+        if antiFlingEnabled then
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player ~= Players.LocalPlayer and player.Character then
+                    setCanCollideOfModelDescendants(player.Character, false)
+                end
+            end
         end
     end)
 end
 
-local function stopCollisionDisable()
-    if collisionConnection then
-        collisionConnection:Disconnect()
-        collisionConnection = nil
+local function stopAntiFling()
+    if antiFlingConnection then
+        antiFlingConnection:Disconnect()
+        antiFlingConnection = nil
     end
-    enableAllPlayerCollisions()
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= Players.LocalPlayer and player.Character then
+            setCanCollideOfModelDescendants(player.Character, true)
+        end
+    end
 end
 
-DisableCollisionsToggle = Tabs.Utility:Toggle({
+AntiFlingToggle = Tabs.Utility:Toggle({
     Title = "Disable Player Collisions",
     Value = false,
     Callback = function(state)
-        disablePlayerCollisions = state
+        antiFlingEnabled = state
         if state then
-            startCollisionDisable()
+            startAntiFling()
         else
-            stopCollisionDisable()
+            stopAntiFling()
         end
     end
 })
