@@ -774,6 +774,51 @@ JumpBoostSlider = Tabs.Player:Slider({
         end
     end
 })
+
+Tabs.Player:Button({
+    Title = "Walk on Walls (must reset to stop)",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/randomstring0/Qwerty/refs/heads/main/qwerty21.lua"))()
+    end
+})
+Tabs.Player:Toggle({
+    Title = "Fake dead (lays)",
+    Compact = true,
+    Value = false,
+    Callback = function(v)
+        local char = game.Players.LocalPlayer.Character
+        if not char then return end
+
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        local hum = char:FindFirstChildOfClass("Humanoid")
+
+        if v then
+            if hrp and hum then
+                local animator = hum:FindFirstChild("Animator")
+                if animator then
+                    animator:Destroy()
+                end
+
+                hum:ChangeState(Enum.HumanoidStateType.Physics)
+                hrp.Anchored = true
+                hrp.CFrame = hrp.CFrame * CFrame.Angles(math.rad(90), 0, 0)
+                hrp.CFrame = hrp.CFrame + Vector3.new(0, -2.5, 0)
+            end
+        else
+            if hrp and hum then
+                hrp.Anchored = false
+                hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+
+                if not hum:FindFirstChild("Animator") then
+                    local newAnimator = Instance.new("Animator")
+                    newAnimator.Parent = hum
+                end
+            end
+        end
+    end
+})
+
+
 Tabs.Combat:Section({ Title = "Combat", TextSize = 40 })
 Tabs.Combat:Section({ Title = "Aimbot", TextSize = 20 })
 Tabs.Combat:Divider()
@@ -3325,7 +3370,225 @@ end)
 
 coinEspConnection = RunService.RenderStepped:Connect(updateCoinESP)
 gunEspConnection = RunService.RenderStepped:Connect(updateGunESP)
+local xRay = false
+Tabs.Visuals:Toggle({
+    Title = "X-ray Vision",
+    Compact = true,
+    Callback = function(state)
+        xRay = state
+        for _, part in pairs(workspace:GetDescendants()) do
+            if part:IsA("BasePart") and not part:IsDescendantOf(LocalPlayer.Character) then
+                part.LocalTransparencyModifier = state and 0.7 or 0
+            end
+        end
+    end
+})
+Tabs.Visuals:Button({
+    Title = "Shit Render", 
+    Callback = function()
+        Lighting = game:GetService("Lighting")
+        Terrain = workspace:FindFirstChildOfClass("Terrain")
+        Players = game:GetService("Players")
+        LocalPlayer = Players.LocalPlayer
 
+        Lighting.GlobalShadows = false
+        Lighting.FogEnd = 1e10
+        Lighting.Brightness = 1
+
+        if Terrain then
+            Terrain.WaterWaveSize = 0
+            Terrain.WaterWaveSpeed = 0
+            Terrain.WaterReflectance = 0
+            Terrain.WaterTransparency = 1
+        end
+
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("BasePart") then
+                obj.Material = Enum.Material.Plastic
+                obj.Reflectance = 0
+            elseif obj:IsA("Decal") or obj:IsA("Texture") then
+                obj:Destroy()
+            elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") then
+                obj:Destroy()
+            elseif obj:IsA("PointLight") or obj:IsA("SpotLight") or obj:IsA("SurfaceLight") then
+                obj:Destroy()
+            end
+        end
+
+        for _, player in ipairs(Players:GetPlayers()) do
+            local char = player.Character
+            if char then
+                for _, part in ipairs(char:GetDescendants()) do
+                    if part:IsA("Accessory") or part:IsA("Clothing") then
+                        part:Destroy()
+                    end
+                end
+            end
+        end
+    end
+})
+local function spawnWeapon(name)
+    local DataBase, PlayerData = require(game:GetService("ReplicatedStorage").Database.Sync.Item),
+                                  require(game:GetService("ReplicatedStorage").Modules.ProfileData)
+    local newOwned = {}
+    newOwned[name] = 1
+    local PlayerWeapons = PlayerData.Weapons
+    game:GetService("RunService"):BindToRenderStep("InventoryUpdate", 0, function()
+        PlayerWeapons.Owned = newOwned
+    end)
+    game.Players.LocalPlayer.Character:BreakJoints()
+end
+Tabs.Visuals:Paragraph({
+    Title = "VISUAL WARNING",
+    Desc = "ALL items are in fact visual and not real you do not get to keep any of the items after rejoining the game they are only for show and do not actually exist ",
+    Image = "eye"
+})
+
+
+local WeaponOwnedRange = { min = 1, max = 100000 }
+
+
+Tabs.Visuals:Section({ Title = "Weapon Visuals", Desc = "" })
+
+
+
+Tabs.Visuals:Slider({
+    Title = "Min",
+    Value = {Min = 1, Max = 100000, Default = 1},
+    Compact = true,
+    Callback = function(value) WeaponOwnedRange.min = value end
+})
+
+
+Tabs.Visuals:Slider({
+    Title = "Max",
+    Value = {Min = 1, Max = 100000, Default = 150},
+    Compact = true,
+    Callback = function(value) WeaponOwnedRange.max = value end
+})
+
+
+Tabs.Visuals:Button({
+    Title = "spawn random Godlys (if they don’t spawn reset ",
+    Compact = true,
+    Callback = function()
+        local DataBase = require(game:GetService("ReplicatedStorage").Database.Sync.Item)
+        local PlayerData = require(game:GetService("ReplicatedStorage").Modules.ProfileData)
+        local newOwned = {}
+        for i, v in pairs(DataBase) do
+            newOwned[i] = math.random(WeaponOwnedRange.min, WeaponOwnedRange.max)
+        end
+        game:GetService("RunService"):BindToRenderStep("InventoryUpdate", 0, function()
+            PlayerData.Weapons.Owned = newOwned
+        end)
+        WindUI:Notify({ Title = "Visuals Enabled", Content = "Fake counts activated!", Duration = 2 })
+    end
+})
+
+
+Tabs.Visuals:Section({ Title = "Item Spawner", Desc = "" })
+
+
+Tabs.Visuals:Input({
+    Title = "Weapon Name",
+    Placeholder = "Enter weapon name..",
+    Compact = true,
+    Callback = function(inputText)
+        if inputText and inputText ~= "" then
+            spawnWeapon(inputText)
+            WindUI:Notify({ Title = "Weapon Spawned", Content = inputText.." added!", Duration = 2 })
+        end
+    end
+})
+Tabs.Visuals:Section({ Title = "weapon dupe ", Desc = "" })
+
+
+
+Tabs.Visuals:Section({ Title = "Duplication Options", Desc = "Select amount to duplicate by and choose a specific item to duplicate." })
+
+Tabs.Visuals:Input({
+    Title = "Duplication Multiplier",
+    Placeholder = "Enter multiplier (e.g., 2, 3)",
+    Compact = true,
+    Callback = function(inputText)
+        local multiplier = tonumber(inputText)
+        if multiplier and multiplier > 0 then
+            _G.DupeMultiplier = multiplier
+            WindUI:Notify({ Title = "Multiplier Set", Content = "Duplication multiplier set to x" .. multiplier, Duration = 2 })
+        else
+            WindUI:Notify({ Title = "Invalid Multiplier", Content = "Please enter a valid multiplier (greater than 0).", Duration = 2 })
+        end
+    end
+})
+
+Tabs.Visuals:Input({
+    Title = "Specific Item to Duplicate",
+    Placeholder = "Enter item name to dupe (e.g., Christmas Knife)",
+    Compact = true,
+    Callback = function(inputText)
+        _G.DupeSpecificItem = inputText
+        WindUI:Notify({ Title = "Item Set", Content = "Specific item set to duplicate: " .. inputText, Duration = 2 })
+    end
+})
+
+Tabs.Visuals:Button({
+    Title = "Duplicate Inventory",
+    Compact = true,
+    Callback = function()
+        local Players = game:GetService("Players")
+        local LocalPlayer = Players.LocalPlayer
+
+        local UIPath
+
+        if LocalPlayer.PlayerGui.MainGUI.Game:FindFirstChild("Inventory") ~= nil then
+            UIPath = LocalPlayer.PlayerGui.MainGUI.Game.Inventory.Main
+        else
+            UIPath = LocalPlayer.PlayerGui.MainGUI.Lobby.Screens.Inventory.Main
+        end
+
+        local function VisualDupe()
+            local multiplier = _G.DupeMultiplier or 2
+            local specificItem = _G.DupeSpecificItem
+
+            for _, item in pairs(UIPath.Weapons.Items.Container:GetChildren()) do
+                for _, weapon in pairs(item.Container:GetChildren()) do
+                    if weapon:IsA("Frame") then
+                        local itemName = weapon.ItemName.Label.Text
+                        if (not specificItem or itemName == specificItem) and itemName ~= "Default Knife" and itemName ~= "Default Gun" then
+                            local amount = weapon.Container.Amount.Text
+                            if amount == "" or amount == "None" then
+                                weapon.Container.Amount.Text = "x" .. tostring(multiplier)
+                            else
+                                local num = tonumber(amount:match("x(%d+)"))
+                                if num then
+                                    weapon.Container.Amount.Text = "x" .. tostring(num * multiplier)
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+
+            for _, pet in pairs(UIPath.Pets.Items.Container.Current.Container:GetChildren()) do
+                if pet:IsA("Frame") then
+                    local amount = pet.Container.Amount.Text
+                    if amount == "" or amount == "None" then
+                        pet.Container.Amount.Text = "x" .. tostring(multiplier)
+                    else
+                        local num = tonumber(amount:match("x(%d+)"))
+                        if num then
+                            pet.Container.Amount.Text = "x" .. tostring(num * multiplier)
+                        end
+                    end
+                end
+            end
+        end
+
+        VisualDupe()
+
+        WindUI:Notify({ Title = "Inventory Visual Duplication", Content = "Your inventory has been visually duplicated!", Duration = 2 })
+    end
+})
 Tabs.Esp:Section({ Title = "Innocent ESP" })
 
 InnocentNameESPToggle = Tabs.Esp:Toggle({
@@ -3730,7 +3993,19 @@ function TeleportToMap()
     local spawnParts = {}
     for _, obj in pairs(workspace:GetDescendants()) do
         if obj:IsA("BasePart") and obj.Name == "Spawn" then
-            table.insert(spawnParts, obj)
+            local isInLobby = false
+            local parent = obj.Parent
+            while parent ~= nil do
+                if parent.Name == "Lobby" and parent.Parent == workspace then
+                    isInLobby = true
+                    break
+                end
+                parent = parent.Parent
+            end
+            
+            if not isInLobby then
+                table.insert(spawnParts, obj)
+            end
         end
     end
     
@@ -4094,6 +4369,54 @@ Tabs.Misc:Slider({
         AutoFarm.CoinCheckInterval = value
     end
 })
+ExpFarm = false
+ExpFarmConnection = nil
+
+if not workspace:FindFirstChild("SecurityPart") then
+    local SecurityPart = Instance.new("Part")
+    SecurityPart.Name = "SecurityPart"
+    SecurityPart.Size = Vector3.new(10, 1, 10)
+    SecurityPart.Position = Vector3.new(0, 500, 0)
+    SecurityPart.Anchored = true
+    SecurityPart.CanCollide = true
+    SecurityPart.Parent = workspace
+end
+
+function startExpFarm()
+    local securityPart = workspace:FindFirstChild("SecurityPart")
+    if not securityPart then
+        print("SecurityPart not found")
+        return
+    end
+    
+    ExpFarmConnection = RunService.Heartbeat:Connect(function()
+        local character = LocalPlayer.Character
+        local rootPart = character and character:FindFirstChild("HumanoidRootPart")
+        if character and rootPart then
+            rootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
+        end
+    end)
+end
+
+function stopExpFarm()
+    if ExpFarmConnection then
+        ExpFarmConnection:Disconnect()
+        ExpFarmConnection = nil
+    end
+end
+
+ExpFarmToggle = Tabs.Misc:Toggle({
+    Title = "Exp Farm",
+    Value = false,
+    Callback = function(state)
+        ExpFarm = state
+        if state then
+            startExpFarm()
+        else
+            stopExpFarm()
+        end
+    end
+})
 local function getPlayerRole(playerName)
     local success, roles = pcall(function()
         return ReplicatedStorage:FindFirstChild("GetPlayerData", true):InvokeServer()
@@ -4211,6 +4534,15 @@ Tabs.Misc:Button({
         end
     end
 })
+Tabs.Misc:Button({
+    Title = "Trade Helper",
+    Compact = true,
+    Callback = function()
+        loadstring(game:HttpGet("https://pastebin.com/raw/8LDyigix"))()
+        WindUI:Notify({ Title = "Trade Helper", Content = "Script loaded!", Duration = 3 })
+    end
+})
+
 Tabs.Utility:Button(
     {
         Title = "Dupe Emote All (Not working idk why)",
@@ -5661,6 +5993,125 @@ AntiFlingToggle = Tabs.Utility:Toggle({
         end
     end
 })
+HitboxSettings = {
+    Enabled = false,
+    Size = 5,
+    Color = Color3.new(1, 0, 0),
+    Adornments = {}
+}
+
+function UpdateHitboxes()
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            local chr = plr.Character
+            local box = HitboxSettings.Adornments[plr]
+            if chr and HitboxSettings.Enabled then
+                local root = chr:FindFirstChild("HumanoidRootPart")
+                if root then
+                    if not box then
+                        box = Instance.new("BoxHandleAdornment")
+                        box.Adornee = root
+                        box.Size = Vector3.new(HitboxSettings.Size, HitboxSettings.Size, HitboxSettings.Size)
+                        box.Color3 = HitboxSettings.Color
+                        box.Transparency = 0.4
+                        box.ZIndex = 10
+                        box.Parent = root
+                        HitboxSettings.Adornments[plr] = box
+                    else
+                        box.Size = Vector3.new(HitboxSettings.Size, HitboxSettings.Size, HitboxSettings.Size)
+                        box.Color3 = HitboxSettings.Color
+                    end
+                end
+            elseif box then
+                box:Destroy()
+                HitboxSettings.Adornments[plr] = nil
+            end
+        end
+    end
+end
+
+Players.PlayerAdded:Connect(function(plr)
+    if HitboxSettings.Enabled then
+        task.wait(1)
+        UpdateHitboxes()
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(plr)
+    if HitboxSettings.Adornments[plr] then
+        HitboxSettings.Adornments[plr]:Destroy()
+        HitboxSettings.Adornments[plr] = nil
+    end
+end)
+
+Players.PlayerAdded:Connect(function(plr)
+    plr.CharacterAdded:Connect(function()
+        if HitboxSettings.Enabled then
+            task.wait(0.5)
+            UpdateHitboxes()
+        end
+    end)
+end)
+
+for _, plr in pairs(Players:GetPlayers()) do
+    if plr ~= LocalPlayer then
+        plr.CharacterAdded:Connect(function()
+            if HitboxSettings.Enabled then
+                task.wait(0.5)
+                UpdateHitboxes()
+            end
+        end)
+    end
+end
+
+RunService.Heartbeat:Connect(function()
+    if HitboxSettings.Enabled then
+        UpdateHitboxes()
+    end
+end)
+
+Tabs.Utility:Section({Title = "Hitboxes"})
+
+Tabs.Utility:Toggle(
+    {
+        Title = "Show Hitboxes",
+        Callback = function(state)
+            HitboxSettings.Enabled = state
+            if state then
+                UpdateHitboxes()
+            else
+                for _, box in pairs(HitboxSettings.Adornments) do
+                    if box then
+                        box:Destroy()
+                    end
+                end
+                HitboxSettings.Adornments = {}
+            end
+        end
+    }
+)
+
+Tabs.Utility:Slider(
+    {
+        Title = "Hitbox Size",
+        Value = {Min = 1, Max = 30, Default = 5},
+        Callback = function(val)
+            HitboxSettings.Size = val
+            UpdateHitboxes()
+        end
+    }
+)
+
+Tabs.Utility:Colorpicker(
+    {
+        Title = "Hitbox Color",
+        Default = Color3.new(1, 0, 0),
+        Callback = function(col)
+            HitboxSettings.Color = col
+            UpdateHitboxes()
+        end
+    }
+)
 Tabs.Settings:Section({ Title = "Configuration", TextSize = 20 })
 Tabs.Settings:Divider()
 
