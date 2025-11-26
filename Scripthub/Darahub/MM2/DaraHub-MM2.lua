@@ -130,7 +130,7 @@ Tabs = {
     Misc = FeatureSection:Tab({ Title = "Misc", Icon = "star" }),
     Utility = FeatureSection:Tab({ Title = "Utility", Icon = "wrench" }),
     Settings = FeatureSection:Tab({ Title = "Settings", Icon = "settings" }),
-    Info = FeatureSection:Tab({ Title = "Info", Icon = "info" })
+    Info = FeatureSection:Tab({ Title = "Info", Icon = "info" }),
 }
 
 Tabs.Main:Section({ Title = "Server Info", TextSize = 20 })
@@ -4377,7 +4377,7 @@ if not workspace:FindFirstChild("SecurityPart") then
     local SecurityPart = Instance.new("Part")
     SecurityPart.Name = "SecurityPart"
     SecurityPart.Size = Vector3.new(10, 1, 10)
-    SecurityPart.Position = Vector3.new(0, 500, 0)
+    SecurityPart.Position = Vector3.new(50000, 50000, 50000)
     SecurityPart.Anchored = true
     SecurityPart.CanCollide = true
     SecurityPart.Parent = workspace
@@ -4544,69 +4544,352 @@ Tabs.Misc:Button({
     end
 })
 
-Tabs.Utility:Button(
-    {
-        Title = "Dupe Emote All (Not working idk why)",
-        Desc = "Unlock all emotes by pressing this button.",
-        Callback = function()
-            local player = game.Players.LocalPlayer
-            local replicatedStorage = game:GetService("ReplicatedStorage")
-            local playerGui = player:FindFirstChild("PlayerGui")
-            if not playerGui then
-                warn("PlayerGui not found")
-                return
+Tabs.Utility:Button({
+    Title = "Unlock all emote and toy",
+    Desc = "The toy is useless so don't mind it if it's not working",
+    Callback = function()
+    -- MM2 All Emotes Unlocker (2025) Script
+--[[ ((Don't use this if you hate overlapping bug
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local PlayEmote = ReplicatedStorage.Remotes.Misc.PlayEmote
+local ItemService = require(ReplicatedStorage.ClientServices.ItemService)
+local function getAllEmotes()
+    local emotes = {}
+    local success, syncModule = pcall(require, ReplicatedStorage.Database.Sync)
+    if success and syncModule then
+         if syncModule.Emotes then
+            for emoteName, _ in pairs(syncModule.Emotes) do
+                table.insert(emotes, emoteName)
+            end
+        end
+        if syncModule.Toys then
+            for toyName, _ in pairs(syncModule.Toys) do
+                table.insert(emotes, toyName)
+            end
+        end
+    end
+    local defaultEmotes = {"wave", "cheer", "laugh", "dance1", "dance2", "dance3"}
+    for _, emote in ipairs(defaultEmotes) do
+        table.insert(emotes, emote)
+    end
+    return emotes
+end
+local AllEmotes = getAllEmotes()
+local function UnlockEmotes()
+    local Cross = PlayerGui:FindFirstChild("CrossPlatform")
+    if not Cross then return end
+    local Emotes = Cross:FindFirstChild("Emotes")
+    if not Emotes then return end
+    local Controller = Emotes:FindFirstChild("EmoteController")
+    local Window = Emotes:FindFirstChild("EmoteWindow")
+    if not Controller or not Window then return end
+    local GameEmotes = Window.EmoteContainer.EmotePages["Game Emotes"]
+    local FrameTemplate = Controller.EmoteFrame
+    local RowTemplate = Controller.RowFrame
+    for _, v in pairs(GameEmotes:GetChildren()) do
+        if v.Name:match("^Row") then
+            v:Destroy()
+        end
+    end
+    local row, slot = 1, 1
+    for _, emote in ipairs(AllEmotes) do
+        local info = ItemService:GetItemInfo(emote, "Emotes")
+        if not info then
+            -- Try getting as toy if not found as emote
+            info = ItemService:GetItemInfo(emote, "Toys")
+        end
+        if info then
+            if slot == 1 then
+                local newRow = RowTemplate:Clone()
+                newRow.Name = "Row"..row
+                newRow.Parent = GameEmotes
+                newRow.LayoutOrder = row
+            end
+            local frame = FrameTemplate:Clone()
+            frame.Name = "Emote"..slot
+            frame:SetAttribute("EmoteName", emote)
+            frame.EmoteName.Text = info.Name or emote
+            frame.EmoteIcon.Image = ItemService:GetItemImage(info)
+            frame.Hotkey.KeyLabel.Text = slot
+            frame.Hotkey.Visible = UserInputService.KeyboardEnabled
+            frame.Parent = GameEmotes["Row"..row]
+            frame.PlayButton.Activated:Connect(function()
+                PlayEmote:Fire(emote)
+            end)
+            slot += 1
+            if slot > 8 then
+                slot = 1
+                row += 1
+            end
+        end
+    end
+end
+local function initialize()
+    PlayerGui:WaitForChild("CrossPlatform", 10)
+    task.wait(1)
+    UnlockEmotes()
+end
+if PlayerGui:FindFirstChild("CrossPlatform") then
+    UnlockEmotes()
+else
+    initialize()
+end
+ReplicatedStorage.Remotes.Inventory.InventoryDataChanged.Event:Connect(function(cat)
+    if cat == "Emotes" or cat == "Toys" then
+        task.wait(0.3)
+        UnlockEmotes()
+    end
+end)
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(2)
+    UnlockEmotes()
+end)
+]]
+        local Players = game:GetService("Players")
+        local ReplicatedStorage = game:GetService("ReplicatedStorage")
+        local UserInputService = game:GetService("UserInputService")
+        local LocalPlayer = Players.LocalPlayer
+        local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+        local PlayEmote = ReplicatedStorage.Remotes.Misc.PlayEmote
+        local ItemService = require(ReplicatedStorage.ClientServices.ItemService)
+        
+        local function getAllEmotes()
+            local emotes = {}
+            local added = {}
+            
+            local success, syncModule = pcall(require, ReplicatedStorage.Database.Sync)
+            if success and syncModule then
+                if syncModule.Emotes then
+                    for emoteName, _ in pairs(syncModule.Emotes) do
+                        if not added[emoteName] then
+                            table.insert(emotes, emoteName)
+                            added[emoteName] = true
+                        end
+                    end
+                end
+                
+                if syncModule.Toys then
+                    for toyName, _ in pairs(syncModule.Toys) do
+                        if not added[toyName] then
+                            table.insert(emotes, toyName)
+                            added[toyName] = true
+                        end
+                    end
+                end
             end
-
-            local mainGui = playerGui:FindFirstChild("MainGUI")
-            if not mainGui then
-                warn("MainGUI not found")
-                return
+            
+            local defaultEmotes = {"wave", "cheer", "laugh", "dance1", "dance2", "dance3"}
+            for _, emote in ipairs(defaultEmotes) do
+                if not added[emote] then
+                    table.insert(emotes, emote)
+                    added[emote] = true
+                end
             end
-
-            local gameFrame = mainGui:FindFirstChild("Game")
-            if not gameFrame then
-                warn("Game frame not found")
-                return
+            
+            return emotes
+        end
+        
+        local AllEmotes = getAllEmotes()
+        
+        local function UnlockEmotes()
+            local Cross = PlayerGui:FindFirstChild("CrossPlatform")
+            if not Cross then return end
+            
+            local Emotes = Cross:FindFirstChild("Emotes")
+            if not Emotes then return end
+            
+            local Controller = Emotes:FindFirstChild("EmoteController")
+            local Window = Emotes:FindFirstChild("EmoteWindow")
+            if not Controller or not Window then return end
+            
+            local GameEmotes = Window.EmoteContainer.EmotePages["Game Emotes"]
+            local FrameTemplate = Controller.EmoteFrame
+            local RowTemplate = Controller.RowFrame
+            
+            for _, v in pairs(GameEmotes:GetChildren()) do
+                if v.Name:match("^Row") then
+                    v:Destroy()
+                end
             end
-
-            local emoteFrame = gameFrame:FindFirstChild("Emotes")
-            if not emoteFrame then
-                warn("Emote frame not found")
-                return
+            
+            GameEmotes.CanvasSize = UDim2.new(0, 0, 0, math.ceil(#AllEmotes / 4) * 120)
+            
+            local row, slot = 1, 1
+            local maxSlotsPerRow = 6
+            
+            for _, emote in ipairs(AllEmotes) do
+                local info = ItemService:GetItemInfo(emote, "Emotes")
+                if not info then
+                    info = ItemService:GetItemInfo(emote, "Toys")
+                end
+                
+                if info then
+                    if slot == 1 then
+                        local newRow = RowTemplate:Clone()
+                        newRow.Name = "Row"..row
+                        newRow.Parent = GameEmotes
+                        newRow.LayoutOrder = row
+                        newRow.Size = UDim2.new(1, 0, 0, 100)
+                    end
+                    
+                    local frame = FrameTemplate:Clone()
+                    frame.Name = "Emote"..slot
+                    frame:SetAttribute("EmoteName", emote)
+                    frame.EmoteName.Text = info.Name or emote
+                    frame.EmoteIcon.Image = ItemService:GetItemImage(info)
+                    frame.Hotkey.KeyLabel.Text = slot
+                    frame.Hotkey.Visible = UserInputService.KeyboardEnabled
+                    frame.Size = UDim2.new(1/maxSlotsPerRow, -5, 1, -5)
+                    frame.Position = UDim2.new((slot-1)/maxSlotsPerRow, 0, 0, 0)
+                    frame.Parent = GameEmotes["Row"..row]
+                    frame.PlayButton.Activated:Connect(function()
+                        PlayEmote:Fire(emote)
+                    end)
+                    
+                    slot += 1
+                    if slot > maxSlotsPerRow then
+                        slot = 1
+                        row += 1
+                    end
+                end
             end
-
-            local modulesFolder = replicatedStorage:FindFirstChild("Modules")
-            if not modulesFolder then
-                warn("Modules folder not found in ReplicatedStorage")
-                return
-            end
-
-            local emoteModuleScript = modulesFolder:FindFirstChild("EmoteModule")
-            if not emoteModuleScript then
-                warn("EmoteModule not found")
-                return
-            end
-
-            local success, emoteModule = pcall(require, emoteModuleScript)
-            if not success then
-                warn("Failed to require EmoteModule:", emoteModule)
-                return
-            end
-
-            if emoteModule and typeof(emoteModule.GeneratePage) == "function" then
-                emoteModule.GeneratePage(
-                    {"headless", "zombie", "zen", "ninja", "floss", "dab", "sit"},
-                    emoteFrame,
-                    "PolleserHub EMOTES"
-                )
-                print("Emotes unlocked successfully!")
-            else
-                warn("GeneratePage function not found in EmoteModule")
+            
+            if slot > 1 and slot <= maxSlotsPerRow then
+                local newRow = RowTemplate:Clone()
+                newRow.Name = "Row"..row
+                newRow.Parent = GameEmotes
+                newRow.LayoutOrder = row
+                newRow.Size = UDim2.new(1, 0, 0, 100)
             end
         end
-    }
-)
+        
+        local function UnlockEmotesAdvanced()
+            local Cross = PlayerGui:FindFirstChild("CrossPlatform")
+            if not Cross then return end
+            
+            local Emotes = Cross:FindFirstChild("Emotes")
+            if not Emotes then return end
+            
+            local Controller = Emotes:FindFirstChild("EmoteController")
+            local Window = Emotes:FindFirstChild("EmoteWindow")
+            if not Controller or not Window then return end
+            
+            local GameEmotes = Window.EmoteContainer.EmotePages["Game Emotes"]
+            local FrameTemplate = Controller.EmoteFrame
+            
+            for _, v in pairs(GameEmotes:GetChildren()) do
+                if v.Name:match("^Row") or v.Name:match("^Emote") then
+                    v:Destroy()
+                end
+            end
+            
+            if not GameEmotes:IsA("ScrollingFrame") then
+                local scrollingFrame = Instance.new("ScrollingFrame")
+                scrollingFrame.Name = "EmoteScroller"
+                scrollingFrame.Size = UDim2.new(1, 0, 1, 0)
+                scrollingFrame.Position = UDim2.new(0, 0, 0, 0)
+                scrollingFrame.BackgroundTransparency = 1
+                scrollingFrame.BorderSizePixel = 0
+                scrollingFrame.ScrollBarThickness = 8
+                scrollingFrame.Parent = GameEmotes
+                
+                local uiGridLayout = Instance.new("UIGridLayout")
+                uiGridLayout.CellSize = UDim2.new(0, 80, 0, 80)
+                uiGridLayout.CellPadding = UDim2.new(0, 5, 0, 5)
+                uiGridLayout.FillDirection = Enum.FillDirection.Horizontal
+                uiGridLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+                uiGridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+                uiGridLayout.Parent = scrollingFrame
+                GameEmotes = scrollingFrame
+            end
+            
+            for index, emote in ipairs(AllEmotes) do
+                local info = ItemService:GetItemInfo(emote, "Emotes")
+                if not info then
+                    info = ItemService:GetItemInfo(emote, "Toys")
+                end
+                
+                if info then
+                    local frame = FrameTemplate:Clone()
+                    frame.Name = "Emote"..index
+                    frame:SetAttribute("EmoteName", emote)
+                    frame.EmoteName.Text = info.Name or emote
+                    frame.EmoteIcon.Image = ItemService:GetItemImage(info)
+                    frame.Hotkey.KeyLabel.Text = index
+                    frame.Hotkey.Visible = UserInputService.KeyboardEnabled
+                    frame.Size = UDim2.new(0, 70, 0, 70)
+                    frame.LayoutOrder = index
+                    frame.Parent = GameEmotes
+                    frame.PlayButton.Activated:Connect(function()
+                        PlayEmote:Fire(emote)
+                    end)
+                end
+            end
+            
+            local emotesCount = #AllEmotes
+            local rows = math.ceil(emotesCount / 6)
+            GameEmotes.CanvasSize = UDim2.new(0, 0, 0, rows * 85)
+        end
+        
+        local function initialize()
+            PlayerGui:WaitForChild("CrossPlatform", 10)
+            task.wait(1)
+            local success = pcall(UnlockEmotesAdvanced)
+            if not success then
+                UnlockEmotes()
+            end
+        end
+        
+        if PlayerGui:FindFirstChild("CrossPlatform") then
+            local success = pcall(UnlockEmotesAdvanced)
+            if not success then
+                UnlockEmotes()
+            end
+        else
+            initialize()
+        end
+        
+        ReplicatedStorage.Remotes.Inventory.InventoryDataChanged.Event:Connect(function(cat)
+            if cat == "Emotes" or cat == "Toys" then
+                task.wait(0.3)
+                local success = pcall(UnlockEmotesAdvanced)
+                if not success then
+                    UnlockEmotes()
+                end
+            end
+        end)
+        
+        LocalPlayer.CharacterAdded:Connect(function()
+            task.wait(2)
+            local success = pcall(UnlockEmotesAdvanced)
+            if not success then
+                UnlockEmotes()
+            end
+        end)
+    end
+})
+local emoteInputValue = ""
 
+Tabs.Utility:Input({
+    Title = "Emote Name",
+    Placeholder = "Enter emote name",
+    Callback = function(emoteName)
+        emoteInputValue = emoteName
+    end
+})
+
+Tabs.Utility:Button({
+    Title = "Play Emote By Name",
+    Callback = function()
+        if emoteInputValue and emoteInputValue ~= "" then
+            game:GetService("ReplicatedStorage").Remotes.Misc.PlayEmote:Fire(emoteInputValue)
+        end
+    end
+})
 local hiddenfling = false
 local movel = 0.1
 local flingPower = 1e35
