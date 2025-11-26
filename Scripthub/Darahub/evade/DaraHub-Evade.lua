@@ -80,7 +80,7 @@ local Window = WindUI:CreateWindow({
     Title = "loc:SCRIPT_TITLE",
     Icon = "rbxassetid://137330250139083",
     Author = "loc:WELCOME",
-    Folder = "GameHackUI",
+    Folder = "DaraHub",
     Size = UDim2.fromOffset(580, 490),
     Theme = "Dark",
     HidePanelBackground = false,
@@ -1677,7 +1677,8 @@ end
     ESP = FeatureSection:Tab({ Title = "loc:ESP_TAB", Icon = "eye" }),
     Utility = FeatureSection:Tab({ Title = "Utility", Icon = "wrench"}),
     Teleport = FeatureSection:Tab({ Title = "Teleport", Icon = "navigation" }),
-    Settings = FeatureSection:Tab({ Title = "loc:SETTINGS_TAB", Icon = "settings" })
+    Settings = FeatureSection:Tab({ Title = "loc:SETTINGS_TAB", Icon = "settings" }),
+    info = FeatureSection:Tab({ Title = "info", Icon = "info" })
     
 }
 
@@ -9611,7 +9612,41 @@ VoicchatVolumeInput = Tabs.Settings:Input({
         end
     end
 })
+do
+     InviteCode = "ny6pJgnR6c"
+     DiscordAPI = "https://discord.com/api/v10/invites/" .. InviteCode .. "?with_counts=true&with_expiration=true"
 
+     success = pcall(function()
+        Response = game:GetService("HttpService"):JSONDecode(request({
+            Url = DiscordAPI,
+            Method = "GET"
+        }).Body)
+        return Response
+    end)
+    
+    if success and Response and Response.guild then
+        Tabs.Info:Section({
+            Title = "Join My Discord Server",
+            TextSize = 20,
+        })
+         DiscordServerParagraph = Tabs.Info:Paragraph({
+            Title = tostring(Response.guild.name),
+            Desc = tostring(Response.guild.description),
+            Image = "https://cdn.discordapp.com/icons/" .. Response.guild.id .. "/" .. Response.guild.icon .. ".png?size=1024",
+            -- Thumbnail = "https://cdn.discordapp.com/banners/1300692552005189632/35981388401406a4b7dffd6f447a64c4.png?size=512",
+            ImageSize = 48,
+            Buttons = {
+                {
+                    Title = "Copy link",
+                    Icon = "link",
+                    Callback = function()
+                        setclipboard("https://discord.gg/" .. InviteCode)
+                    end
+                }
+            }
+        })
+    end
+end
     Window:SelectTab(1)
 end
 
@@ -9988,7 +10023,7 @@ if not workspace:FindFirstChild("SecurityPart") then
     local SecurityPart = Instance.new("Part")
     SecurityPart.Name = "SecurityPart"
     SecurityPart.Size = Vector3.new(10, 1, 10)
-    SecurityPart.Position = Vector3.new(50000, 50000, 50000)
+    SecurityPart.Position = Vector3.new(0, 500, 0)
     SecurityPart.Anchored = true
     SecurityPart.CanCollide = true
     SecurityPart.Parent = workspace
