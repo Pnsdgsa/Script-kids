@@ -821,49 +821,60 @@ Tabs.Player:Toggle({
 
 
 Tabs.Combat:Section({ Title = "Combat", TextSize = 40 })
-Tabs.Combat:Section({ Title = "Aimbot", TextSize = 20 })
-Tabs.Combat:Divider()
 
-local aimbotEnabled = false
-local wallCheckEnabled = false
-local smoothnessValue = 1
-local targetRoles = {}
-local aimPart = "Head"
-local showFOV = false
-local fovRadius = 100
-local fovColor = Color3.fromRGB(128, 0, 128)
-
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local Players = game:GetService("Players")
-local Cam = workspace.CurrentCamera
+
+local AimbotEnabled = false
+local ShowFOV = false
+local FOVThickness = 2
+local FOVColor = Color3.new(0, 1, 0)
 local LocalPlayer = Players.LocalPlayer
+local Cam = workspace.CurrentCamera
 
-local FOVring = Drawing.new("Circle")
-FOVring.Visible = false
-FOVring.Thickness = 2
-FOVring.Color = fovColor
-FOVring.Filled = false
-FOVring.Radius = fovRadius
-FOVring.Position = Cam.ViewportSize / 2
+local targetRoles = {}
+local aimPart = "Head"
+local smoothnessValue = 10
+local wallCheckEnabled = false
+local fovRadius = 100
+local lockFOVToCenter = true
 
-local function updateDrawings()
-    FOVring.Position = Cam.ViewportSize / 2
-    FOVring.Visible = showFOV and aimbotEnabled
-    FOVring.Radius = fovRadius
-    FOVring.Color = fovColor
-end
+local AimbotCircle
 
 local function getAimPart(character)
     if aimPart == "Head" then
         return character:FindFirstChild("Head")
     elseif aimPart == "Body" then
-        return character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso") or character:FindFirstChild("HumanoidRootPart")
+        return character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
     elseif aimPart == "Legs" then
-        return character:FindFirstChild("LowerTorso") or character:FindFirstChild("HumanoidRootPart")
-    else
-        return character:FindFirstChild("Head") or character:FindFirstChild("HumanoidRootPart")
+        return character:FindFirstChild("HumanoidRootPart")
     end
+    return character:FindFirstChild("Head")
+end
+
+local function getPlayerRole(player)
+    return "Unknown"
+end
+
+local function isVisible(part)
+    if not wallCheckEnabled then
+        return true
+    end
+    
+    local character = LocalPlayer.Character
+    if not character then return false end
+    
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return false end
+    
+    local origin = humanoidRootPart.Position
+    local target = part.Position
+    local direction = (target - origin).Unit
+    local ray = Ray.new(origin, direction * (target - origin).Magnitude)
+    local hit, position = workspace:FindPartOnRayWithIgnoreList(ray, {character, part.Parent})
+    
+    return hit == nil or hit:IsDescendantOf(part.Parent)
 end
 
 local function lookAt(pos)
@@ -874,65 +885,86 @@ local function lookAt(pos)
     Cam.CFrame = currentCFrame:Lerp(targetCFrame, 1 / smoothnessValue)
 end
 
-local function isVisible(part)
-    if not wallCheckEnabled then return true end
-    
-    local origin = Cam.CFrame.Position
-    local direction = part.Position - origin
-    local rayParams = RaycastParams.new()
-    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
-    rayParams.FilterDescendantsInstances = {LocalPlayer.Character}
-
-    local result = workspace:Raycast(origin, direction, rayParams)
-    return not result or result.Instance:IsDescendantOf(part.Parent)
-end
-
-local function getPlayerRole(plr)
-    local playerKey = plr.Name
-    return roleData[playerKey] and roleData[playerKey].Role
-end
-
 local function getClosestEnemyInFOV()
     local closestPlayer = nil
     local closestDistance = math.huge
-    local screenCenter = Cam.ViewportSize / 2
+    
+    if lockFOVToCenter then
+        local screenCenter = Cam.ViewportSize / 2
+        
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                local char = player.Character
+                if char and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
+                    local aimPartInstance = getAimPart(char)
+                    if aimPartInstance then
+                        local playerRole = getPlayerRole(player)
+                        local shouldTarget = false
+                        
+                        if #targetRoles == 0 then
+                            shouldTarget = true
+                        else
+                            for _, role in ipairs(targetRoles) do
+                                if (role == "Murderer" and playerRole == "Murderer") or
+                                   (role == "Sheriff" and playerRole == "Sheriff") or
+                                   (role == "Hero" and playerRole == "Hero") or
+                                   (role == "Innocent" and playerRole == "Innocent") or
+                                   (role == "Unknown" and playerRole == "Unknown") then
+                                    shouldTarget = true
+                                    break
+                                end
+                            end
+                        end
+                        
+                        if shouldTarget then
+                            local screenPos, visible = Cam:WorldToViewportPoint(aimPartInstance.Position)
+                            local distance = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
 
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local char = player.Character
-            if char then
-                local aimPartInstance = getAimPart(char)
-                if aimPartInstance then
-                    local playerRole = getPlayerRole(player)
-                    local shouldTarget = false
-                    
-                    if #targetRoles == 0 then
-                        shouldTarget = true
-                    else
-                        for _, role in ipairs(targetRoles) do
-                            if role == "Murderer" and playerRole == "Murderer" then
-                                shouldTarget = true
-                                break
-                            elseif role == "Sheriff" and playerRole == "Sheriff" then
-                                shouldTarget = true
-                                break
-                            elseif role == "Hero" and playerRole == "Hero" then
-                                shouldTarget = true
-                                break
-                            elseif role == "Innocent" and (playerRole == "Innocent" or playerRole == nil) then
-                                shouldTarget = true
-                                break
+                            if visible and distance < fovRadius and distance < closestDistance and isVisible(aimPartInstance) then
+                                closestDistance = distance
+                                closestPlayer = player
                             end
                         end
                     end
-                    
-                    if shouldTarget then
-                        local screenPos, visible = Cam:WorldToViewportPoint(aimPartInstance.Position)
-                        local distance = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
-
-                        if visible and distance < fovRadius and distance < closestDistance and isVisible(aimPartInstance) then
-                            closestDistance = distance
-                            closestPlayer = player
+                end
+            end
+        end
+    else
+        local mousePos = UserInputService:GetMouseLocation()
+        
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                local char = player.Character
+                if char and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
+                    local aimPartInstance = getAimPart(char)
+                    if aimPartInstance then
+                        local playerRole = getPlayerRole(player)
+                        local shouldTarget = false
+                        
+                        if #targetRoles == 0 then
+                            shouldTarget = true
+                        else
+                            for _, role in ipairs(targetRoles) do
+                                if (role == "Murderer" and playerRole == "Murderer") or
+                                   (role == "Sheriff" and playerRole == "Sheriff") or
+                                   (role == "Hero" and playerRole == "Hero") or
+                                   (role == "Innocent" and playerRole == "Innocent") or
+                                   (role == "Unknown" and playerRole == "Unknown") then
+                                    shouldTarget = true
+                                    break
+                                end
+                            end
+                        end
+                        
+                        if shouldTarget then
+                            local screenPoint, onScreen = Cam:WorldToScreenPoint(aimPartInstance.Position)
+                            if onScreen then
+                                local distance = (Vector2.new(mousePos.X, mousePos.Y) - Vector2.new(screenPoint.X, screenPoint.Y)).Magnitude
+                                if distance < fovRadius and distance < closestDistance and isVisible(aimPartInstance) then
+                                    closestDistance = distance
+                                    closestPlayer = player
+                                end
+                            end
                         end
                     end
                 end
@@ -943,19 +975,87 @@ local function getClosestEnemyInFOV()
     return closestPlayer
 end
 
-local aimbotConnection = nil
+local function createFOVCircle()
+    if AimbotCircle then AimbotCircle:Remove() end
+    
+    local circle = Drawing.new("Circle")
+    circle.Visible = ShowFOV
+    circle.Radius = fovRadius
+    circle.Color = FOVColor
+    circle.Thickness = FOVThickness
+    circle.Filled = false
+    
+    if lockFOVToCenter then
+        local viewportSize = Cam.ViewportSize
+        circle.Position = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
+    else
+        circle.Position = UserInputService:GetMouseLocation()
+    end
+    
+    AimbotCircle = circle
+    
+    RunService.RenderStepped:Connect(function()
+        if circle then
+            circle.Radius = fovRadius
+            circle.Visible = ShowFOV
+            circle.Color = FOVColor
+            circle.Thickness = FOVThickness
+            
+            if lockFOVToCenter then
+                local viewportSize = Cam.ViewportSize
+                circle.Position = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
+            else
+                circle.Position = UserInputService:GetMouseLocation()
+            end
+        end
+    end)
+end
+
+local function updateDrawings()
+    if AimbotCircle then
+        AimbotCircle.Visible = ShowFOV
+        AimbotCircle.Radius = fovRadius
+        AimbotCircle.Color = FOVColor
+        AimbotCircle.Thickness = FOVThickness
+        
+        if lockFOVToCenter then
+            local viewportSize = Cam.ViewportSize
+            AimbotCircle.Position = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
+        else
+            AimbotCircle.Position = UserInputService:GetMouseLocation()
+        end
+    end
+end
 
 local function startAimbot()
-    if aimbotConnection then return end
+    createFOVCircle()
     
-    aimbotConnection = RunService:BindToRenderStep("AimbotUpdate", Enum.RenderPriority.Camera.Value + 1, function()
-        updateDrawings()
-        if aimbotEnabled then
-            local target = getClosestEnemyInFOV()
-            if target and target.Character then
-                local aimPartInstance = getAimPart(target.Character)
-                if aimPartInstance then
-                    lookAt(aimPartInstance.Position)
+    LocalPlayer.CharacterAdded:Connect(function()
+        if AimbotEnabled then
+            wait(1)
+            if AimbotCircle then
+                AimbotCircle:Remove()
+            end
+            createFOVCircle()
+        end
+    end)
+    
+    spawn(function()
+        while AimbotEnabled do
+            RunService.RenderStepped:Wait()
+            
+            if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("Humanoid") or LocalPlayer.Character.Humanoid.Health <= 0 then
+                continue
+            end
+            
+            local closestPlayer = getClosestEnemyInFOV()
+            if closestPlayer then
+                local char = closestPlayer.Character
+                if char and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
+                    local aimPartInstance = getAimPart(char)
+                    if aimPartInstance then
+                        lookAt(aimPartInstance.Position)
+                    end
                 end
             end
         end
@@ -963,18 +1063,29 @@ local function startAimbot()
 end
 
 local function stopAimbot()
-    if aimbotConnection then
-        RunService:UnbindFromRenderStep("AimbotUpdate")
-        aimbotConnection = nil
+    if AimbotCircle then
+        AimbotCircle:Remove()
+        AimbotCircle = nil
     end
-    FOVring.Visible = false
 end
 
+LocalPlayer.CharacterAdded:Connect(function(character)
+    wait(1)
+    if AimbotEnabled then
+        if AimbotCircle then
+            AimbotCircle:Remove()
+        end
+        createFOVCircle()
+    end
+end)
+
+Tabs.Combat:Section({ Title = "Aimbot Settings" })
+
 AimbotToggle = Tabs.Combat:Toggle({
-    Title = "Camera Look Aimbot",
+    Title = "Aimbot",
     Value = false,
     Callback = function(state)
-        aimbotEnabled = state
+        AimbotEnabled = state
         if state then
             startAimbot()
         else
@@ -985,7 +1096,8 @@ AimbotToggle = Tabs.Combat:Toggle({
 
 AimPartDropdown = Tabs.Combat:Dropdown({
     Title = "Aim Part",
-    Values = {"Head", "Body", "Legs"},
+    Desc = "Select which part to aim at",
+    Values = { "Head", "Body", "Legs" },
     Value = "Head",
     Callback = function(value)
         aimPart = value
@@ -994,7 +1106,8 @@ AimPartDropdown = Tabs.Combat:Dropdown({
 
 TargetRoleDropdown = Tabs.Combat:Dropdown({
     Title = "Target Role",
-    Values = {"Murderer", "Sheriff", "Hero", "Innocent"},
+    Desc = "Select which roles to target",
+    Values = { "Murderer", "Sheriff", "Hero", "Innocent", "Unknown" },
     Value = {},
     Multi = true,
     AllowNone = true,
@@ -1003,12 +1116,19 @@ TargetRoleDropdown = Tabs.Combat:Dropdown({
     end
 })
 
-SmoothnessSlider = Tabs.Combat:Slider({
+SmoothnessInput = Tabs.Combat:Input({
     Title = "Smoothness",
-    Desc = "Adjust aimbot smoothness",
-    Value = { Min = 1, Max = 10, Default = 1, Step = 1 },
+    Desc = "Higher = smoother aim, Lower = snappier aim (1-20)",
+    Value = "10",
+    Numeric = true,
+    Finished = false,
     Callback = function(value)
-        smoothnessValue = value
+        local numValue = tonumber(value)
+        if numValue and numValue >= 1 and numValue <= 20 then
+            smoothnessValue = numValue
+        else
+            smoothnessValue = 10
+        end
     end
 })
 
@@ -1020,37 +1140,70 @@ WallCheckToggle = Tabs.Combat:Toggle({
     end
 })
 
-Tabs.Combat:Section({ Title = "FOV Settings", TextSize = 20 })
-Tabs.Combat:Divider()
+Tabs.Combat:Section({ Title = "FOV Settings" })
 
 ShowFOVToggle = Tabs.Combat:Toggle({
-    Title = "Show FOV",
+    Title = "Show FOV Circle",
     Value = false,
     Callback = function(state)
-        showFOV = state
+        ShowFOV = state
         updateDrawings()
     end
 })
 
-FOVRadiusSlider = Tabs.Combat:Slider({
-    Title = "FOV Radius",
-    Desc = "Adjust FOV circle radius",
-    Value = { Min = 10, Max = 500, Default = 100, Step = 1 },
-    Callback = function(value)
-        fovRadius = value
+LockFOVToggle = Tabs.Combat:Toggle({
+    Title = "Lock FOV On Middle Screen",
+    Value = true,
+    Callback = function(state)
+        lockFOVToCenter = state
         updateDrawings()
+    end
+})
+
+FOVRadiusInput = Tabs.Combat:Input({
+    Title = "FOV Radius",
+    Desc = "Size of the targeting area (10-500)",
+    Value = "100",
+    Numeric = true,
+    Finished = false,
+    Callback = function(value)
+        local numValue = tonumber(value)
+        if numValue and numValue >= 10 and numValue <= 500 then
+            fovRadius = numValue
+            updateDrawings()
+        else
+            fovRadius = 100
+            updateDrawings()
+        end
     end
 })
 
 FOVColorPicker = Tabs.Combat:Colorpicker({
     Title = "FOV Color",
     Desc = "FOV Circle Color",
-    Default = Color3.fromRGB(128, 0, 128),
-    Transparency = 0,
+    Default = Color3.fromRGB(0, 255, 0),
     Locked = false,
-    Callback = function(color) 
-        fovColor = color
+    Callback = function(color)
+        FOVColor = color
         updateDrawings()
+    end
+})
+
+FOVThicknessInput = Tabs.Combat:Input({
+    Title = "FOV Thickness",
+    Desc = "Thickness of the FOV circle (1-10)",
+    Value = "2",
+    Numeric = true,
+    Finished = false,
+    Callback = function(value)
+        local numValue = tonumber(value)
+        if numValue and numValue >= 1 and numValue <= 10 then
+            FOVThickness = numValue
+            updateDrawings()
+        else
+            FOVThickness = 2
+            updateDrawings()
+        end
     end
 })
 Tabs.Combat:Section({ Title = "Gun Combat", TextSize = 20 })
