@@ -9612,6 +9612,69 @@ VoicchatVolumeInput = Tabs.Settings:Input({
         end
     end
 })
+Tabs.Settings:Section({ Title = "GUI Size Settings", TextSize = 20 })
+Tabs.Settings:Divider()
+
+local function scaleGui(guiName, value)
+    local gui = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild(guiName)
+    if not gui then
+        gui = Instance.new("ScreenGui")
+        gui.Name = guiName
+        gui.Parent = game:GetService("Players").LocalPlayer.PlayerGui
+    end
+    
+    local uiScale = gui:FindFirstChildOfClass("UIScale")
+    if not uiScale then
+        uiScale = Instance.new("UIScale")
+        uiScale.Parent = gui
+    end
+    uiScale.Scale = value / 100
+end
+
+Tabs.Settings:Slider({
+    Title = "BhopGui Size",
+    Desc = "Adjust BhopGui interface size (100 = normal size)",
+    Value = { Min = 10, Max = 1000, Default = 100, Step = 10 },
+    Callback = function(value)
+        scaleGui("BhopGui", value)
+    end
+})
+
+Tabs.Settings:Slider({
+    Title = "CrouchGui Size",
+    Desc = "Adjust CrouchGui interface size (100 = normal size)",
+    Value = { Min = 10, Max = 1000, Default = 100, Step = 10 },
+    Callback = function(value)
+        scaleGui("CrouchGui", value)
+    end
+})
+
+Tabs.Settings:Slider({
+    Title = "EmoteGui Size",
+    Desc = "Adjust EmoteGui interface size (100 = normal size)",
+    Value = { Min = 10, Max = 1000, Default = 100, Step = 10 },
+    Callback = function(value)
+        scaleGui("EmoteGui", value)
+    end
+})
+
+Tabs.Settings:Slider({
+    Title = "GravityGui Size",
+    Desc = "Adjust GravityGui interface size (100 = normal size)",
+    Value = { Min = 10, Max = 1000, Default = 100, Step = 10 },
+    Callback = function(value)
+        scaleGui("GravityGui", value)
+    end
+})
+
+Tabs.Settings:Slider({
+    Title = "LagSwitchGui Size",
+    Desc = "Adjust LagSwitchGui interface size (100 = normal size)",
+    Value = { Min = 10, Max = 1000, Default = 100, Step = 10 },
+    Callback = function(value)
+        scaleGui("LagSwitchGui", value)
+    end
+})
 do
      InviteCode = "ny6pJgnR6c"
      DiscordAPI = "https://discord.com/api/v10/invites/" .. InviteCode .. "?with_counts=true&with_expiration=true"
@@ -9625,11 +9688,11 @@ do
     end)
     
     if success and Response and Response.guild then
-        Tabs.Info:Section({
+        Tabs.info:Section({
             Title = "Join My Discord Server",
             TextSize = 20,
         })
-         DiscordServerParagraph = Tabs.Info:Paragraph({
+         DiscordServerParagraph = Tabs.info:Paragraph({
             Title = tostring(Response.guild.name),
             Desc = tostring(Response.guild.description),
             Image = "https://cdn.discordapp.com/icons/" .. Response.guild.id .. "/" .. Response.guild.icon .. ".png?size=1024",
@@ -10023,7 +10086,7 @@ if not workspace:FindFirstChild("SecurityPart") then
     local SecurityPart = Instance.new("Part")
     SecurityPart.Name = "SecurityPart"
     SecurityPart.Size = Vector3.new(10, 1, 10)
-    SecurityPart.Position = Vector3.new(0, 500, 0)
+    SecurityPart.Position = Vector3.new(5000, 5000, 5000)
     SecurityPart.Anchored = true
     SecurityPart.CanCollide = true
     SecurityPart.Parent = workspace
