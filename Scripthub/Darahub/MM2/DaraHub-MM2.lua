@@ -6426,7 +6426,6 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
-Tabs.Utility:Section({Title = "Hitboxes"})
 
 Tabs.Utility:Toggle(
     {
