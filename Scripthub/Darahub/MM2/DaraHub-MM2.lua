@@ -1292,6 +1292,28 @@ Tabs.Combat:Button({
         ShootMurderer()
     end
 })
+Tabs.Combat:Keybind({
+    Title = "Shoot Murderer Keybind",
+    Value = "E",
+    Callback = function(key)
+        local keyCode = Enum.KeyCode[key]
+        if keyCode then
+            local connection
+            connection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+                if gameProcessed then return end
+                if input.KeyCode == keyCode then
+                    ShootMurderer()
+                end
+            end)
+            
+            return function()
+                if connection then
+                    connection:Disconnect()
+                end
+            end
+        end
+    end
+})
 
 Tabs.Combat:Button({
     Title = "Toggle Shot Button",
@@ -1971,6 +1993,12 @@ local function startAutoKill()
             elseif killMode == "Kill Nearby" then
                 killNearby()
             elseif killMode == "Kill All" then
+            local backpack = player:WaitForChild("Backpack")
+local knife = backpack:FindFirstChild("Knife")
+
+if knife then
+    knife.Parent = player.Character
+end
                 killAll()
             end
         end
@@ -2044,10 +2072,12 @@ Tabs.Combat:Button({
     Callback = function()
         if findMurderer() ~= player then return end
         
-        if autoEquipKnife then
-            equipKnife()
-        end
-        
+local backpack = player:WaitForChild("Backpack")
+local knife = backpack:FindFirstChild("Knife")
+
+if knife then
+    knife.Parent = player.Character
+end
         local localRoot = player.Character:FindFirstChild("HumanoidRootPart")
         if not localRoot then return end
         
@@ -4893,6 +4923,7 @@ Tabs.Utility:Button({
 local hiddenfling = false
 local movel = 0.1
 local flingPower = 1e35
+local flingCoroutine = nil
 
 local function fling()
     local chr = player.Character
@@ -4912,16 +4943,57 @@ local function fling()
     end
 end
 
- TouchFlingToggle = Tabs.Utility:Toggle({
+local function startFling()
+    if flingCoroutine then
+        coroutine.close(flingCoroutine)
+        flingCoroutine = nil
+    end
+    flingCoroutine = coroutine.create(fling)
+    coroutine.resume(flingCoroutine)
+end
+
+local function stopFling()
+    if flingCoroutine then
+        coroutine.close(flingCoroutine)
+        flingCoroutine = nil
+    end
+    
+    local chr = player.Character
+    if chr then
+        local hrp = chr:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.Velocity = Vector3.new(0, 0, 0)
+            hrp.RotVelocity = Vector3.new(0, 0, 0)
+        end
+    end
+end
+
+TouchFlingToggle = Tabs.Utility:Toggle({
     Title = "Touch Fling",
     Value = false,
     Callback = function(state)
         hiddenfling = state
         if state then
-            coroutine.wrap(fling)()
+            startFling()
+        else
+            stopFling()
         end
     end
 })
+
+player.CharacterAdded:Connect(function(character)
+    if hiddenfling then
+        task.wait(1)
+        startFling()
+    else
+        task.wait(0.5)
+        local hrp = character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.Velocity = Vector3.new(0, 0, 0)
+            hrp.RotVelocity = Vector3.new(0, 0, 0)
+        end
+    end
+end)
 
 Tabs.Utility:Input({
     Title = "Fling Power",
