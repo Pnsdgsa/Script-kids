@@ -1,3 +1,4 @@
+<b>Nov 27th v1.3.</b> Added Fake Streaks</br>
 <b>Nov 27th v1.3.</b> Added Shit Render button<br>
 <b>Nov 26th v1.3.</b> Added Gui Rescaling slider<br>
 
