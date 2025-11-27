@@ -1,8 +1,8 @@
-<b>Nov 27th v1.3.</b> Added Fake Streaks</br>
-<b>Nov 27th v1.3.</b> Added Shit Render button<br>
-<b>Nov 26th v1.3.</b> Added Gui Rescaling slider<br>
+<b>Nov 27th v1.3.4.</b> Added Possible Emote Option Changer</br></b> Added Fake Streaks</br>
+</b> Added Shit Render button<br>
+<b>Nov 26th</b> Added Gui Rescaling slider<br>
 
-<b>Nov 12th v1.3.</b> Fixed Shit Bug<br> added More visual Item Modifier<br>
+<b>Nov 12th v1.3.3</b> Fixed Shit Bug<br> added More visual Item Modifier<br>
 
 <b>Nov 12th v1.3.2</b> added NPC hitbox <br> added Highlights esp <br> fix esp not working 
 
