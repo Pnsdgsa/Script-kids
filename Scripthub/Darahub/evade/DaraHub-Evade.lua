@@ -4963,6 +4963,26 @@ game:GetService("RunService").Heartbeat:Connect(function()
         end
     end
 end)
+Tabs.Visuals:Section({ Title = "Fake Streaks", TextSize = 15 })
+
+FakeStreaksInput = Tabs.Visuals:Input({
+    Title = "Fake Streaks",
+    Placeholder = "Enter streak value",
+    Callback = function(value)
+        num = tonumber(value)
+        if num then
+            game:GetService("Players").LocalPlayer:SetAttribute("Streak", num)
+        end
+    end
+})
+
+task.spawn(function()
+    task.wait(1)
+    currentStreak = game:GetService("Players").LocalPlayer:GetAttribute("Streak")
+    if currentStreak then
+        FakeStreaksInput:Set(tostring(currentStreak))
+    end
+end)
      -- ESP Tab
 playerEspElements = {}
 playerEspConnection = nil
@@ -5700,112 +5720,207 @@ DownedDistanceESPToggle = Tabs.ESP:Toggle({
         end
     end
 })
-PlayerHighlights = {}
-DownedHighlights = {}
-PlayerHighlightsToggle = false
-DownedHighlightsToggle = false
+Players = game:GetService("Players")
+RunService = game:GetService("RunService")
+UserInputService = game:GetService("UserInputService")
 
-function updatePlayerHighlights()
-    for target, highlight in pairs(PlayerHighlights) do
-        highlight:Destroy()
+player = Players.LocalPlayer
+
+PlayerHighlightsEnabled = false
+DownedHighlightsEnabled = false
+
+HighlightsConnection = nil
+cachedPlayers = {}
+lastPlayerCacheUpdate = 0
+isRendering = true
+windowFocused = true
+
+function IsAlive(plr)
+    character = plr.Character
+    if not character then return false end
+    
+    humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return false end
+    
+    return humanoid.Health > 0
+end
+
+function IsDowned(character)
+    return character:GetAttribute("Downed") == true
+end
+
+function getCachedPlayers()
+    if tick() - lastPlayerCacheUpdate < 1 then
+        return cachedPlayers
     end
-    PlayerHighlights = {}
     
-    local gameFolder = workspace:FindFirstChild("Game")
-    if not gameFolder or not gameFolder:FindFirstChild("Players") then return end
+    lastPlayerCacheUpdate = tick()
+    cachedPlayers = Players:GetPlayers()
+    return cachedPlayers
+end
+
+function clearAllHighlights()
+    for _, plr in pairs(getCachedPlayers()) do
+        if plr.Character then
+            highlight = plr.Character:FindFirstChild("PlayerHighlight")
+            if highlight then
+                highlight:Destroy()
+            end
+        end
+    end
+end
+
+function updateRoleHighlights()
+    if not isRendering or not windowFocused then
+        return
+    end
     
-    for _, model in pairs(gameFolder.Players:GetChildren()) do
-        if model:IsA("Model") and model:FindFirstChild("HumanoidRootPart") then
-            local isPlayer = Players:GetPlayerFromCharacter(model) ~= nil
-            local humanoid = model:FindFirstChild("Humanoid")
+    players = getCachedPlayers()
+
+    for _, plr in ipairs(players) do
+        if plr ~= player and plr.Character then
+            model = plr.Character
+            highlight = model:FindFirstChild("PlayerHighlight")
+            isAlive = IsAlive(plr)
+            isDowned = IsDowned(model)
             
-            if isPlayer and model.Name ~= player.Name and humanoid and humanoid.Health > 0 then
-                local highlight = Instance.new("Highlight")
-                highlight.Name = "PlayerHighlight"
-                highlight.Adornee = model
-                highlight.FillColor = Color3.fromRGB(0, 255, 0)
-                highlight.OutlineColor = Color3.fromRGB(0, 200, 0)
-                highlight.FillTransparency = 0.5
-                highlight.OutlineTransparency = 0
-                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                highlight.Parent = model
-                PlayerHighlights[model] = highlight
+            shouldShowHighlight = false
+            if PlayerHighlightsEnabled and isAlive and not isDowned then
+                shouldShowHighlight = true
+            elseif DownedHighlightsEnabled and isDowned then
+                shouldShowHighlight = true
+            end
+            
+            if shouldShowHighlight then
+                if isDowned then
+                    fillColor = Color3.fromRGB(255, 165, 0)
+                    outlineColor = Color3.fromRGB(200, 120, 0)
+                else
+                    fillColor = Color3.fromRGB(0, 225, 0)
+                    outlineColor = Color3.fromRGB(0, 150, 0)
+                end
+                
+                if not highlight then
+                    highlight = Instance.new("Highlight")
+                    highlight.Name = "PlayerHighlight"
+                    highlight.Adornee = model
+                    highlight.FillTransparency = 0.5
+                    highlight.OutlineTransparency = 0
+                    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    highlight.Parent = model
+                end
+                highlight.FillColor = fillColor
+                highlight.OutlineColor = outlineColor
+                highlight.Enabled = true
+            else
+                if highlight then
+                    highlight:Destroy()
+                end
             end
         end
     end
 end
 
 function startPlayerHighlights()
-    if PlayerHighlightsConnection then 
-        PlayerHighlightsConnection:Disconnect()
-    end
-    PlayerHighlightsConnection = RunService.Heartbeat:Connect(function()
-        updatePlayerHighlights()
-    end)
+    PlayerHighlightsEnabled = true
+    manageHighlightsConnection()
 end
 
 function stopPlayerHighlights()
-    if PlayerHighlightsConnection then
-        PlayerHighlightsConnection:Disconnect()
-        PlayerHighlightsConnection = nil
-    end
-    for target, highlight in pairs(PlayerHighlights) do
-        highlight:Destroy()
-    end
-    PlayerHighlights = {}
+    PlayerHighlightsEnabled = false
+    manageHighlightsConnection()
 end
 
-function updateDownedHighlights()
-    for target, highlight in pairs(DownedHighlights) do
-        highlight:Destroy()
-    end
-    DownedHighlights = {}
+function startDownedHighlights()
+    DownedHighlightsEnabled = true
+    manageHighlightsConnection()
+end
+
+function stopDownedHighlights()
+    DownedHighlightsEnabled = false
+    manageHighlightsConnection()
+end
+
+function manageHighlightsConnection()
+    shouldRun = PlayerHighlightsEnabled or DownedHighlightsEnabled
     
-    local folder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players")
-    if not folder then return end
-    
-    for _, char in ipairs(folder:GetChildren()) do
-        if char:IsA("Model") then
-            local team = char:GetAttribute("Team")
-            local downed = char:GetAttribute("Downed")
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            
-            if team ~= "Nextbot" and char.Name ~= player.Name and downed == true and hrp then
-                local highlight = Instance.new("Highlight")
-                highlight.Name = "DownedHighlight"
-                highlight.Adornee = char
-                highlight.FillColor = Color3.fromRGB(255, 165, 0)
-                highlight.OutlineColor = Color3.fromRGB(200, 120, 0)
-                highlight.FillTransparency = 0.5
-                highlight.OutlineTransparency = 0
-                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                highlight.Parent = char
-                DownedHighlights[char] = highlight
-            end
+    if shouldRun then
+        if not HighlightsConnection then
+            HighlightsConnection = RunService.Heartbeat:Connect(updateRoleHighlights)
+        end
+    else
+        if HighlightsConnection then
+            HighlightsConnection:Disconnect()
+            HighlightsConnection = nil
+            clearAllHighlights()
         end
     end
 end
 
-function startDownedHighlights()
-    if DownedHighlightsConnection then 
-        DownedHighlightsConnection:Disconnect()
+RunService.RenderStepped:Connect(function()
+    isRendering = true
+end)
+
+lastRenderTime = tick()
+renderCheckConnection = RunService.Heartbeat:Connect(function()
+    currentTime = tick()
+    
+    if currentTime - lastRenderTime > 1 then
+        isRendering = false
+        clearAllHighlights()
     end
-    DownedHighlightsConnection = RunService.Heartbeat:Connect(function()
-        updateDownedHighlights()
-    end)
+end)
+
+RunService.RenderStepped:Connect(function()
+    lastRenderTime = tick()
+    isRendering = true
+end)
+
+UserInputService.WindowFocusReleased:Connect(function()
+    windowFocused = false
+    isRendering = false
+    clearAllHighlights()
+end)
+
+UserInputService.WindowFocused:Connect(function()
+    windowFocused = true
+    isRendering = true
+end)
+
+game:GetService("GuiService"):GetPropertyChangedSignal("MenuIsOpen"):Connect(function()
+    if game:GetService("GuiService").MenuIsOpen then
+        isRendering = false
+        clearAllHighlights()
+    else
+        isRendering = true
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(plr)
+    if plr.Character then
+        highlight = plr.Character:FindFirstChild("PlayerHighlight")
+        if highlight then
+            highlight:Destroy()
+        end
+    end
+end)
+
+function cleanup()
+    if HighlightsConnection then
+        HighlightsConnection:Disconnect()
+        HighlightsConnection = nil
+    end
+    if renderCheckConnection then
+        renderCheckConnection:Disconnect()
+    end
+    clearAllHighlights()
 end
 
-function stopDownedHighlights()
-    if DownedHighlightsConnection then
-        DownedHighlightsConnection:Disconnect()
-        DownedHighlightsConnection = nil
+game:GetService("ScriptContext").DescendantRemoving:Connect(function(descendant)
+    if descendant == script then
+        cleanup()
     end
-    for target, highlight in pairs(DownedHighlights) do
-        highlight:Destroy()
-    end
-    DownedHighlights = {}
-end
-
+end)
 DownedHighlightsToggle = Tabs.ESP:Toggle({
     Title = "Downed Highlights ESP",
     Value = false,
@@ -9681,6 +9796,15 @@ Tabs.Settings:Slider({
     Value = { Min = 10, Max = 1000, Default = 100, Step = 10 },
     Callback = function(value)
         scaleGui("BhopGui", value)
+    end
+})
+
+Tabs.Settings:Slider({
+    Title = "Auto Carry Gui Size",
+    Desc = "Adjust Auto Carry Gui interface size (100 = normal size)",
+    Value = { Min = 10, Max = 1000, Default = 100, Step = 10 },
+    Callback = function(value)
+        scaleGui("AutoCarryGui", value)
     end
 })
 
