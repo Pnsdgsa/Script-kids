@@ -3736,6 +3736,50 @@ NoFogToggle = Tabs.Visuals:Toggle({
         end
     end
 })
+Tabs.Visuals:Button({
+    Title = "Shit Render", 
+    Callback = function()
+        Lighting = game:GetService("Lighting")
+        Terrain = workspace:FindFirstChildOfClass("Terrain")
+        Players = game:GetService("Players")
+        LocalPlayer = Players.LocalPlayer
+
+        Lighting.GlobalShadows = false
+        Lighting.FogEnd = 1e10
+        Lighting.Brightness = 1
+
+        if Terrain then
+            Terrain.WaterWaveSize = 0
+            Terrain.WaterWaveSpeed = 0
+            Terrain.WaterReflectance = 0
+            Terrain.WaterTransparency = 1
+        end
+
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("BasePart") then
+                obj.Material = Enum.Material.Plastic
+                obj.Reflectance = 0
+            elseif obj:IsA("Decal") or obj:IsA("Texture") then
+                obj:Destroy()
+            elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") then
+                obj:Destroy()
+            elseif obj:IsA("PointLight") or obj:IsA("SpotLight") or obj:IsA("SurfaceLight") then
+                obj:Destroy()
+            end
+        end
+
+        for _, player in ipairs(Players:GetPlayers()) do
+            local char = player.Character
+            if char then
+                for _, part in ipairs(char:GetDescendants()) do
+                    if part:IsA("Accessory") or part:IsA("Clothing") then
+                        part:Destroy()
+                    end
+                end
+            end
+        end
+    end
+})
 local originalFOV = workspace.CurrentCamera.FieldOfView
 local FOVSlider = Tabs.Visuals:Slider({
     Title = "Field of View",
