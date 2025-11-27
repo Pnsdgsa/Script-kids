@@ -111,7 +111,7 @@ if featureStates.DisableCameraShake == nil then
 end
 Window:SetIconSize(48)
 Window:Tag({
-    Title = "v1.3.3",
+    Title = "V1.3.4",
     Color = Color3.fromHex("#30ff6a")
 })
 
@@ -3953,7 +3953,44 @@ TimerDisplayToggle = Tabs.Visuals:Toggle({
             end
         })
     end
-    
+    Tabs.Visuals:Input({
+    Title = "Emote Possible option",
+    Desc = "Higher Value may Broke emote animation recommend Use 1-3",
+    Placeholder = "1",
+    Callback = function(v)
+        local num = tonumber(v) or 1
+        local Players = game:GetService("Players")
+        local player = Players.LocalPlayer
+        
+        local currentNum = num
+        
+        local function setupCharacter(character)
+            character:SetAttribute("EmoteNum", currentNum)
+        end
+        
+        local function monitorCharacter()
+            while true do
+                wait(1)
+                if player.Character then
+                    if player.Character:GetAttribute("EmoteNum") ~= currentNum then
+                        player.Character:SetAttribute("EmoteNum", currentNum)
+                    end
+                end
+            end
+        end
+        
+        if player.Character then
+            setupCharacter(player.Character)
+        end
+        
+        player.CharacterAdded:Connect(function(character)
+            wait(1)
+            setupCharacter(character)
+        end)
+        
+        spawn(monitorCharacter)
+    end
+})
     Tabs.Visuals:Button({
         Title="Apply Emote Mappings",
         Icon="refresh-cw",
