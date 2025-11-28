@@ -1,5 +1,9 @@
+<b>Nov 28th </b> Added Turkey Farmbr>
+
 <b>Nov 27th v1.3.4.</b> Added Possible Emote Option Changer</br></b> Added Fake Streaks</br>
+
 </b> Added Shit Render button<br>
+</b> Optimize highlights loop<br>
 <b>Nov 26th</b> Added Gui Rescaling slider<br>
 
 <b>Nov 12th v1.3.3</b> Fixed Shit Bug<br> added More visual Item Modifier<br>
