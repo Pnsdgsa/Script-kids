@@ -10,7 +10,7 @@ local PlaceScripts = {
     },
     [96537472072550] = { 
         name = "Legacy Evade", 
-        url = "UNSUPPORTED" 
+        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/Evade%20Legacy/DaraHub-Evade-Legacy" 
     },
     [10662542523] = { 
         name = "Casual", 
