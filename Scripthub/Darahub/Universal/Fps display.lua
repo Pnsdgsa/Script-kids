@@ -7,18 +7,16 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local GuiService = game:GetService("GuiService")
 local Stats = game:GetService("Stats")
+local CoreGui = game:GetService("CoreGui")
 
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
-
-if playerGui:FindFirstChild("FPSCounter") then
+if CoreGui:FindFirstChild("FPSCounter") then
     return
 end
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "FPSCounter"
 screenGui.ResetOnSpawn = false
-screenGui.Parent = playerGui
+screenGui.Parent = CoreGui
 
 screenGui.ScreenInsets = Enum.ScreenInsets.TopbarSafeInsets
 
