@@ -41,6 +41,10 @@ local PlaceScripts = {
         url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/MM2/DaraHub-MM2.lua" 
     },-- GAG Coming sooner 
     [126884695634066] = { 
+        name = "Grow-a-Garden-[NEW-PLAYERS]", 
+        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Teleport_UI_gag.lua" 
+    },
+    [124977557560410] = { 
         name = "Grow-a-Garden", 
         url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Teleport_UI_gag.lua" 
     },
