@@ -818,10 +818,6 @@ Tabs.Player:Toggle({
         end
     end
 })
-
-
-Tabs.Combat:Section({ Title = "Combat", TextSize = 40 })
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -839,8 +835,6 @@ local smoothnessValue = 10
 local wallCheckEnabled = false
 local fovRadius = 100
 local lockFOVToCenter = true
-
-local AimbotCircle
 
 local function getAimPart(character)
     if aimPart == "Head" then
@@ -1116,19 +1110,12 @@ TargetRoleDropdown = Tabs.Combat:Dropdown({
     end
 })
 
-SmoothnessInput = Tabs.Combat:Input({
+SmoothnessSlider = Tabs.Combat:Slider({
     Title = "Smoothness",
-    Desc = "Higher = smoother aim, Lower = snappier aim (1-20)",
-    Value = "10",
-    Numeric = true,
-    Finished = false,
+    Desc = "Higher = smoother aim, Lower = snappier aim",
+    Value = { Min = 1, Max = 20, Default = 10, Step = 1 },
     Callback = function(value)
-        local numValue = tonumber(value)
-        if numValue and numValue >= 1 and numValue <= 20 then
-            smoothnessValue = numValue
-        else
-            smoothnessValue = 10
-        end
+        smoothnessValue = value
     end
 })
 
@@ -1160,21 +1147,13 @@ LockFOVToggle = Tabs.Combat:Toggle({
     end
 })
 
-FOVRadiusInput = Tabs.Combat:Input({
+FOVRadiusSlider = Tabs.Combat:Slider({
     Title = "FOV Radius",
-    Desc = "Size of the targeting area (10-500)",
-    Value = "100",
-    Numeric = true,
-    Finished = false,
+    Desc = "Size of the targeting area",
+    Value = { Min = 10, Max = 500, Default = 100, Step = 5 },
     Callback = function(value)
-        local numValue = tonumber(value)
-        if numValue and numValue >= 10 and numValue <= 500 then
-            fovRadius = numValue
-            updateDrawings()
-        else
-            fovRadius = 100
-            updateDrawings()
-        end
+        fovRadius = value
+        updateDrawings()
     end
 })
 
@@ -1189,21 +1168,13 @@ FOVColorPicker = Tabs.Combat:Colorpicker({
     end
 })
 
-FOVThicknessInput = Tabs.Combat:Input({
+FOVThicknessSlider = Tabs.Combat:Slider({
     Title = "FOV Thickness",
-    Desc = "Thickness of the FOV circle (1-10)",
-    Value = "2",
-    Numeric = true,
-    Finished = false,
+    Desc = "Thickness of the FOV circle",
+    Value = { Min = 1, Max = 10, Default = 2, Step = 1 },
     Callback = function(value)
-        local numValue = tonumber(value)
-        if numValue and numValue >= 1 and numValue <= 10 then
-            FOVThickness = numValue
-            updateDrawings()
-        else
-            FOVThickness = 2
-            updateDrawings()
-        end
+        FOVThickness = value
+        updateDrawings()
     end
 })
 Tabs.Combat:Section({ Title = "Gun Combat", TextSize = 20 })
