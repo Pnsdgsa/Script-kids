@@ -3953,7 +3953,7 @@ TimerDisplayToggle = Tabs.Visuals:Toggle({
             end
         })
     end
-    Tabs.Visuals:Input({
+Tabs.Visuals:Input({
     Title = "Emote Possible option",
     Desc = "Higher Value may Broke emote animation recommend Use 1-3",
     Placeholder = "1",
@@ -3965,16 +3965,17 @@ TimerDisplayToggle = Tabs.Visuals:Toggle({
         local currentNum = num
         
         local function setupCharacter(character)
-            character:SetAttribute("EmoteNum", currentNum)
+            if character == player.Character then
+                character:SetAttribute("EmoteNum", currentNum)
+            end
         end
         
         local function monitorCharacter()
             while true do
                 wait(1)
-                if player.Character then
-                    if player.Character:GetAttribute("EmoteNum") ~= currentNum then
-                        player.Character:SetAttribute("EmoteNum", currentNum)
-                    end
+                local character = player.Character
+                if character and character:GetAttribute("EmoteNum") ~= currentNum then
+                    character:SetAttribute("EmoteNum", currentNum)
                 end
             end
         end
@@ -7802,6 +7803,90 @@ farmsSuppressedByAntiNextbot = false
             end
         end
     })
+    featureStates.AutoTurkeyFarm = false
+
+local function startAutoTurkeyFarm()
+    local securityPart = workspace:FindFirstChild("SecurityPart")
+    if not securityPart then
+        return
+    end
+    
+    AutoTurkeyFarmConnection = RunService.Heartbeat:Connect(function()
+        if character and rootPart then
+            local targetFound = false
+            
+            local npcsFolder = workspace:FindFirstChild("NPCs")
+            if npcsFolder then
+                for _, npc in ipairs(npcsFolder:GetChildren()) do
+                    if npc:IsA("Model") and npc.Name == "Turkey" then
+                        local turkeyHrp = npc:FindFirstChild("HumanoidRootPart")
+                        if turkeyHrp then
+                            rootPart.CFrame = turkeyHrp.CFrame + Vector3.new(0, 3, 0)
+                            targetFound = true
+                            break
+                        end
+                    end
+                end
+            end
+            
+            local playersFolder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players")
+            if playersFolder and not targetFound then
+                for _, model in ipairs(playersFolder:GetChildren()) do
+                    if model:IsA("Model") then
+                        local modelHrp = model:FindFirstChild("HumanoidRootPart")
+                        if modelHrp then
+                            if model.Name == "Turkey" then
+                                rootPart.CFrame = modelHrp.CFrame + Vector3.new(0, 3, 0)
+                                targetFound = true
+                                break
+                            elseif featureStates.AutoCarry and model:GetAttribute("Downed") and not model:FindFirstChild("RagdollConstraints") then
+                                rootPart.CFrame = modelHrp.CFrame + Vector3.new(0, 3, 0)
+                                targetFound = true
+                                break
+                            end
+                        end
+                    end
+                end
+            end
+            
+            local ticketsFolder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Effects") and workspace.Game.Effects:FindFirstChild("Tickets")
+            if ticketsFolder and not targetFound and featureStates.AutoMoneyFarm then
+                for _, ticket in ipairs(ticketsFolder:GetChildren()) do
+                    local ticketHrp = ticket:FindFirstChild("HumanoidRootPart")
+                    if ticketHrp then
+                        rootPart.CFrame = ticketHrp.CFrame + Vector3.new(0, 3, 0)
+                        targetFound = true
+                        break
+                    end
+                end
+            end
+            
+            if not targetFound then
+                rootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
+            end
+        end
+    end)
+end
+
+local function stopAutoTurkeyFarm()
+    if AutoTurkeyFarmConnection then
+        AutoTurkeyFarmConnection:Disconnect()
+        AutoTurkeyFarmConnection = nil
+    end
+end
+
+AutoTurkeyFarmToggle = Tabs.Auto:Toggle({
+    Title = "Auto turkey farm",
+    Value = false,
+    Callback = function(state)
+        featureStates.AutoTurkeyFarm = state
+        if state then
+            startAutoTurkeyFarm()
+        else
+            stopAutoTurkeyFarm()
+        end
+    end
+})
 AutoTicketFarmToggle = Tabs.Auto:Toggle({
     Title = "Auto ticket farm",
     Value = false,
