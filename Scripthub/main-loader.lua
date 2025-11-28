@@ -39,6 +39,10 @@ local PlaceScripts = {
      [142823291] = { 
         name = "Murder Mystery 2", 
         url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/MM2/DaraHub-MM2.lua" 
+    },-- GAG Coming sooner 
+    [126884695634066] = { 
+        name = "Grow-a-Garden", 
+        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Teleport_UI_gag.lua" 
     },
 }
 
