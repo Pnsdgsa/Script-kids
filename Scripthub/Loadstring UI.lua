@@ -300,7 +300,7 @@ ExecuteButton.MouseButton1Click:Connect(function()
 end)
 
 CopyButton.MouseButton1Click:Connect(function()
-    local link = "https://hfjthyhjtjyfbrmyghfhgh-darahubsite.static.hf.space/index.html"
+    local link = "https://pnsdg-darahubsite.static.hf.space"
     if setclipboard then
         setclipboard(link)
         MessageLabel.Text = "Link copied!"
