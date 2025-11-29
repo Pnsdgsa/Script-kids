@@ -792,140 +792,6 @@ local featureStates = {
     TimerDisplay = false
 }
 -- Variables
-local Events = ReplicatedStorage:WaitForChild("Events", 10)
-local CharacterFolder = Events:WaitForChild("Character", 10)
-local EmoteRemote = CharacterFolder:WaitForChild("Emote", 10)
-local PassCharacterInfo = CharacterFolder:WaitForChild("PassCharacterInfo", 10)
-
-local remoteSignal = PassCharacterInfo and PassCharacterInfo.OnClientEvent
-local currentTag = nil
-local currentEmotes = table.create(12, "")
-local selectEmotes = table.create(12, "")
-local emoteEnabled = table.create(12, false)
-
-local function readTagFromFolder(f)
-    if not f then return nil end
-    local a = f:GetAttribute("Tag")
-    if a ~= nil then 
-        return a 
-    end
-    local o = f:FindFirstChild("Tag")
-    if o and o:IsA("ValueBase") then 
-        return o.Value 
-    end
-    return nil
-end
-
-local function onRespawn()
-    currentTag = nil
-    pendingSlot = nil
-    
-    task.spawn(function()
-        local startTime = tick()
-        
-        while tick() - startTime < 10 do
-            if workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players") then
-                local pf = workspace.Game.Players:FindFirstChild(player.Name)
-                if pf then
-                    currentTag = readTagFromFolder(pf)
-                    if currentTag then
-                        local b = tonumber(currentTag)
-                        if b and b >= 0 and b <= 255 then
-                            break
-                        else
-                            currentTag = nil
-                        end
-                    end
-                end
-            end
-            task.wait(0.5)
-        end
-    end)
-end
-
-local pendingSlot = nil
-local blockOriginalEmote = false
-
-local function fireSelect(slot)
-    if not currentTag then return end
-    
-    local b = tonumber(currentTag)
-    if not b or b < 0 or b > 255 then return end
-    if not selectEmotes[slot] or selectEmotes[slot] == "" then return end
-    
-    local buf = buffer.create(2)
-    buffer.writeu8(buf, 0, b)
-    buffer.writeu8(buf, 1, 17)
-    
-    if remoteSignal then
-        firesignal(remoteSignal, buf, {selectEmotes[slot]})
-    end
-end
-
-if PassCharacterInfo then
-    PassCharacterInfo.OnClientEvent:Connect(function(...)
-        if not pendingSlot then return end
-        local slot = pendingSlot
-        pendingSlot = nil
-        task.wait(0.1)
-        fireSelect(slot)
-    end)
-
-    local oldNamecall
-    oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-        local m = getnamecallmethod()
-        local a = {...}
-        
-        if m == "FireServer" and self == EmoteRemote and type(a[1]) == "string" then
-            for i = 1, 12 do
-                if emoteEnabled[i] and currentEmotes[i] ~= "" and a[1] == currentEmotes[i] then
-                    pendingSlot = i
-                    blockOriginalEmote = true
-                    
-                    task.spawn(function()
-                        task.wait(0.1)
-                        blockOriginalEmote = false
-                        if pendingSlot == i then
-                            pendingSlot = nil
-                            fireSelect(i)
-                        end
-                    end)
-                    
-                    if blockOriginalEmote then
-                        return nil
-                    end
-                end
-            end
-        end
-        
-        return oldNamecall(self, ...)
-    end)
-
-    if player.Character then
-        task.spawn(onRespawn)
-    end
-    
-    player.CharacterAdded:Connect(function()
-        task.wait(1)
-        onRespawn()
-    end)
-    
-    if workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players") then
-        workspace.Game.Players.ChildAdded:Connect(function(child)
-            if child.Name == player.Name then
-                task.wait(0.5)
-                onRespawn()
-            end
-        end)
-        
-        workspace.Game.Players.ChildRemoved:Connect(function(child)
-            if child.Name == player.Name then
-                currentTag = nil
-                pendingSlot = nil
-            end
-        end)
-    end
-end
 local character, humanoid, rootPart
 local isJumpHeld = false
 local hasRevived = false
@@ -3927,53 +3793,193 @@ TimerDisplayToggle = Tabs.Visuals:Toggle({
             end)    
         end
     })
-    Tabs.Visuals:Section({ Title = "Emote Changer", TextSize = 20 })
-    Tabs.Visuals:Divider()
+    player = game:GetService("Players").LocalPlayer
+ReplicatedStorage = game:GetService("ReplicatedStorage")
+Events = ReplicatedStorage:WaitForChild("Events", 10)
+CharacterFolder = Events and Events:WaitForChild("Character", 10)
+EmoteRemote = CharacterFolder and CharacterFolder:WaitForChild("Emote", 10)
+PassCharacterInfo = CharacterFolder and CharacterFolder:WaitForChild("PassCharacterInfo", 10)
+
+remoteSignal = PassCharacterInfo and PassCharacterInfo.OnClientEvent
+currentTag = nil
+currentEmotes = table.create(12, "")
+selectEmotes = table.create(12, "")
+emoteEnabled = table.create(12, false)
+
+currentEmoteInputs = {}
+selectEmoteInputs = {}
+
+function readTagFromFolder(f)
+    if not f then return nil end
+    a = f:GetAttribute("Tag")
+    if a ~= nil then 
+        return a 
+    end
+    o = f:FindFirstChild("Tag")
+    if o and o:IsA("ValueBase") then 
+        return o.Value 
+    end
+    return nil
+end
+
+function onRespawn()
+    currentTag = nil
+    pendingSlot = nil
     
-    for i=1,12 do
-        Tabs.Visuals:Input({
-            Title="Current Emote "..i,
-            Placeholder="Enter current emote name",
-            Value=currentEmotes[i],
-            Callback=function(v) 
-                currentEmotes[i]=v:gsub("%s+", "")
+    task.spawn(function()
+        startTime = tick()
+        
+        while tick() - startTime < 10 do
+            if workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players") then
+                pf = workspace.Game.Players:FindFirstChild(player.Name)
+                if pf then
+                    currentTag = readTagFromFolder(pf)
+                    if currentTag then
+                        b = tonumber(currentTag)
+                        if b and b >= 0 and b <= 255 then
+                            break
+                        else
+                            currentTag = nil
+                        end
+                    end
+                end
             end
-        })
+            task.wait(0.5)
+        end
+    end)
+end
+
+pendingSlot = nil
+blockOriginalEmote = false
+
+function fireSelect(slot)
+    if not currentTag then return end
+    
+    b = tonumber(currentTag)
+    if not b or b < 0 or b > 255 then return end
+    if not selectEmotes[slot] or selectEmotes[slot] == "" then return end
+    
+    buf = buffer.create(2)
+    buffer.writeu8(buf, 0, b)
+    buffer.writeu8(buf, 1, 17)
+    
+    if remoteSignal then
+        firesignal(remoteSignal, buf, {selectEmotes[slot]})
+    end
+end
+
+if PassCharacterInfo and EmoteRemote then
+    PassCharacterInfo.OnClientEvent:Connect(function(...)
+        if not pendingSlot then return end
+        slot = pendingSlot
+        pendingSlot = nil
+        task.wait(0.1)
+        fireSelect(slot)
+    end)
+
+    oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+        m = getnamecallmethod()
+        a = {...}
+        
+        if m == "FireServer" and self == EmoteRemote and type(a[1]) == "string" then
+            for i = 1, 12 do
+                if emoteEnabled[i] and currentEmotes[i] ~= "" and a[1] == currentEmotes[i] then
+                    pendingSlot = i
+                    blockOriginalEmote = true
+                    
+                    task.spawn(function()
+                        task.wait(0.1)
+                        blockOriginalEmote = false
+                        if pendingSlot == i then
+                            pendingSlot = nil
+                            fireSelect(i)
+                        end
+                    end)
+                    
+                    if blockOriginalEmote then
+                        return nil
+                    end
+                end
+            end
+        end
+        
+        return oldNamecall(self, ...)
+    end)
+
+    if player.Character then
+        task.spawn(onRespawn)
     end
     
-    Tabs.Visuals:Divider()
+    player.CharacterAdded:Connect(function()
+        task.wait(1)
+        onRespawn()
+    end)
     
-    for i=1,12 do
-        Tabs.Visuals:Input({
-            Title="Select Emote "..i,
-            Placeholder="Enter select emote name",
-            Value=selectEmotes[i],
-            Callback=function(v) 
-                selectEmotes[i]=v:gsub("%s+", "")
+    if workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players") then
+        workspace.Game.Players.ChildAdded:Connect(function(child)
+            if child.Name == player.Name then
+                task.wait(0.5)
+                onRespawn()
             end
-        })
+        end)
+        
+        workspace.Game.Players.ChildRemoved:Connect(function(child)
+            if child.Name == player.Name then
+                currentTag = nil
+                pendingSlot = nil
+            end
+        end)
     end
-Tabs.Visuals:Input({
+end
+
+Tabs.Visuals:Section({ Title = "Emote Changer", TextSize = 20 })
+Tabs.Visuals:Divider()
+
+for i = 1, 12 do
+   currentEmoteInputs[i] = Tabs.Visuals:Input({
+        Title = "Current Emote " .. i,
+        Placeholder = "Enter current emote name",
+        Value = currentEmotes[i],
+        Callback = function(v) 
+            currentEmotes[i] = v:gsub("%s+", "")
+        end
+    })
+end
+
+Tabs.Visuals:Divider()
+
+for i = 1, 12 do
+   selectEmoteInputs[i] = Tabs.Visuals:Input({
+        Title = "Select Emote " .. i,
+        Placeholder = "Enter select emote name",
+        Value = selectEmotes[i],
+        Callback = function(v) 
+            selectEmotes[i] = v:gsub("%s+", "")
+        end
+    })
+end
+
+VisualsEmoteOption = Tabs.Visuals:Input({
     Title = "Emote Possible option",
     Desc = "Higher Value may Broke emote animation recommend Use 1-3",
     Placeholder = "1",
     Callback = function(v)
-        local num = tonumber(v) or 1
-        local Players = game:GetService("Players")
-        local player = Players.LocalPlayer
+        num = tonumber(v) or 1
+        Players = game:GetService("Players")
+        player = Players.LocalPlayer
         
-        local currentNum = num
+        currentNum = num
         
-        local function setupCharacter(character)
+        function setupCharacter(character)
             if character == player.Character then
                 character:SetAttribute("EmoteNum", currentNum)
             end
         end
         
-        local function monitorCharacter()
+        function monitorCharacter()
             while true do
                 wait(1)
-                local character = player.Character
+                character = player.Character
                 if character and character:GetAttribute("EmoteNum") ~= currentNum then
                     character:SetAttribute("EmoteNum", currentNum)
                 end
@@ -3992,30 +3998,168 @@ Tabs.Visuals:Input({
         spawn(monitorCharacter)
     end
 })
-    Tabs.Visuals:Button({
-        Title="Apply Emote Mappings",
-        Icon="refresh-cw",
-        Callback=function()
-            for i=1,12 do
-                emoteEnabled[i] = (currentEmotes[i]~="" and selectEmotes[i]~="")
-            end
-            WindUI:Notify({Title="Emote Changer",Content="Emote mappings applied!"})
-        end
-    })
 
-    Tabs.Visuals:Button({
-        Title="Reset All Emotes",
-        Icon="trash-2",
-        Callback=function()
-            for i=1,12 do
-                currentEmotes[i]=""
-                selectEmotes[i]=""
-                emoteEnabled[i]=false
+VisualsEmoteApply = Tabs.Visuals:Button({
+    Title="Apply Emote Mappings",
+    Icon="refresh-cw",
+    Callback=function()
+        hasAnyEmote = false
+        
+        for i=1,12 do
+            if currentEmotes[i] ~= "" or selectEmotes[i] ~= "" then
+                hasAnyEmote = true
+                break
             end
-            WindUI:Notify({Title="Emote Changer",Content="All emotes reset!"})
         end
-     })
+        
+        if not hasAnyEmote then
+            WindUI:Notify({
+                Title="Emote Changer",
+                Content="Please enter your emote",
+                Duration=3
+            })
+            return
+        end
+        
+        function normalizeEmoteName(name)
+            return name:gsub("%s+", ""):lower()
+        end
+        
+        function isValidEmote(emoteName)
+            if emoteName == "" then return false, "" end
+            
+            normalizedInput = normalizeEmoteName(emoteName)
+            emotesFolder = game:GetService("ReplicatedStorage"):FindFirstChild("Items")
+            if emotesFolder then
+                emotesFolder = emotesFolder:FindFirstChild("Emotes")
+                if emotesFolder then
+                    for _, emoteModule in ipairs(emotesFolder:GetChildren()) do
+                        if emoteModule:IsA("ModuleScript") then
+                            normalizedEmote = normalizeEmoteName(emoteModule.Name)
+                            if normalizedEmote == normalizedInput then
+                                return true, emoteModule.Name
+                            end
+                        end
+                    end
+                end
+            end
+            return false, ""
+        end
+        
+        sameEmoteSlots = {}
+        missingEmoteSlots = {}
+        invalidEmoteSlots = {}
+        successfulSlots = {}
+        
+        for i=1,12 do
+            if currentEmotes[i] ~= "" and selectEmotes[i] ~= "" then
+                currentValid, currentActual = isValidEmote(currentEmotes[i])
+                selectValid, selectActual = isValidEmote(selectEmotes[i])
+                
+                if not currentValid and not selectValid then
+                    table.insert(invalidEmoteSlots, {slot = i, currentInvalid = true, currentName = currentEmotes[i], selectInvalid = true, selectName = selectEmotes[i]})
+                elseif not currentValid then
+                    table.insert(invalidEmoteSlots, {slot = i, currentInvalid = true, currentName = currentEmotes[i], selectInvalid = false, selectName = selectEmotes[i]})
+                elseif not selectValid then
+                    table.insert(invalidEmoteSlots, {slot = i, currentInvalid = false, currentName = currentEmotes[i], selectInvalid = true, selectName = selectEmotes[i]})
+                elseif currentActual:lower() == selectActual:lower() then
+                    table.insert(sameEmoteSlots, i)
+                else
+                    table.insert(successfulSlots, {slot = i, current = currentActual, select = selectActual})
+                end
+            elseif currentEmotes[i] ~= "" or selectEmotes[i] ~= "" then
+                table.insert(missingEmoteSlots, i)
+            end
+        end
+        
+        message = ""
+        
+        if #successfulSlots > 0 then
+            message = message .. "<font color='#00FF00'><stroke color='#000000' width='0.0001'>✓ Successfully applied emote on:</stroke></font>\n"
+            for _, data in ipairs(successfulSlots) do
+                message = message .. "<font color='#00FF00'><stroke color='#000000' width='0.0001'>Slot " .. data.slot .. " Emote: " .. data.current .. " → " .. data.select .. "</stroke></font>\n"
+            end
+            message = message .. "\n"
+        end
+        
+        if #sameEmoteSlots > 0 then
+            message = message .. "<font color='##ff0000'><stroke color='#FFFFFF' width='0.0001'>🆇 Failed to apply emote on:</stroke></font>\n"
+            for _, slot in ipairs(sameEmoteSlots) do
+                message = message .. "<font color='##ff0000'><stroke color='#FFFFFF' width='0.0001'>Slot " .. slot .. " - Cannot change emote with the same name</stroke></font>\n"
+            end
+            message = message .. "\n"
+        end
+        
+        if #invalidEmoteSlots > 0 then
+            message = message .. "<font color='##ff0000'><stroke color='#FFFFFF' width='0.0001'>🆇 Failed to apply emote on:</stroke></font>\n"
+            for _, data in ipairs(invalidEmoteSlots) do
+                message = message .. "<font color='##ff0000'><stroke color='#FFFFFF' width='0.0001'>Slot " .. data.slot .. " - "
+                if data.currentInvalid and data.selectInvalid then
+                    message = message .. "Invalid current emote: \"" .. data.currentName .. "\", Invalid select emote: \"" .. data.selectName .. "\"</stroke></font>\n"
+                elseif data.currentInvalid then
+                    message = message .. "Invalid current emote: \"" .. data.currentName .. "\", Select emote: \"" .. data.selectName .. "\"</stroke></font>\n"
+                else
+                    message = message .. "Current emote: \"" .. data.currentName .. "\", Invalid select emote: \"" .. data.selectName .. "\"</stroke></font>\n"
+                end
+            end
+            message = message .. "\n"
+        end
+        
+        if #missingEmoteSlots > 0 then
+            message = message .. "<font color='##ff0000'><stroke color='#FFFFFF' width='0.0001'>🆇 Failed to apply emote on:</stroke></font>\n"
+            for _, slot in ipairs(missingEmoteSlots) do
+                if currentEmotes[slot] == "" then
+                    message = message .. "<font color='##ff0000'><stroke color='#FFFFFF' width='0.0001'>Slot " .. slot .. " - Current emote slot is missing text</stroke></font>\n"
+                else
+                    message = message .. "<font color='##ff0000'><stroke color='#FFFFFF' width='0.0001'>Slot " .. slot .. " - Select emote slot is missing text</stroke></font>\n"
+                end
+            end
+        end
+        
+        for i=1,12 do
+            currentValid = isValidEmote(currentEmotes[i])
+            selectValid = isValidEmote(selectEmotes[i])
+            emoteEnabled[i] = (currentValid and selectValid and currentEmotes[i]:lower() ~= selectEmotes[i]:lower())
+        end
+        
+        WindUI:Notify({
+            Title="Emote Changer",
+            Content=message,
+            Duration=8
+        })
+    end
+})
+
+VisualsEmoteReset = Tabs.Visuals:Button({
+    Title = "Reset All Emotes",
+    Icon = "trash-2",
+    Callback = function()
+        for i = 1, 12 do
+            currentEmotes[i] = ""
+            selectEmotes[i] = ""
+            emoteEnabled[i] = false
+            
+            if currentEmoteInputs[i] and currentEmoteInputs[i].Set then
+                currentEmoteInputs[i]:Set("")
+            end
+            if selectEmoteInputs[i] and selectEmoteInputs[i].Set then
+                selectEmoteInputs[i]:Set("")
+            end
+        end
+        
+        if VisualsEmoteOption and VisualsEmoteOption.Set then
+            VisualsEmoteOption:Set("")
+        end
+        
+        WindUI:Notify({
+            Title = "Emote Changer", 
+            Content = "All emotes have been reset!"
+        })
+    end
+})
+
      Tabs.Visuals:Section({ Title = "Character", TextSize = 20 })
+     
      currentCarryAnim = ""
 selectedCarryAnim = ""
 lastCurrentCarryAnim = ""
