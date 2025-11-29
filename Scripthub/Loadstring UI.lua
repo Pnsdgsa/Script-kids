@@ -1,3 +1,5 @@
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/main-loader.lua"))()
+--[[
 local validLoadstring = 'loadstring(game:HttpGet("https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/main-loader.lua"))()'
 
 local Players = game:GetService("Players")
@@ -353,3 +355,4 @@ if currentDay == 6 or currentDay == 7 then
 end
 
 return WeekendMode
+]]
