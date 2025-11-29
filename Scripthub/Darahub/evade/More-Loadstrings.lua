@@ -194,8 +194,7 @@ roundTimer:GetAttributeChangedSignal("About"):Connect(updateUIVisibility)
 
 -- keysystem.lua 
 
-loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/U%20already%20have%20it%20lol'))()
-
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Create%20Loadstring%20file.lua",true))()
 -- filename "You already have it lol" code:
 --[[local validLoadstring = 'loadstring(game:HttpGet("https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/main-loader.lua"))()'
 local CONFIG_FILE_NAME = "DaraHubBigThxForSupport.lua"
