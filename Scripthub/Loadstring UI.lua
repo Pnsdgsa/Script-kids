@@ -1,5 +1,3 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/main-loader.lua"))()
---[[
 local validLoadstring = 'loadstring(game:HttpGet("https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/main-loader.lua"))()'
 
 local Players = game:GetService("Players")
@@ -302,7 +300,7 @@ ExecuteButton.MouseButton1Click:Connect(function()
 end)
 
 CopyButton.MouseButton1Click:Connect(function()
-    local link = "https://pnsdgpost.blogspot.com/2025/10/dara-hub-script.html"
+    local link = "https://hfjthyhjtjyfbrmyghfhgh-darahubsite.static.hf.space/index.html"
     if setclipboard then
         setclipboard(link)
         MessageLabel.Text = "Link copied!"
@@ -355,4 +353,3 @@ if currentDay == 6 or currentDay == 7 then
 end
 
 return WeekendMode
-]]
