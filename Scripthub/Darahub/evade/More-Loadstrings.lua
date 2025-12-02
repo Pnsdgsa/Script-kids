@@ -447,3 +447,4 @@ end
 playSequentialSounds()
 	end
 end)
+print("Script Made by: @Pnsdg and Yomka. My Discord: https://discord.gg/pMqebNUhQd, My friend's telegram: https://t.me/YomkaMadeIt")
