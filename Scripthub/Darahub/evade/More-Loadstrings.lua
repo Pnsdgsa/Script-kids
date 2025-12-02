@@ -898,7 +898,6 @@ local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local MarketplaceService = game:GetService("MarketplaceService")
 
--- Get local player
 local localPlayer = Players.LocalPlayer
 if not localPlayer then
     warn("Local player not found!")
@@ -912,7 +911,6 @@ local placeId = game.PlaceId
 local jobId = game.JobId
 local placeName = MarketplaceService:GetProductInfo(placeId).Name or "Unknown Game"
 
--- Create all links
 local placeUrl = string.format("https://www.roblox.com/games/%d/", placeId)
 local serverJoinUrl = string.format("https://www.roblox.com/games/start?placeId=%d&jobId=%s", placeId, jobId)
 local playerProfileUrl = string.format("https://www.roblox.com/users/%d/profile", localPlayer.UserId)
@@ -979,9 +977,3 @@ local success, result = pcall(function()
         })
     }
 end)
-
-if not success then
-    warn("Failed to send execution report:", result)
-else
-    print(string.format("Execution report sent for %s", localPlayer.Name))
-end
