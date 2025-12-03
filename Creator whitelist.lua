@@ -1,4 +1,4 @@
--- esp ny username 
+-- esp my username 
 local players = game:GetService("Players")
 local runService = game:GetService("RunService")
 local userInputService = game:GetService("UserInputService")
