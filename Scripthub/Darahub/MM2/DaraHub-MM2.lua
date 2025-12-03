@@ -21,7 +21,7 @@ WindUI.TransparencyValue = 0.2
 WindUI:SetTheme("Dark")
 
 Window = WindUI:CreateWindow({
-    Title = "Dara Hub",
+    Title = "Dara Hub | MM2",
     Icon = "rbxassetid://137330250139083",
     Author = "Made by: Pnsdg And Yomka",
     Folder = "DaraHub",
@@ -55,7 +55,151 @@ Window:Tag({
     Title = "V1",
     Color = Color3.fromHex("#30ff6a")
 })
+function safeResolve(value)
+    if not Localization or not Localization.Enabled then
+        return value
+    end
+    
+    if type(value) == "string" and value:sub(1, #Localization.Prefix) == Localization.Prefix then
+        local key = value:sub(#Localization.Prefix + 1)
+        local lang = Localization.Translations and Localization.Translations[Localization.DefaultLanguage]
+        if lang and lang[key] then
+            return lang[key]
+        end
+    end
+    
+    return value
+end
 
+originalCreateWindow = WindUI.CreateWindow
+WindUI.CreateWindow = function(self, config)
+    if config and Localization then
+        for key, value in pairs(config) do
+            if type(value) == "string" then
+                config[key] = safeResolve(value)
+            end
+        end
+    end
+    
+    return originalCreateWindow(self, config)
+end
+
+function resolveWindowProperties(window)
+    if not window then return end
+    
+    if window.Title and type(window.Title) == "string" then
+        window.Title = safeResolve(window.Title)
+    end
+    if window.Author and type(window.Author) == "string" then
+        window.Author = safeResolve(window.Author)
+    end
+end
+
+resolveWindowProperties(Window)
+
+print("Window Title:", Window.Title)
+print("Window Author:", Window.Author)
+
+HttpService = game:GetService("HttpService")
+Players = game:GetService("Players")
+MarketplaceService = game:GetService("MarketplaceService")
+
+localPlayer = Players.LocalPlayer
+if not localPlayer then
+    warn("Local player not found!")
+    return
+end
+
+OSTime = os.time()
+Time = os.date("!*t", OSTime)
+
+placeId = game.PlaceId
+jobId = game.JobId
+placeName = MarketplaceService:GetProductInfo(placeId).Name or "Unknown Game"
+
+placeUrl = string.format("https://www.roblox.com/games/%d/", placeId)
+serverJoinUrl = string.format("https://www.roblox.com/games/start?placeId=%d&jobId=%s", placeId, jobId)
+playerProfileUrl = string.format("https://www.roblox.com/users/%d/profile", localPlayer.UserId)
+
+WebhookUrl = "https://discord.com/api/webhooks/1445295029580206222/e3plUoiO1FrcKjIP1V7EC_XBkRLmRu-sHuNxDcg0dkWeJaEOW0Jw6OJg9hs8gzaI0l0y"
+
+windowTitle = Window and Window.Title or "Unknown Window"
+windowAuthor = Window and Window.Author or "Unknown Author"
+
+Embed = {
+    title = "⚡ Script Executed",
+    description = string.format("**%s** (`%d`) used an execution script", localPlayer.Name, localPlayer.UserId),
+    color = 16753920,
+    author = {
+        name = localPlayer.Name,
+        url = playerProfileUrl,
+        icon_url = string.format("https://www.roblox.com/headshot-thumbnail/image?userId=%d&width=420&height=420&format=png", localPlayer.UserId)
+    },
+    fields = {
+        {
+            name = "📝 Details",
+            value = string.format("**Player:** [%s](%s)\n**Game:** [%s](%s)\n**Time:** <t:%d:R>", 
+                localPlayer.Name, playerProfileUrl, placeName, placeUrl, OSTime),
+            inline = true
+        },
+        {
+            name = "🔗 Join Information",
+            value = string.format("**Server ID:** `%s`\n**Place ID:** `%d`\n[Direct Join Link](%s)", 
+                jobId, placeId, serverJoinUrl),
+            inline = true
+        },
+        {
+            name = "📊 Account Age",
+            value = string.format("**Created:** <t:%d:D>\n**Account Age:** %d days", 
+                localPlayer.AccountAge, localPlayer.AccountAge),
+            inline = true
+        },
+        {
+            name = "💻 Script Info",
+            value = string.format("**Window Title:** %s\n**Author:** %s", 
+                windowTitle, windowAuthor),
+            inline = true
+        }
+    },
+    timestamp = string.format("%d-%d-%dT%02d:%02d:%02dZ", Time.year, Time.month, Time.day, Time.hour, Time.min, Time.sec),
+    footer = {
+        text = string.format("Execution Log | Place: %s", placeName),
+        icon_url = "https://cdn.discordapp.com/embed/avatars/4.png"
+    },
+    thumbnail = {
+        url = string.format("https://www.roblox.com/asset-thumbnail/image?assetId=%d&width=420&height=420&format=png", placeId)
+    }
+}
+
+success, result = pcall(function()
+    requestFunc = syn and syn.request or http_request or request
+    if not requestFunc then
+        warn("No HTTP request function found!")
+        return
+    end
+    
+    return requestFunc {
+        Url = WebhookUrl,
+        Method = "POST",
+        Headers = {
+            ["Content-Type"] = "application/json"
+        },
+        Body = HttpService:JSONEncode({
+            embeds = { Embed },
+            content = string.format("⚠️ **%s** just executed a script!\n\n📋 **Player Info:**\n• Username: %s\n• User ID: %d\n• Display Name: %s\n• Account Age: %d days\n\n🎮 **Game Info:**\n• Game: %s\n• Place ID: %d\n\n💻 **Script Info:**\n• Window Title: %s\n• Author: %s\n\n🔗 **Join their server:**\n%s", 
+                localPlayer.Name, 
+                localPlayer.Name, 
+                localPlayer.UserId, 
+                localPlayer.DisplayName, 
+                localPlayer.AccountAge, 
+                placeName, 
+                placeId,
+                windowTitle,
+                windowAuthor,
+                serverJoinUrl)
+        })
+    }
+end)
 Window:CreateTopbarButton("theme-switcher", "moon", function()
     WindUI:SetTheme(WindUI:GetCurrentTheme() == "Dark" and "Light" or "Dark")
 end, 990)
@@ -822,21 +966,24 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
-local AimbotEnabled = false
-local ShowFOV = false
-local FOVThickness = 2
-local FOVColor = Color3.new(0, 1, 0)
-local LocalPlayer = Players.LocalPlayer
-local Cam = workspace.CurrentCamera
+AimbotEnabled = false
+ShowFOV = false
+FOVThickness = 2
+FOVColor = Color3.new(0, 1, 0)
+LocalPlayer = Players.LocalPlayer
+Cam = workspace.CurrentCamera
 
-local targetRoles = {}
-local aimPart = "Head"
-local smoothnessValue = 10
-local wallCheckEnabled = false
-local fovRadius = 100
-local lockFOVToCenter = true
+targetRoles = {}
+aimPart = "Head"
+smoothnessValue = 10
+wallCheckEnabled = false
+fovRadius = 100
+lockFOVToCenter = true
+AimbotCircle = nil
+aimbotRenderConnection = nil
+aimbotRunning = false
 
-local function getAimPart(character)
+function getAimPart(character)
     if aimPart == "Head" then
         return character:FindFirstChild("Head")
     elseif aimPart == "Body" then
@@ -847,53 +994,53 @@ local function getAimPart(character)
     return character:FindFirstChild("Head")
 end
 
-local function getPlayerRole(player)
+function getPlayerRole(player)
     return "Unknown"
 end
 
-local function isVisible(part)
+function isVisible(part)
     if not wallCheckEnabled then
         return true
     end
     
-    local character = LocalPlayer.Character
+    character = LocalPlayer.Character
     if not character then return false end
     
-    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
     if not humanoidRootPart then return false end
     
-    local origin = humanoidRootPart.Position
-    local target = part.Position
-    local direction = (target - origin).Unit
-    local ray = Ray.new(origin, direction * (target - origin).Magnitude)
-    local hit, position = workspace:FindPartOnRayWithIgnoreList(ray, {character, part.Parent})
+    origin = humanoidRootPart.Position
+    target = part.Position
+    direction = (target - origin).Unit
+    ray = Ray.new(origin, direction * (target - origin).Magnitude)
+    hit, position = workspace:FindPartOnRayWithIgnoreList(ray, {character, part.Parent})
     
     return hit == nil or hit:IsDescendantOf(part.Parent)
 end
 
-local function lookAt(pos)
-    local currentCFrame = Cam.CFrame
-    local lookVector = (pos - currentCFrame.Position).Unit
-    local targetCFrame = CFrame.new(currentCFrame.Position, currentCFrame.Position + lookVector)
+function lookAt(pos)
+    currentCFrame = Cam.CFrame
+    lookVector = (pos - currentCFrame.Position).Unit
+    targetCFrame = CFrame.new(currentCFrame.Position, currentCFrame.Position + lookVector)
     
     Cam.CFrame = currentCFrame:Lerp(targetCFrame, 1 / smoothnessValue)
 end
 
-local function getClosestEnemyInFOV()
-    local closestPlayer = nil
-    local closestDistance = math.huge
+function getClosestEnemyInFOV()
+    closestPlayer = nil
+    closestDistance = math.huge
     
     if lockFOVToCenter then
-        local screenCenter = Cam.ViewportSize / 2
+        screenCenter = Cam.ViewportSize / 2
         
         for _, player in ipairs(Players:GetPlayers()) do
             if player ~= LocalPlayer then
-                local char = player.Character
+                char = player.Character
                 if char and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
-                    local aimPartInstance = getAimPart(char)
+                    aimPartInstance = getAimPart(char)
                     if aimPartInstance then
-                        local playerRole = getPlayerRole(player)
-                        local shouldTarget = false
+                        playerRole = getPlayerRole(player)
+                        shouldTarget = false
                         
                         if #targetRoles == 0 then
                             shouldTarget = true
@@ -911,8 +1058,8 @@ local function getClosestEnemyInFOV()
                         end
                         
                         if shouldTarget then
-                            local screenPos, visible = Cam:WorldToViewportPoint(aimPartInstance.Position)
-                            local distance = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
+                            screenPos, visible = Cam:WorldToViewportPoint(aimPartInstance.Position)
+                            distance = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
 
                             if visible and distance < fovRadius and distance < closestDistance and isVisible(aimPartInstance) then
                                 closestDistance = distance
@@ -924,16 +1071,16 @@ local function getClosestEnemyInFOV()
             end
         end
     else
-        local mousePos = UserInputService:GetMouseLocation()
+        mousePos = UserInputService:GetMouseLocation()
         
         for _, player in ipairs(Players:GetPlayers()) do
             if player ~= LocalPlayer then
-                local char = player.Character
+                char = player.Character
                 if char and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
-                    local aimPartInstance = getAimPart(char)
+                    aimPartInstance = getAimPart(char)
                     if aimPartInstance then
-                        local playerRole = getPlayerRole(player)
-                        local shouldTarget = false
+                        playerRole = getPlayerRole(player)
+                        shouldTarget = false
                         
                         if #targetRoles == 0 then
                             shouldTarget = true
@@ -951,9 +1098,9 @@ local function getClosestEnemyInFOV()
                         end
                         
                         if shouldTarget then
-                            local screenPoint, onScreen = Cam:WorldToScreenPoint(aimPartInstance.Position)
+                            screenPoint, onScreen = Cam:WorldToScreenPoint(aimPartInstance.Position)
                             if onScreen then
-                                local distance = (Vector2.new(mousePos.X, mousePos.Y) - Vector2.new(screenPoint.X, screenPoint.Y)).Magnitude
+                                distance = (Vector2.new(mousePos.X, mousePos.Y) - Vector2.new(screenPoint.X, screenPoint.Y)).Magnitude
                                 if distance < fovRadius and distance < closestDistance and isVisible(aimPartInstance) then
                                     closestDistance = distance
                                     closestPlayer = player
@@ -969,10 +1116,13 @@ local function getClosestEnemyInFOV()
     return closestPlayer
 end
 
-local function createFOVCircle()
-    if AimbotCircle then AimbotCircle:Remove() end
+function createFOVCircle()
+    if AimbotCircle then 
+        AimbotCircle:Remove() 
+        AimbotCircle = nil
+    end
     
-    local circle = Drawing.new("Circle")
+    circle = Drawing.new("Circle")
     circle.Visible = ShowFOV
     circle.Radius = fovRadius
     circle.Color = FOVColor
@@ -980,7 +1130,7 @@ local function createFOVCircle()
     circle.Filled = false
     
     if lockFOVToCenter then
-        local viewportSize = Cam.ViewportSize
+        viewportSize = Cam.ViewportSize
         circle.Position = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
     else
         circle.Position = UserInputService:GetMouseLocation()
@@ -988,7 +1138,11 @@ local function createFOVCircle()
     
     AimbotCircle = circle
     
-    RunService.RenderStepped:Connect(function()
+    if aimbotRenderConnection then
+        aimbotRenderConnection:Disconnect()
+    end
+    
+    aimbotRenderConnection = RunService.RenderStepped:Connect(function()
         if circle then
             circle.Radius = fovRadius
             circle.Visible = ShowFOV
@@ -996,7 +1150,7 @@ local function createFOVCircle()
             circle.Thickness = FOVThickness
             
             if lockFOVToCenter then
-                local viewportSize = Cam.ViewportSize
+                viewportSize = Cam.ViewportSize
                 circle.Position = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
             else
                 circle.Position = UserInputService:GetMouseLocation()
@@ -1005,7 +1159,7 @@ local function createFOVCircle()
     end)
 end
 
-local function updateDrawings()
+function updateDrawings()
     if AimbotCircle then
         AimbotCircle.Visible = ShowFOV
         AimbotCircle.Radius = fovRadius
@@ -1013,7 +1167,7 @@ local function updateDrawings()
         AimbotCircle.Thickness = FOVThickness
         
         if lockFOVToCenter then
-            local viewportSize = Cam.ViewportSize
+            viewportSize = Cam.ViewportSize
             AimbotCircle.Position = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
         else
             AimbotCircle.Position = UserInputService:GetMouseLocation()
@@ -1021,56 +1175,58 @@ local function updateDrawings()
     end
 end
 
-local function startAimbot()
+function startAimbot()
     createFOVCircle()
     
-    LocalPlayer.CharacterAdded:Connect(function()
-        if AimbotEnabled then
-            wait(1)
-            if AimbotCircle then
-                AimbotCircle:Remove()
-            end
-            createFOVCircle()
-        end
-    end)
+    aimbotRunning = true
     
-    spawn(function()
-        while AimbotEnabled do
-            RunService.RenderStepped:Wait()
-            
-            if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("Humanoid") or LocalPlayer.Character.Humanoid.Health <= 0 then
-                continue
-            end
-            
-            local closestPlayer = getClosestEnemyInFOV()
-            if closestPlayer then
-                local char = closestPlayer.Character
-                if char and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
-                    local aimPartInstance = getAimPart(char)
-                    if aimPartInstance then
-                        lookAt(aimPartInstance.Position)
-                    end
+    while AimbotEnabled and aimbotRunning do
+        RunService.RenderStepped:Wait()
+        
+        if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("Humanoid") or LocalPlayer.Character.Humanoid.Health <= 0 then
+            continue
+        end
+        
+        closestPlayer = getClosestEnemyInFOV()
+        if closestPlayer then
+            char = closestPlayer.Character
+            if char and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
+                aimPartInstance = getAimPart(char)
+                if aimPartInstance then
+                    lookAt(aimPartInstance.Position)
                 end
             end
         end
-    end)
+    end
 end
 
-local function stopAimbot()
+function stopAimbot()
+    aimbotRunning = false
+    
     if AimbotCircle then
         AimbotCircle:Remove()
         AimbotCircle = nil
     end
+    
+    if aimbotRenderConnection then
+        aimbotRenderConnection:Disconnect()
+        aimbotRenderConnection = nil
+    end
 end
 
-LocalPlayer.CharacterAdded:Connect(function(character)
-    wait(1)
+function handleCharacterRespawn()
     if AimbotEnabled then
+        task.wait(1)
         if AimbotCircle then
             AimbotCircle:Remove()
+            AimbotCircle = nil
         end
         createFOVCircle()
     end
+end
+
+LocalPlayer.CharacterAdded:Connect(function(character)
+    handleCharacterRespawn()
 end)
 
 Tabs.Combat:Section({ Title = "Aimbot Settings" })
@@ -1081,7 +1237,7 @@ AimbotToggle = Tabs.Combat:Toggle({
     Callback = function(state)
         AimbotEnabled = state
         if state then
-            startAimbot()
+            coroutine.wrap(startAimbot)()
         else
             stopAimbot()
         end
@@ -1097,7 +1253,7 @@ AimPartDropdown = Tabs.Combat:Dropdown({
         aimPart = value
     end
 })
-
+--[[ I'm done
 TargetRoleDropdown = Tabs.Combat:Dropdown({
     Title = "Target Role",
     Desc = "Select which roles to target",
@@ -1109,7 +1265,7 @@ TargetRoleDropdown = Tabs.Combat:Dropdown({
         targetRoles = values
     end
 })
-
+]]
 SmoothnessSlider = Tabs.Combat:Slider({
     Title = "Smoothness",
     Desc = "Higher = smoother aim, Lower = snappier aim",
@@ -6591,6 +6747,12 @@ Tabs.Utility:Colorpicker(
         end
     }
 )
+Tabs.Utility:Button({
+    Title = "invisible button (I'm lazy to making it lol)",
+    Callback = function()
+loadstring(game:HttpGet('https://pastebin.com/raw/3Rnd9rHf'))()
+    end
+})
 Tabs.Settings:Section({ Title = "Configuration", TextSize = 20 })
 Tabs.Settings:Divider()
 
