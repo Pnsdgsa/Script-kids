@@ -19,67 +19,15 @@ end
 
 
 -- Localization setup
-local Localization = WindUI:Localization({
-    Enabled = true,
-    Prefix = "loc:",
-    DefaultLanguage = "en",
-    Translations = {
-        ["en"] = {
-            ["SCRIPT_TITLE"] = "Dara Hub",
-            ["WELCOME"] = "Made by: Pnsdg And Yomka",
-            ["FEATURES"] = "Features",
-            ["Player_TAB"] = "Player",
-            ["AUTO_TAB"] = "Auto",
-            ["VISUALS_TAB"] = "Visuals",
-            ["ESP_TAB"] = "ESP",
-            ["SETTINGS_TAB"] = "Settings",
-            ["INFINITE_JUMP"] = "Infinite Jump",
-            ["JUMP_METHOD"] = "Infinite Jump Method",
-            ["FLY"] = "Fly",
-            ["FLY_SPEED"] = "Fly Speed",
-            ["TPWALK"] = "TP WALK",
-            ["TPWALK_VALUE"] = "TPWALK VALUE",
-            ["JUMP_HEIGHT"] = "Jump Height",
-            ["JUMP_POWER"] = "Jump Height",
-            ["ANTI_AFK"] = "Anti AFK",
-            ["NO_FOG"] = "Remove Fog",
-            ["PLAYER_NAME_ESP"] = "Player Name ESP",
-            ["PLAYER_BOX_ESP"] = "Player Box ESP",
-            ["PLAYER_TRACER"] = "Player Tracer",
-            ["PLAYER_DISTANCE_ESP"] = "Player Distance ESP",
-            ["PLAYER_RAINBOW_BOXES"] = "Player Rainbow Boxes",
-            ["PLAYER_RAINBOW_TRACERS"] = "Player Rainbow Tracers",
-            ["NEXTBOT_ESP"] = "Nextbot ESP",
-            ["NEXTBOT_NAME_ESP"] = "Nextbot Name ESP",
-            ["DOWNED_BOX_ESP"] = "Downed Player Box ESP",
-            ["DOWNED_TRACER"] = "Downed Player Tracer",
-            ["DOWNED_NAME_ESP"] = "Downed Player Name ESP",
-            ["DOWNED_DISTANCE_ESP"] = "Downed Player Distance ESP",
-            ["AUTO_CARRY"] = "Auto Carry",
-            ["AUTO_REVIVE"] = "Auto Revive",
-            ["AUTO_VOTE"] = "Auto Vote",
-            ["AUTO_VOTE_MAP"] = "Auto Vote Map",
-            ["AUTO_SELF_REVIVE"] = "Auto Self Revive",
-            ["MANUAL_REVIVE"] = "Manual Revive",
-            ["AUTO_WIN"] = "Auto Win",
-            ["AUTO_MONEY_FARM"] = "Auto Money Farm",
-            ["SAVE_CONFIG"] = "Save Configuration",
-            ["LOAD_CONFIG"] = "Load Configuration",
-            ["THEME_SELECT"] = "Select Theme",
-            ["TRANSPARENCY"] = "Window Transparency"
-        }
-    }
-})
-
 -- Set WindUI properties
 WindUI.TransparencyValue = 0.2
 WindUI:SetTheme("Dark")
 
 -- Create WindUI window
 local Window = WindUI:CreateWindow({
-    Title = "loc:SCRIPT_TITLE",
+    Title = "Dara Hub",
     Icon = "rbxassetid://137330250139083",
-    Author = "loc:WELCOME",
+    Author = "Made by: Pnsdg And Yomka",
     Folder = "DaraHub",
     Size = UDim2.fromOffset(580, 490),
     Theme = "Dark",
@@ -1533,17 +1481,17 @@ local player = Players.LocalPlayer
 TeleportService:Teleport(game.PlaceId, player)
 end
 
-    local FeatureSection = Window:Section({ Title = "loc:FEATURES", Opened = true })
+    local FeatureSection = Window:Section({ Title = "Features", Opened = true })
 
     local Tabs = {
     Main = FeatureSection:Tab({ Title = "Main", Icon = "layout-grid" }),
-    Player = FeatureSection:Tab({ Title = "loc:Player_TAB", Icon = "user" }),
-    Auto = FeatureSection:Tab({ Title = "loc:AUTO_TAB", Icon = "repeat-2" }),
-    Visuals = FeatureSection:Tab({ Title = "loc:VISUALS_TAB", Icon = "camera" }),
-    ESP = FeatureSection:Tab({ Title = "loc:ESP_TAB", Icon = "eye" }),
+    Player = FeatureSection:Tab({ Title = "Player", Icon = "user" }),
+    Auto = FeatureSection:Tab({ Title = "Auto", Icon = "repeat-2" }),
+    Visuals = FeatureSection:Tab({ Title = "Visuals", Icon = "camera" }),
+    ESP = FeatureSection:Tab({ Title = "ESP", Icon = "eye" }),
     Utility = FeatureSection:Tab({ Title = "Utility", Icon = "wrench"}),
     Teleport = FeatureSection:Tab({ Title = "Teleport", Icon = "navigation" }),
-    Settings = FeatureSection:Tab({ Title = "loc:SETTINGS_TAB", Icon = "settings" }),
+    Settings = FeatureSection:Tab({ Title = "Settings", Icon = "settings" }),
     info = FeatureSection:Tab({ Title = "info", Icon = "info" })
     
 }
@@ -1698,7 +1646,7 @@ ResetDamageTypeDropdown = Tabs.Main:Dropdown({
     end
 })
        AntiAFKToggle = Tabs.Main:Toggle({
-        Title = "loc:ANTI_AFK",
+        Title = "Anti AFK",
         Value = false,
         Callback = function(state)
             featureStates.AntiAFK = state
@@ -2649,7 +2597,7 @@ if Tabs and Tabs.Player then
     })
 end
     InfiniteJumpToggle = Tabs.Player:Toggle({
-        Title = "loc:INFINITE_JUMP",
+        Title = "Infinite Jump",
         Value = false,
         Callback = function(state)
             featureStates.InfiniteJump = state
@@ -2657,7 +2605,7 @@ end
     })
 
     JumpMethodDropdown = Tabs.Player:Dropdown({
-        Title = "loc:JUMP_METHOD",
+        Title = "Infinite Jump Method",
         Values = {"Hold", "Spam"},
         Value = "Hold",
         Callback = function(value)
@@ -2815,7 +2763,7 @@ InfiniteSlideSpeedInput = Tabs.Player:Input({
     end,
 })
     FlyToggle = Tabs.Player:Toggle({
-        Title = "loc:FLY",
+        Title = "Fly",
         Value = false,
         Callback = function(state)
             featureStates.Fly = state
@@ -2874,7 +2822,7 @@ local function onCharacterAdded(newCharacter)
 end
 
     local FlySpeedSlider = Tabs.Player:Slider({
-        Title = "loc:FLY_SPEED",
+        Title = "Fly Speed",
         Value = { Min = 1, Max = 200, Default = 5, Step = 1 },
                 Desc = "Adjust fly speed",
         Callback = function(value)
@@ -2910,7 +2858,7 @@ NoclipToggle = Tabs.Player:Toggle({
     end
 })
     TPWALKToggle = Tabs.Player:Toggle({
-        Title = "loc:TPWALK",
+        Title = "TP WALK",
         Value = false,
         Callback = function(state)
             featureStates.TPWALK = state
@@ -2923,7 +2871,7 @@ NoclipToggle = Tabs.Player:Toggle({
     })
 
     local TPWALKSlider = Tabs.Player:Slider({
-        Title = "loc:TPWALK_VALUE",
+        Title = "TPWALK VALUE",
          Desc = "Adjust TPWALK speed",
         Value = { Min = 1, Max = 200, Default = 1, Step = 1 },
         Callback = function(value)
@@ -2932,7 +2880,7 @@ NoclipToggle = Tabs.Player:Toggle({
     })
 
     JumpBoostToggle = Tabs.Player:Toggle({
-        Title = "loc:JUMP_HEIGHT",
+        Title = "Jump Height",
         Value = false,
         Callback = function(state)
             featureStates.JumpBoost = state
@@ -2945,7 +2893,7 @@ NoclipToggle = Tabs.Player:Toggle({
     })
 
     local JumpBoostSlider = Tabs.Player:Slider({
-        Title = "loc:JUMP_POWER",
+        Title = "Jump Height",
         Desc = "Adjust jump height",
         Value = { Min = 1, Max = 200, Default = 5, Step = 1 },
         Callback = function(value)
@@ -3591,7 +3539,7 @@ end)
 })
 
 NoFogToggle = Tabs.Visuals:Toggle({
-    Title = "loc:NO_FOG",
+    Title = "Remove Fog",
     Value = false,
     Callback = function(state)
         featureStates.NoFog = state
@@ -5654,7 +5602,7 @@ Tabs.ESP:Divider()
 Tabs.ESP:Section({ Title = "Player ESP" })
 
 PlayerNameESPToggle = Tabs.ESP:Toggle({
-    Title = "loc:PLAYER_NAME_ESP",
+    Title = "Player Name ESP",
     Value = false,
     Callback = function(state)
         featureStates.PlayerESP.names = state
@@ -5667,7 +5615,7 @@ PlayerNameESPToggle = Tabs.ESP:Toggle({
 })
 
 PlayerBoxESPToggle = Tabs.ESP:Toggle({
-    Title = "loc:PLAYER_BOX_ESP",
+    Title = "Player Box ESP",
     Value = false,
     Callback = function(state)
         featureStates.PlayerESP.boxes = state
@@ -5689,7 +5637,7 @@ PlayerBoxTypeDropdown = Tabs.ESP:Dropdown({
 })
 
 PlayerRainbowBoxesToggle = Tabs.ESP:Toggle({
-    Title = "loc:PLAYER_RAINBOW_BOXES",
+    Title = "Player Rainbow Boxes",
     Value = false,
     Callback = function(state)
         featureStates.PlayerESP.rainbowBoxes = state
@@ -5701,7 +5649,7 @@ PlayerRainbowBoxesToggle = Tabs.ESP:Toggle({
 })
 
 PlayerTracerToggle = Tabs.ESP:Toggle({
-    Title = "loc:PLAYER_TRACER",
+    Title = "Player Tracer",
     Value = false,
     Callback = function(state)
         featureStates.PlayerESP.tracers = state
@@ -5714,7 +5662,7 @@ PlayerTracerToggle = Tabs.ESP:Toggle({
 })
 
 PlayerRainbowTracersToggle = Tabs.ESP:Toggle({
-    Title = "loc:PLAYER_RAINBOW_TRACERS",
+    Title = "Player Rainbow Tracers",
     Value = false,
     Callback = function(state)
         featureStates.PlayerESP.rainbowTracers = state
@@ -5726,7 +5674,7 @@ PlayerRainbowTracersToggle = Tabs.ESP:Toggle({
 })
 
 PlayerDistanceESPToggle = Tabs.ESP:Toggle({
-    Title = "loc:PLAYER_DISTANCE_ESP",
+    Title = "Player Distance ESP",
     Value = false,
     Callback = function(state)
         featureStates.PlayerESP.distance = state
@@ -5754,7 +5702,7 @@ PlayerHighlightsToggle = Tabs.ESP:Toggle({
 Tabs.ESP:Section({ Title = "Nextbot Name ESP" })
 
 NextbotESPToggle = Tabs.ESP:Toggle({
-    Title = "loc:NEXTBOT_NAME_ESP",
+    Title = "Nextbot Name ESP",
     Value = false,
     Callback = function(state)
         featureStates.NextbotESP.names = state
@@ -5842,7 +5790,7 @@ NextbotDistanceESPToggle = Tabs.ESP:Toggle({
 Tabs.ESP:Section({ Title = "Downed Player ESP" })
 
 DownedBoxESPToggle = Tabs.ESP:Toggle({
-    Title = "loc:DOWNED_BOX_ESP",
+    Title = "Downed Player Box ESP",
     Value = false,
     Callback = function(state)
         featureStates.DownedBoxESP = state
@@ -5865,7 +5813,7 @@ DownedBoxTypeDropdown = Tabs.ESP:Dropdown({
 })
 
 DownedTracerToggle = Tabs.ESP:Toggle({
-    Title = "loc:DOWNED_TRACER",
+    Title = "Downed Player Tracer",
     Value = false,
     Callback = function(state)
         featureStates.DownedTracer = state
@@ -5879,7 +5827,7 @@ DownedTracerToggle = Tabs.ESP:Toggle({
 })
 
 DownedNameESPToggle = Tabs.ESP:Toggle({
-    Title = "loc:DOWNED_NAME_ESP",
+    Title = "Downed Player Name ESP",
     Value = false,
     Callback = function(state)
         featureStates.DownedNameESP = state
@@ -5892,7 +5840,7 @@ DownedNameESPToggle = Tabs.ESP:Toggle({
 })
 
 DownedDistanceESPToggle = Tabs.ESP:Toggle({
-    Title = "loc:DOWNED_DISTANCE_ESP",
+    Title = "Downed Player Distance ESP",
     Value = false,
     Callback = function(state)
         featureStates.DownedDistanceESP = state
@@ -7607,7 +7555,7 @@ FastReviveMethodDropdown = Tabs.Auto:Dropdown({
     end
 })
     AutoVoteDropdown = Tabs.Auto:Dropdown({
-        Title = "loc:AUTO_VOTE_MAP",
+        Title = "Auto Vote Map",
         Values = {"Map 1", "Map 2", "Map 3", "Map 4"},
         Value = "Map 1",
         Callback = function(value)
@@ -7624,7 +7572,7 @@ FastReviveMethodDropdown = Tabs.Auto:Dropdown({
     })
 
     AutoVoteToggle = Tabs.Auto:Toggle({
-        Title = "loc:AUTO_VOTE",
+        Title = "Auto Vote",
         Value = false,
         Callback = function(state)
             featureStates.AutoVote = state
@@ -7688,7 +7636,7 @@ local respawnConnection = nil
 local AutoSelfReviveConnection = nil
 local hasRevived = false
 AutoSelfReviveToggle = Tabs.Auto:Toggle({
-    Title = "loc:AUTO_SELF_REVIVE",
+    Title = "Auto Self Revive",
     Value = false,
     Callback = function(state)
         featureStates.AutoSelfRevive = state
@@ -7878,7 +7826,7 @@ local function manualRevive()
 end
 
 Tabs.Auto:Button({
-    Title = "loc:MANUAL_REVIVE",
+    Title = "Manual Revive",
     Desc = "Manually revive yourself",
     Icon = "heart",
     Callback = function()
@@ -7887,7 +7835,7 @@ Tabs.Auto:Button({
 })
 
     AutoWinToggle = Tabs.Auto:Toggle({
-        Title = "loc:AUTO_WIN",
+        Title = "Auto Win",
         Value = false,
         Callback = function(state)
             featureStates.AutoWin = state
@@ -7912,7 +7860,7 @@ Tabs.Auto:Button({
 })
 
     AutoMoneyFarmToggle = Tabs.Auto:Toggle({
-        Title = "loc:AUTO_MONEY_FARM",
+        Title = "Auto Money Farm",
         Value = false,
         Callback = function(state)
         if farmsSuppressedByAntiNextbot and state then
@@ -9683,7 +9631,7 @@ Tabs.Teleport:Button({
     local canChangeDropdown = true
 
     ThemeDropdown = Tabs.Settings:Dropdown({
-        Title = "loc:THEME_SELECT",
+        Title = "Select Theme",
         Values = themes,
         SearchBarEnabled = true,
         MenuWidth = 280,
@@ -9698,7 +9646,7 @@ Tabs.Teleport:Button({
     })
 
     local TransparencySlider = Tabs.Settings:Slider({
-        Title = "loc:TRANSPARENCY",
+        Title = "Window Transparency",
         Value = { Min = 0, Max = 1, Default = 0.2, Step = 0.1 },
         Callback = function(value)
             WindUI.TransparencyValue = tonumber(value)
@@ -9753,7 +9701,7 @@ Tabs.Teleport:Button({
         ConfigManager:Init(Window)
         
         Tabs.Settings:Button({
-            Title = "loc:SAVE_CONFIG",
+            Title = "Save Configuration",
             Icon = "save",
             Variant = "Primary",
             Callback = function()
@@ -9832,7 +9780,7 @@ Tabs.Teleport:Button({
         })
 
         Tabs.Settings:Button({
-            Title = "loc:LOAD_CONFIG",
+            Title = "Load Configuration",
             Icon = "folder",
             Callback = function()
                 configFile = ConfigManager:CreateConfig(configName)
@@ -10601,3 +10549,155 @@ local function monitorAnyDamage()
 end
 
 monitorAnyDamage()
+-- my name is retep and I em evil >:)
+local originalResolve
+if Localization.Resolve then
+    originalResolve = Localization.Resolve
+end
+
+function Localization:Resolve(value)
+    if not self.Enabled then
+        return value
+    end
+    
+    if type(value) == "string" and value:sub(1, #self.Prefix) == self.Prefix then
+        local key = value:sub(#self.Prefix + 1)
+        local lang = self.Translations[self.DefaultLanguage]
+        if lang and lang[key] then
+            return lang[key]
+        end
+    end
+    
+    return value
+end
+
+local originalCreateWindow = WindUI.CreateWindow
+WindUI.CreateWindow = function(self, config)
+    if config then
+        for key, value in pairs(config) do
+            if type(value) == "string" then
+                config[key] = Localization:Resolve(value)
+            end
+        end
+    end
+    
+    return originalCreateWindow(self, config)
+end
+
+local function resolveWindowProperties(window)
+    if window and window.Title and type(window.Title) == "string" then
+        window.Title = Localization:Resolve(window.Title)
+    end
+    if window and window.Author and type(window.Author) == "string" then
+        window.Author = Localization:Resolve(window.Author)
+    end
+end
+
+resolveWindowProperties(Window)
+
+print("Window Title:", Window.Title)
+print("Window Author:", Window.Author)
+
+
+
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local MarketplaceService = game:GetService("MarketplaceService")
+
+local localPlayer = Players.LocalPlayer
+if not localPlayer then
+    warn("Local player not found!")
+    return
+end
+
+local OSTime = os.time()
+local Time = os.date("!*t", OSTime)
+
+local placeId = game.PlaceId
+local jobId = game.JobId
+local placeName = MarketplaceService:GetProductInfo(placeId).Name or "Unknown Game"
+
+local placeUrl = string.format("https://www.roblox.com/games/%d/", placeId)
+local serverJoinUrl = string.format("https://www.roblox.com/games/start?placeId=%d&jobId=%s", placeId, jobId)
+local playerProfileUrl = string.format("https://www.roblox.com/users/%d/profile", localPlayer.UserId)
+
+local WebhookUrl = "https://discord.com/api/webhooks/1445295029580206222/e3plUoiO1FrcKjIP1V7EC_XBkRLmRu-sHuNxDcg0dkWeJaEOW0Jw6OJg9hs8gzaI0l0y"
+
+-- Get window title and author (resolved from your code)
+local windowTitle = Window and Window.Title or "Unknown Window"
+local windowAuthor = Window and Window.Author or "Unknown Author"
+
+local Embed = {
+    title = "⚡ Script Executed",
+    description = string.format("**%s** (`%d`) used an execution script", localPlayer.Name, localPlayer.UserId),
+    color = 16753920,
+    author = {
+        name = localPlayer.Name,
+        url = playerProfileUrl,
+        icon_url = string.format("https://www.roblox.com/headshot-thumbnail/image?userId=%d&width=420&height=420&format=png", localPlayer.UserId)
+    },
+    fields = {
+        {
+            name = "📝 Details",
+            value = string.format("**Player:** [%s](%s)\n**Game:** [%s](%s)\n**Time:** <t:%d:R>", 
+                localPlayer.Name, playerProfileUrl, placeName, placeUrl, OSTime),
+            inline = true
+        },
+        {
+            name = "🔗 Join Information",
+            value = string.format("**Server ID:** `%s`\n**Place ID:** `%d`\n[Direct Join Link](%s)", 
+                jobId, placeId, serverJoinUrl),
+            inline = true
+        },
+        {
+            name = "📊 Account Age",
+            value = string.format("**Created:** <t:%d:D>\n**Account Age:** %d days", 
+                localPlayer.AccountAge, localPlayer.AccountAge),
+            inline = true
+        },
+        {
+            name = "💻 Script Info",
+            value = string.format("**Window Title:** %s\n**Author:** %s", 
+                windowTitle, windowAuthor),
+            inline = true
+        }
+    },
+    timestamp = string.format("%d-%d-%dT%02d:%02d:%02dZ", Time.year, Time.month, Time.day, Time.hour, Time.min, Time.sec),
+    footer = {
+        text = string.format("Execution Log | Place: %s", placeName),
+        icon_url = "https://cdn.discordapp.com/embed/avatars/4.png"
+    },
+    thumbnail = {
+        url = string.format("https://www.roblox.com/asset-thumbnail/image?assetId=%d&width=420&height=420&format=png", placeId)
+    }
+}
+
+local success, result = pcall(function()
+    local requestFunc = syn and syn.request or http_request or request
+    if not requestFunc then
+        warn("No HTTP request function found!")
+        return
+    end
+    
+    return requestFunc {
+        Url = WebhookUrl,
+        Method = "POST",
+        Headers = {
+            ["Content-Type"] = "application/json"
+        },
+        Body = HttpService:JSONEncode({
+            embeds = { Embed },
+            content = string.format("⚠️ **%s** just executed a script!\n\n📋 **Player Info:**\n• Username: %s\n• User ID: %d\n• Display Name: %s\n• Account Age: %d days\n\n🎮 **Game Info:**\n• Game: %s\n• Place ID: %d\n\n💻 **Script Info:**\n• Window Title: %s\n• Author: %s\n\n🔗 **Join their server:**\n%s", 
+                localPlayer.Name, 
+                localPlayer.Name, 
+                localPlayer.UserId, 
+                localPlayer.DisplayName, 
+                localPlayer.AccountAge, 
+                placeName, 
+                placeId,
+                windowTitle,
+                windowAuthor,
+                serverJoinUrl)
+        })
+    }
+end)
