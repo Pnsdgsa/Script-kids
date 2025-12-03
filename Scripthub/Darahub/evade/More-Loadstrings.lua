@@ -450,8 +450,6 @@ playSequentialSounds()
 end)
 print("Script Made by: @Pnsdg and Yomka. My Discord: https://discord.gg/pMqebNUhQd, My friend's telegram: https://t.me/YomkaMadeIt")
 print("Visit GitHub.com/Pnsdgsa For lastest update and more features!")
-if not fuck_your_balls then
-    fuck_your_balls = true
     local originalResolve
 if Localization.Resolve then
     originalResolve = Localization.Resolve
