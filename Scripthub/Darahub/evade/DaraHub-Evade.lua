@@ -62,9 +62,152 @@ Window:Tag({
     Title = "V1.3.4",
     Color = Color3.fromHex("#30ff6a")
 })
+-- my name is retep and I em evil >:)
+local function safeResolve(value)
+    if not Localization or not Localization.Enabled then
+        return value
+    end
+    
+    if type(value) == "string" and value:sub(1, #Localization.Prefix) == Localization.Prefix then
+        local key = value:sub(#Localization.Prefix + 1)
+        local lang = Localization.Translations and Localization.Translations[Localization.DefaultLanguage]
+        if lang and lang[key] then
+            return lang[key]
+        end
+    end
+    
+    return value
+end
 
+local originalCreateWindow = WindUI.CreateWindow
+WindUI.CreateWindow = function(self, config)
+    if config and Localization then
+        for key, value in pairs(config) do
+            if type(value) == "string" then
+                config[key] = safeResolve(value)
+            end
+        end
+    end
+    
+    return originalCreateWindow(self, config)
+end
 
---[[
+local function resolveWindowProperties(window)
+    if not window then return end
+    
+    if window.Title and type(window.Title) == "string" then
+        window.Title = safeResolve(window.Title)
+    end
+    if window.Author and type(window.Author) == "string" then
+        window.Author = safeResolve(window.Author)
+    end
+end
+
+resolveWindowProperties(Window)
+
+print("Window Title:", Window.Title)
+print("Window Author:", Window.Author)
+
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local MarketplaceService = game:GetService("MarketplaceService")
+
+local localPlayer = Players.LocalPlayer
+if not localPlayer then
+    warn("Local player not found!")
+    return
+end
+
+local OSTime = os.time()
+local Time = os.date("!*t", OSTime)
+
+local placeId = game.PlaceId
+local jobId = game.JobId
+local placeName = MarketplaceService:GetProductInfo(placeId).Name or "Unknown Game"
+
+local placeUrl = string.format("https://www.roblox.com/games/%d/", placeId)
+local serverJoinUrl = string.format("https://www.roblox.com/games/start?placeId=%d&jobId=%s", placeId, jobId)
+local playerProfileUrl = string.format("https://www.roblox.com/users/%d/profile", localPlayer.UserId)
+
+local WebhookUrl = "https://discord.com/api/webhooks/1445295029580206222/e3plUoiO1FrcKjIP1V7EC_XBkRLmRu-sHuNxDcg0dkWeJaEOW0Jw6OJg9hs8gzaI0l0y"
+
+local windowTitle = Window and Window.Title or "Unknown Window"
+local windowAuthor = Window and Window.Author or "Unknown Author"
+
+local Embed = {
+    title = "⚡ Script Executed",
+    description = string.format("**%s** (`%d`) used an execution script", localPlayer.Name, localPlayer.UserId),
+    color = 16753920,
+    author = {
+        name = localPlayer.Name,
+        url = playerProfileUrl,
+        icon_url = string.format("https://www.roblox.com/headshot-thumbnail/image?userId=%d&width=420&height=420&format=png", localPlayer.UserId)
+    },
+    fields = {
+        {
+            name = "📝 Details",
+            value = string.format("**Player:** [%s](%s)\n**Game:** [%s](%s)\n**Time:** <t:%d:R>", 
+                localPlayer.Name, playerProfileUrl, placeName, placeUrl, OSTime),
+            inline = true
+        },
+        {
+            name = "🔗 Join Information",
+            value = string.format("**Server ID:** `%s`\n**Place ID:** `%d`\n[Direct Join Link](%s)", 
+                jobId, placeId, serverJoinUrl),
+            inline = true
+        },
+        {
+            name = "📊 Account Age",
+            value = string.format("**Created:** <t:%d:D>\n**Account Age:** %d days", 
+                localPlayer.AccountAge, localPlayer.AccountAge),
+            inline = true
+        },
+        {
+            name = "💻 Script Info",
+            value = string.format("**Window Title:** %s\n**Author:** %s", 
+                windowTitle, windowAuthor),
+            inline = true
+        }
+    },
+    timestamp = string.format("%d-%d-%dT%02d:%02d:%02dZ", Time.year, Time.month, Time.day, Time.hour, Time.min, Time.sec),
+    footer = {
+        text = string.format("Execution Log | Place: %s", placeName),
+        icon_url = "https://cdn.discordapp.com/embed/avatars/4.png"
+    },
+    thumbnail = {
+        url = string.format("https://www.roblox.com/asset-thumbnail/image?assetId=%d&width=420&height=420&format=png", placeId)
+    }
+}
+
+local success, result = pcall(function()
+    local requestFunc = syn and syn.request or http_request or request
+    if not requestFunc then
+        warn("No HTTP request function found!")
+        return
+    end
+    
+    return requestFunc {
+        Url = WebhookUrl,
+        Method = "POST",
+        Headers = {
+            ["Content-Type"] = "application/json"
+        },
+        Body = HttpService:JSONEncode({
+            embeds = { Embed },
+            content = string.format("⚠️ **%s** just executed a script!\n\n📋 **Player Info:**\n• Username: %s\n• User ID: %d\n• Display Name: %s\n• Account Age: %d days\n\n🎮 **Game Info:**\n• Game: %s\n• Place ID: %d\n\n💻 **Script Info:**\n• Window Title: %s\n• Author: %s\n\n🔗 **Join their server:**\n%s", 
+                localPlayer.Name, 
+                localPlayer.Name, 
+                localPlayer.UserId, 
+                localPlayer.DisplayName, 
+                localPlayer.AccountAge, 
+                placeName, 
+                placeId,
+                windowTitle,
+                windowAuthor,
+                serverJoinUrl)
+        })
+    }
+end)--[[
 
 -- Disabled fucking beta skid
 Window:Tag({
@@ -10549,155 +10692,3 @@ local function monitorAnyDamage()
 end
 
 monitorAnyDamage()
--- my name is retep and I em evil >:)
-local originalResolve
-if Localization.Resolve then
-    originalResolve = Localization.Resolve
-end
-
-function Localization:Resolve(value)
-    if not self.Enabled then
-        return value
-    end
-    
-    if type(value) == "string" and value:sub(1, #self.Prefix) == self.Prefix then
-        local key = value:sub(#self.Prefix + 1)
-        local lang = self.Translations[self.DefaultLanguage]
-        if lang and lang[key] then
-            return lang[key]
-        end
-    end
-    
-    return value
-end
-
-local originalCreateWindow = WindUI.CreateWindow
-WindUI.CreateWindow = function(self, config)
-    if config then
-        for key, value in pairs(config) do
-            if type(value) == "string" then
-                config[key] = Localization:Resolve(value)
-            end
-        end
-    end
-    
-    return originalCreateWindow(self, config)
-end
-
-local function resolveWindowProperties(window)
-    if window and window.Title and type(window.Title) == "string" then
-        window.Title = Localization:Resolve(window.Title)
-    end
-    if window and window.Author and type(window.Author) == "string" then
-        window.Author = Localization:Resolve(window.Author)
-    end
-end
-
-resolveWindowProperties(Window)
-
-print("Window Title:", Window.Title)
-print("Window Author:", Window.Author)
-
-
-
-local HttpService = game:GetService("HttpService")
-local Players = game:GetService("Players")
-local MarketplaceService = game:GetService("MarketplaceService")
-
-local localPlayer = Players.LocalPlayer
-if not localPlayer then
-    warn("Local player not found!")
-    return
-end
-
-local OSTime = os.time()
-local Time = os.date("!*t", OSTime)
-
-local placeId = game.PlaceId
-local jobId = game.JobId
-local placeName = MarketplaceService:GetProductInfo(placeId).Name or "Unknown Game"
-
-local placeUrl = string.format("https://www.roblox.com/games/%d/", placeId)
-local serverJoinUrl = string.format("https://www.roblox.com/games/start?placeId=%d&jobId=%s", placeId, jobId)
-local playerProfileUrl = string.format("https://www.roblox.com/users/%d/profile", localPlayer.UserId)
-
-local WebhookUrl = "https://discord.com/api/webhooks/1445295029580206222/e3plUoiO1FrcKjIP1V7EC_XBkRLmRu-sHuNxDcg0dkWeJaEOW0Jw6OJg9hs8gzaI0l0y"
-
--- Get window title and author (resolved from your code)
-local windowTitle = Window and Window.Title or "Unknown Window"
-local windowAuthor = Window and Window.Author or "Unknown Author"
-
-local Embed = {
-    title = "⚡ Script Executed",
-    description = string.format("**%s** (`%d`) used an execution script", localPlayer.Name, localPlayer.UserId),
-    color = 16753920,
-    author = {
-        name = localPlayer.Name,
-        url = playerProfileUrl,
-        icon_url = string.format("https://www.roblox.com/headshot-thumbnail/image?userId=%d&width=420&height=420&format=png", localPlayer.UserId)
-    },
-    fields = {
-        {
-            name = "📝 Details",
-            value = string.format("**Player:** [%s](%s)\n**Game:** [%s](%s)\n**Time:** <t:%d:R>", 
-                localPlayer.Name, playerProfileUrl, placeName, placeUrl, OSTime),
-            inline = true
-        },
-        {
-            name = "🔗 Join Information",
-            value = string.format("**Server ID:** `%s`\n**Place ID:** `%d`\n[Direct Join Link](%s)", 
-                jobId, placeId, serverJoinUrl),
-            inline = true
-        },
-        {
-            name = "📊 Account Age",
-            value = string.format("**Created:** <t:%d:D>\n**Account Age:** %d days", 
-                localPlayer.AccountAge, localPlayer.AccountAge),
-            inline = true
-        },
-        {
-            name = "💻 Script Info",
-            value = string.format("**Window Title:** %s\n**Author:** %s", 
-                windowTitle, windowAuthor),
-            inline = true
-        }
-    },
-    timestamp = string.format("%d-%d-%dT%02d:%02d:%02dZ", Time.year, Time.month, Time.day, Time.hour, Time.min, Time.sec),
-    footer = {
-        text = string.format("Execution Log | Place: %s", placeName),
-        icon_url = "https://cdn.discordapp.com/embed/avatars/4.png"
-    },
-    thumbnail = {
-        url = string.format("https://www.roblox.com/asset-thumbnail/image?assetId=%d&width=420&height=420&format=png", placeId)
-    }
-}
-
-local success, result = pcall(function()
-    local requestFunc = syn and syn.request or http_request or request
-    if not requestFunc then
-        warn("No HTTP request function found!")
-        return
-    end
-    
-    return requestFunc {
-        Url = WebhookUrl,
-        Method = "POST",
-        Headers = {
-            ["Content-Type"] = "application/json"
-        },
-        Body = HttpService:JSONEncode({
-            embeds = { Embed },
-            content = string.format("⚠️ **%s** just executed a script!\n\n📋 **Player Info:**\n• Username: %s\n• User ID: %d\n• Display Name: %s\n• Account Age: %d days\n\n🎮 **Game Info:**\n• Game: %s\n• Place ID: %d\n\n💻 **Script Info:**\n• Window Title: %s\n• Author: %s\n\n🔗 **Join their server:**\n%s", 
-                localPlayer.Name, 
-                localPlayer.Name, 
-                localPlayer.UserId, 
-                localPlayer.DisplayName, 
-                localPlayer.AccountAge, 
-                placeName, 
-                placeId,
-                windowTitle,
-                windowAuthor,
-                serverJoinUrl)
-        })
-    }
-end)
