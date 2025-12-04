@@ -1,7 +1,7 @@
-if getgenv().DaraHubEvadeExecuted then
+if getgenv().DaraHubExecuted then
     return
 end
-getgenv().DaraHubEvadeExecuted = true
+getgenv().DaraHubExecuted = true
 -- Load WindUI
 local WindUI
 
@@ -59,7 +59,7 @@ if featureStates.DisableCameraShake == nil then
 end
 Window:SetIconSize(48)
 Window:Tag({
-    Title = "V1.3.4",
+    Title = "V1.3.5",
     Color = Color3.fromHex("#30ff6a")
 })
 -- my name is retep and I em evil >:)
@@ -2613,7 +2613,256 @@ end)
    -- Player Tabs
    Tabs.Player:Section({ Title = "Player", TextSize = 40 })
     Tabs.Player:Divider()
+getgenv().EasyTrimp = {
+    Enabled = false,
+    ToggleKey = Enum.KeyCode.U,
+    BaseSpeed = 50,
+    ExtraSpeed = 100,
+    FloorDrop = 0
+}
 
+extra = getgenv().EasyTrimp.ExtraSpeed
+floorDrop = getgenv().EasyTrimp.FloorDrop
+last = tick()
+airTick = 0
+airSum = 0
+airborne = false
+push = nil
+speed = getgenv().EasyTrimp.BaseSpeed
+allow = false
+
+Player = game.Players.LocalPlayer
+RunService = game:GetService("RunService")
+UserInputService = game:GetService("UserInputService")
+Debris = game:GetService("Debris")
+camera = workspace.CurrentCamera
+
+function cut(n)
+    return math.floor(n*10)/10
+end
+
+function meter()
+    ok, v = pcall(function()
+        return Player.PlayerGui.Shared.HUD.Overlay.Default.CharacterInfo.Item.Speedometer.Players
+    end)
+    if ok then return v end
+end
+
+old = hookmetamethod(game, "__newindex", function(a, b, c)
+    if not checkcaller() and allow and meter() and a == meter() and b == "Text" then
+        return
+    end
+    return old(a, b, c)
+end)
+
+RunService.RenderStepped:Connect(function()
+    dt = tick() - last
+    last = tick()
+
+    ch = Player.Character
+    if not ch then return end
+
+    hrp = ch:FindFirstChild("HumanoidRootPart")
+    hum = ch:FindFirstChild("Humanoid")
+    if not hrp or not hum then return end
+
+    spd = meter()
+    inAir = hum.FloorMaterial == Enum.Material.Air
+
+    if airborne and not inAir then
+        speed = math.max(getgenv().EasyTrimp.BaseSpeed - floorDrop, speed - 10)
+        if spd then spd.Text = cut(speed) end
+        airSum = 0
+    end
+    airborne = inAir
+
+    if getgenv().EasyTrimp.Enabled then
+        if inAir then
+            airSum += dt
+            airTick += dt
+            while airTick >= 0.04 do
+                airTick -= 0.04
+                add = math.max(0.1, 2.5 * (0.04 / 1))
+                speed = math.min(getgenv().EasyTrimp.BaseSpeed + extra, speed + add)
+            end
+        else
+            airTick = 0
+            airSum = 0
+            speed = math.max(getgenv().EasyTrimp.BaseSpeed - floorDrop, speed - (2.5 * dt))
+        end
+
+        if push then push:Destroy() end
+
+        look = camera.CFrame.LookVector
+        moveDir = Vector3.new(look.X, 0, look.Z)
+        if moveDir.Magnitude > 0 then moveDir = moveDir.Unit end
+
+        bv = Instance.new("BodyVelocity")
+        bv.Velocity = moveDir * speed
+        bv.MaxForce = Vector3.new(4e5, 0, 4e5)
+        bv.P = 1250
+        bv.Parent = hrp
+        Debris:AddItem(bv, 0.1)
+        push = bv
+
+        allow = true
+        if spd then spd.Text = cut(speed) end
+    else
+        if push then push:Destroy() push = nil end
+        speed = getgenv().EasyTrimp.BaseSpeed
+        allow = false
+        airTick = 0
+        airSum = 0
+        airborne = false
+    end
+end)
+
+function createEasyTrimpGui(yOffset)
+    easyTrimpGuiOld = playerGui:FindFirstChild("EasyTrimpGui")
+    if easyTrimpGuiOld then
+        easyTrimpGuiOld:Destroy()
+    end
+    
+    easyTrimpGui = Instance.new("ScreenGui")
+    easyTrimpGui.Name = "EasyTrimpGui"
+    easyTrimpGui.IgnoreGuiInset = true
+    easyTrimpGui.ResetOnSpawn = false
+    easyTrimpGui.Enabled = featureStates.EasyTrimpGuiVisible
+    easyTrimpGui.Parent = playerGui
+
+    frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 60, 0, 60)
+    frame.Position = UDim2.new(0.5, -30, 0.12 + (yOffset or 0), 0)
+    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    frame.BackgroundTransparency = 0.35
+    frame.BorderSizePixel = 0
+    frame.Parent = easyTrimpGui
+    makeDraggable(frame)
+
+    corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = frame
+
+    stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(150, 150, 150)
+    stroke.Thickness = 2
+    stroke.Parent = frame
+
+    label = Instance.new("TextLabel")
+    label.Text = "Easy"
+    label.Size = UDim2.new(0.9, 0, 0.3, 0)
+    label.Position = UDim2.new(0.05, 0, 0.05, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Font = Enum.Font.Roboto
+    label.TextSize = 14
+    label.TextXAlignment = Enum.TextXAlignment.Center
+    label.TextYAlignment = Enum.TextYAlignment.Center
+    label.TextScaled = true
+    label.Parent = frame
+
+    subLabel = Instance.new("TextLabel")
+    subLabel.Text = "Trimp"
+    subLabel.Size = UDim2.new(0.9, 0, 0.3, 0)
+    subLabel.Position = UDim2.new(0.05, 0, 0.3, 0)
+    subLabel.BackgroundTransparency = 1
+    subLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    subLabel.Font = Enum.Font.Roboto
+    subLabel.TextSize = 14
+    subLabel.TextXAlignment = Enum.TextXAlignment.Center
+    subLabel.TextYAlignment = Enum.TextYAlignment.Center
+    subLabel.TextScaled = true
+    subLabel.Parent = frame
+
+    easyTrimpGuiButton = Instance.new("TextButton")
+    easyTrimpGuiButton.Name = "ToggleButton"
+    easyTrimpGuiButton.Text = getgenv().EasyTrimp.Enabled and "On" or "Off"
+    easyTrimpGuiButton.Size = UDim2.new(0.9, 0, 0.35, 0)
+    easyTrimpGuiButton.Position = UDim2.new(0.05, 0, 0.6, 0)
+    easyTrimpGuiButton.BackgroundColor3 = getgenv().EasyTrimp.Enabled and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+    easyTrimpGuiButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    easyTrimpGuiButton.Font = Enum.Font.Roboto
+    easyTrimpGuiButton.TextSize = 12
+    easyTrimpGuiButton.TextXAlignment = Enum.TextXAlignment.Center
+    easyTrimpGuiButton.TextYAlignment = Enum.TextYAlignment.Center
+    easyTrimpGuiButton.TextScaled = true
+    easyTrimpGuiButton.Parent = frame
+
+    buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 4)
+    buttonCorner.Parent = easyTrimpGuiButton
+
+    easyTrimpGuiButton.MouseButton1Click:Connect(function()
+        getgenv().EasyTrimp.Enabled = not getgenv().EasyTrimp.Enabled
+        
+        if EasyTrimpToggle then
+            EasyTrimpToggle:Set(getgenv().EasyTrimp.Enabled)
+        end
+        
+        easyTrimpGuiButton.Text = getgenv().EasyTrimp.Enabled and "On" or "Off"
+        easyTrimpGuiButton.BackgroundColor3 = getgenv().EasyTrimp.Enabled and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+    end)
+    
+    return easyTrimpGui, easyTrimpGuiButton
+end
+
+EasyTrimpToggle = Tabs.Player:Toggle({
+    Title = "Easy Trimp",
+    Value = false,
+    Callback = function(state)
+        getgenv().EasyTrimp.Enabled = state
+        
+        if trimpToggleBtn then
+            trimpToggleBtn.Text = getgenv().EasyTrimp.Enabled and "On" or "Off"
+            trimpToggleBtn.BackgroundColor3 = getgenv().EasyTrimp.Enabled and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+        end
+    end
+})
+
+EasyTrimpGuiToggle = Tabs.Player:Toggle({
+    Title = "Easy Trimp GUI",
+    Desc = "Shows/Hides the Easy Trimp GUI for mobile users",
+    Value = false,
+    Callback = function(state)
+        featureStates.EasyTrimpGuiVisible = state
+        
+        if state then
+            if not easyTrimpGui then
+                easyTrimpGui, trimpToggleBtn = createEasyTrimpGui(0)
+            elseif easyTrimpGui then
+                easyTrimpGui.Enabled = true
+            end
+        else
+            if easyTrimpGui then
+                easyTrimpGui:Destroy()
+                easyTrimpGui = nil
+                trimpToggleBtn = nil
+            end
+        end
+    end
+})
+
+player.CharacterAdded:Connect(function()
+    if featureStates.EasyTrimpGuiVisible and not easyTrimpGui then
+        easyTrimpGui, trimpToggleBtn = createEasyTrimpGui(0)
+    end
+end)
+
+easyTrimpInputConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == getgenv().EasyTrimp.ToggleKey then
+        getgenv().EasyTrimp.Enabled = not getgenv().EasyTrimp.Enabled
+        
+        if EasyTrimpToggle then
+            EasyTrimpToggle:Set(getgenv().EasyTrimp.Enabled)
+        end
+        
+        if trimpToggleBtn then
+            trimpToggleBtn.Text = getgenv().EasyTrimp.Enabled and "On" or "Off"
+            trimpToggleBtn.BackgroundColor3 = getgenv().EasyTrimp.Enabled and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+        end
+    end
+end)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Debris = game:GetService("Debris")
@@ -2688,7 +2937,6 @@ end
 player.CharacterAdded:Connect(setupBounceOnTouch)
 
 if Tabs and Tabs.Player then
-    Tabs.Player:Section({ Title = "Bounce Settings", TextSize = 20 })
     
     local BounceToggle
     local BounceHeightInput
@@ -3797,17 +4045,29 @@ TimerDisplayToggle = Tabs.Visuals:Toggle({
     Tabs.Visuals:Divider()
     
     local cosmetic1, cosmetic2 = "" --made by @.scv8 discord server https://discord.gg/RBZVmT6UKs
+    local originalCosmetic1, originalCosmetic2 = "", ""
+    local isSwapped = false
     
     Tabs.Visuals:Input({
         Title = "Current Cosmetics",
         Placeholder = "",
-        Callback = function(v) cosmetic1 = v end
+        Callback = function(v) 
+            cosmetic1 = v
+            if not isSwapped then
+                originalCosmetic1 = v
+            end
+        end
     })
     
     Tabs.Visuals:Input({
         Title = "Select Cosmetics",
         Placeholder = "",
-        Callback = function(v) cosmetic2 = v end
+        Callback = function(v) 
+            cosmetic2 = v
+            if not isSwapped then
+                originalCosmetic2 = v
+            end
+        end
     })
     
     Tabs.Visuals:Button({
@@ -3868,6 +4128,12 @@ TimerDisplayToggle = Tabs.Visuals:Toggle({
                 local b = Cosmetics:FindFirstChild(cosmetic2)    
                 if not a or not b then return end    
                 
+                -- Store original names before swapping
+                if not isSwapped then
+                    originalCosmetic1 = cosmetic1
+                    originalCosmetic2 = cosmetic2
+                end
+                
                 local tempRoot = Instance.new("Folder", Cosmetics)    
                 tempRoot.Name = "__temp_swap_" .. tostring(tick()):gsub("%.", "_")    
                 
@@ -3880,11 +4146,102 @@ TimerDisplayToggle = Tabs.Visuals:Toggle({
                 for _, c in ipairs(tempA:GetChildren()) do c.Parent = b end    
                 for _, c in ipairs(tempB:GetChildren()) do c.Parent = a end    
                 
-                tempRoot:Destroy()    
+                tempRoot:Destroy()
+                
+                isSwapped = true
+                
+                WindUI:Notify({
+                    Title = "Cosmetics Changer",
+                    Content = "Successfully swapped " .. cosmetic1 .. " with " .. cosmetic2,
+                    Duration = 3
+                })
             end)    
         end
     })
-    player = game:GetService("Players").LocalPlayer
+    
+    Tabs.Visuals:Button({
+        Title = "Reset Cosmetics",
+        Desc = "Restore cosmetics to their original state",
+        Callback = function()
+            pcall(function()
+                if not isSwapped then
+                    WindUI:Notify({
+                        Title = "Cosmetics Changer",
+                        Content = "No cosmetics have been swapped yet",
+                        Duration = 3
+                    })
+                    return
+                end
+                
+                if originalCosmetic1 == "" or originalCosmetic2 == "" then
+                    WindUI:Notify({
+                        Title = "Cosmetics Changer",
+                        Content = "Original cosmetic names not found",
+                        Duration = 3
+                    })
+                    return
+                end
+                
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")    
+                local Cosmetics = ReplicatedStorage:WaitForChild("Items"):WaitForChild("Cosmetics")    
+                
+                local function normalize(str)    
+                    return str:gsub("%s+", ""):lower()    
+                end    
+                
+                local function findSimilar(name)    
+                    local bestMatch = name    
+                    local bestScore = 0.5    
+                    for _, c in ipairs(Cosmetics:GetChildren()) do    
+                        local normalizedInput = normalize(name)
+                        local normalizedCosmetic = normalize(c.Name)
+                        if normalizedInput == normalizedCosmetic then
+                            return c.Name
+                        end
+                    end    
+                    return name
+                end    
+                
+                local resetCosmetic1 = findSimilar(originalCosmetic1)
+                local resetCosmetic2 = findSimilar(originalCosmetic2)
+                
+                local a = Cosmetics:FindFirstChild(cosmetic1)    
+                local b = Cosmetics:FindFirstChild(cosmetic2)    
+                
+                -- Only reset if we can find both cosmetics
+                if a and b then
+                    local tempRoot = Instance.new("Folder", Cosmetics)    
+                    tempRoot.Name = "__temp_reset_" .. tostring(tick()):gsub("%.", "_")    
+                    
+                    local tempA = Instance.new("Folder", tempRoot)    
+                    local tempB = Instance.new("Folder", tempRoot)    
+                    
+                    for _, c in ipairs(a:GetChildren()) do c.Parent = tempA end    
+                    for _, c in ipairs(b:GetChildren()) do c.Parent = tempB end    
+                    
+                    for _, c in ipairs(tempA:GetChildren()) do c.Parent = b end    
+                    for _, c in ipairs(tempB:GetChildren()) do c.Parent = a end    
+                    
+                    tempRoot:Destroy()
+                    
+                    isSwapped = false
+                    
+                    WindUI:Notify({
+                        Title = "Cosmetics Changer",
+                        Content = "Successfully reset cosmetics to original state",
+                        Duration = 3
+                    })
+                else
+                    WindUI:Notify({
+                        Title = "Cosmetics Changer",
+                        Content = "Could not find swapped cosmetics to reset",
+                        Duration = 3
+                    })
+                end
+            end)
+        end
+    })  
+      player = game:GetService("Players").LocalPlayer
 ReplicatedStorage = game:GetService("ReplicatedStorage")
 Events = ReplicatedStorage:WaitForChild("Events", 10)
 CharacterFolder = Events and Events:WaitForChild("Character", 10)
@@ -3968,35 +4325,82 @@ if PassCharacterInfo and EmoteRemote then
         fireSelect(slot)
     end)
 
-    oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-        m = getnamecallmethod()
+    -- error handel code
+success, oldNamecall = pcall(function()
+    return hookmetamethod(game, "__namecall", function(self, ...)
+        local m
+        local ok, err = pcall(function()
+            m = getnamecallmethod()
+        end)
+        if not ok then return nil end
+
         a = {...}
-        
         if m == "FireServer" and self == EmoteRemote and type(a[1]) == "string" then
             for i = 1, 12 do
                 if emoteEnabled[i] and currentEmotes[i] ~= "" and a[1] == currentEmotes[i] then
                     pendingSlot = i
                     blockOriginalEmote = true
-                    
                     task.spawn(function()
-                        task.wait(0.1)
-                        blockOriginalEmote = false
-                        if pendingSlot == i then
-                            pendingSlot = nil
-                            fireSelect(i)
-                        end
+                        local ok2, err2 = pcall(function()
+                            task.wait(0.1)
+                            blockOriginalEmote = false
+                            if pendingSlot == i then
+                                pendingSlot = nil
+                                fireSelect(i)
+                            end
+                        end)
+                        if not ok2 then warn(err2) end
                     end)
-                    
                     if blockOriginalEmote then
                         return nil
                     end
                 end
             end
         end
-        
         return oldNamecall(self, ...)
     end)
+end)
 
+if not success then
+    warn("Error hooking __namecall:", oldNamecall)
+            for i = 1, 12 do
+            if currentEmoteInputs[i] then
+                if typeof(currentEmoteInputs[i]) == "table" and currentEmoteInputs[i].Destroy then
+                    pcall(function()
+                        currentEmoteInputs[i]:Destroy()
+                    end)
+                end
+                currentEmoteInputs[i] = nil
+            end
+            
+            if selectEmoteInputs[i] then
+                if typeof(selectEmoteInputs[i]) == "table" and selectEmoteInputs[i].Destroy then
+                    pcall(function()
+                        selectEmoteInputs[i]:Destroy()
+                    end)
+                end
+                selectEmoteInputs[i] = nil
+            end
+            
+            currentEmotes[i] = ""
+            selectEmotes[i] = ""
+            emoteEnabled[i] = false
+        end
+        
+        if VisualsEmoteApply and typeof(VisualsEmoteApply) == "table" and VisualsEmoteApply.Destroy then
+            pcall(function()
+                VisualsEmoteApply:Destroy()
+            end)
+            VisualsEmoteApply = nil
+        end
+        
+        if VisualsEmoteReset and typeof(VisualsEmoteReset) == "table" and VisualsEmoteReset.Destroy then
+            pcall(function()
+                VisualsEmoteReset:Destroy()
+            end)
+            VisualsEmoteReset = nil
+        end
+end
     if player.Character then
         task.spawn(onRespawn)
     end
@@ -4018,13 +4422,215 @@ if PassCharacterInfo and EmoteRemote then
             if child.Name == player.Name then
                 currentTag = nil
                 pendingSlot = nil
+                Tabs.Visuals:Section({ Title = "Emote Swapper", TextSize = 20 })
+Tabs.Visuals:Divider()
+
+EmoteSwapper = {
+    CurrentEmotes = {},
+    SelectedEmotes = {},
+    SwappedPairs = {},
+    InputFields = {}
+}
+
+for i = 1, 12 do
+    EmoteSwapper.CurrentEmotes[i] = ""
+    EmoteSwapper.SelectedEmotes[i] = ""
+end
+
+Tabs.Visuals:Section({ Title = "Current Emotes", TextSize = 16 })
+
+for i = 1, 12 do
+    EmoteSwapper.InputFields["CurrentEmote" .. i] = Tabs.Visuals:Input({
+        Title = "Current Emote " .. i,
+        Placeholder = "Enter current emote name",
+        Value = "",
+        Callback = function(value)
+            EmoteSwapper.CurrentEmotes[i] = value
+        end
+    })
+end
+
+Tabs.Visuals:Section({ Title = "Selected Emotes", TextSize = 16 })
+
+for i = 1, 12 do
+    EmoteSwapper.InputFields["SelectedEmote" .. i] = Tabs.Visuals:Input({
+        Title = "Select Emote " .. i,
+        Placeholder = "Enter replacement emote name",
+        Value = "",
+        Callback = function(value)
+            EmoteSwapper.SelectedEmotes[i] = value
+        end
+    })
+end
+
+function SwapEmoteNames(currentName, selectedName)
+    Items = game:GetService("ReplicatedStorage"):FindFirstChild("Items")
+    if not Items then return false end
+    
+    EmotesFolder = Items:FindFirstChild("Emotes")
+    if not EmotesFolder then return false end
+    
+    currentEmoteObj = EmotesFolder:FindFirstChild(currentName)
+    selectedEmoteObj = EmotesFolder:FindFirstChild(selectedName)
+    
+    if currentEmoteObj and selectedEmoteObj then
+        tempName = selectedName .. "_EmoteSwapTemp"
+        
+        while EmotesFolder:FindFirstChild(tempName) do
+            tempName = tempName .. "_"
+        end
+        
+        currentEmoteObj.Name = tempName
+        selectedEmoteObj.Name = currentName
+        currentEmoteObj.Name = selectedName
+        
+        return true
+    end
+    return false
+end
+
+function ResetEmoteNames()
+    Items = game:GetService("ReplicatedStorage"):FindFirstChild("Items")
+    if not Items then return false end
+    
+    EmotesFolder = Items:FindFirstChild("Emotes")
+    if not EmotesFolder then return false end
+    
+    for currentEmote, selectedEmote in pairs(EmoteSwapper.SwappedPairs) do
+        currentEmoteObj = EmotesFolder:FindFirstChild(selectedEmote)
+        selectedEmoteObj = EmotesFolder:FindFirstChild(currentEmote)
+        
+        if currentEmoteObj and selectedEmoteObj then
+            tempName = currentEmote .. "_EmoteSwapTemp"
+            
+            while EmotesFolder:FindFirstChild(tempName) do
+                tempName = tempName .. "_"
+            end
+            
+            currentEmoteObj.Name = tempName
+            selectedEmoteObj.Name = selectedEmote
+            currentEmoteObj.Name = currentEmote
+        end
+    end
+    
+    EmoteSwapper.SwappedPairs = {}
+    return true
+end
+
+EmoteSwapApplyButton = Tabs.Visuals:Button({
+    Title = "Apply Emote Swap",
+    Desc = "Swap the current emotes with selected ones",
+    Icon = "refresh-cw",
+    Callback = function()
+        swappedCount = 0
+        failedCount = 0
+        
+        for i = 1, 12 do
+            currentEmote = EmoteSwapper.CurrentEmotes[i]
+            selectedEmote = EmoteSwapper.SelectedEmotes[i]
+            
+            if currentEmote ~= "" and selectedEmote ~= "" then
+                if SwapEmoteNames(currentEmote, selectedEmote) then
+                    EmoteSwapper.SwappedPairs[currentEmote] = selectedEmote
+                    swappedCount = swappedCount + 1
+                else
+                    failedCount = failedCount + 1
+                end
+            end
+        end
+        
+        message = ""
+        if swappedCount > 0 then
+            message = "Successfully swapped " .. tostring(swappedCount) .. " emote(s)"
+        end
+        if failedCount > 0 then
+            if message ~= "" then message = message .. " | " end
+            message = message .. "Failed to swap " .. tostring(failedCount) .. " emote(s)"
+        end
+        if message == "" then
+            message = "No emotes specified to swap"
+        end
+        
+        WindUI:Notify({
+            Title = "Emote Swapper",
+            Content = message,
+            Icon = swappedCount > 0 and "check-circle" or "x-circle",
+            Duration = 3
+        })
+    end
+})
+
+EmoteSwapResetButton = Tabs.Visuals:Button({
+    Title = "Reset Emote Module",
+    Desc = "Restore all emotes to their original names",
+    Icon = "rotate-ccw",
+    Callback = function()
+        if ResetEmoteNames() then
+            for i = 1, 12 do
+                EmoteSwapper.CurrentEmotes[i] = ""
+                EmoteSwapper.SelectedEmotes[i] = ""
+                
+                if EmoteSwapper.InputFields["CurrentEmote" .. i] then
+                    EmoteSwapper.InputFields["CurrentEmote" .. i]:Set("")
+                end
+                if EmoteSwapper.InputFields["SelectedEmote" .. i] then
+                    EmoteSwapper.InputFields["SelectedEmote" .. i]:Set("")
+                end
+            end
+            
+            WindUI:Notify({
+                Title = "Emote Swapper",
+                Content = "All emotes have been restored to original names!",
+                Icon = "check-circle",
+                Duration = 3
+            })
+        else
+            WindUI:Notify({
+                Title = "Emote Swapper",
+                Content = "Failed to reset emotes!",
+                Icon = "x-circle",
+                Duration = 3
+            })
+        end
+    end
+})
+
+player.CharacterAdded:Connect(function(character)
+    task.wait(0.5)
+    
+    if character:GetAttribute("Downed") then
+        return
+    end
+    
+    if next(EmoteSwapper.SwappedPairs) then
+        ResetEmoteNames()
+        
+        task.wait(0.1)
+        
+        for currentEmote, selectedEmote in pairs(EmoteSwapper.SwappedPairs) do
+            SwapEmoteNames(currentEmote, selectedEmote)
+        end
+    end
+end)
+
+player.CharacterRemoving:Connect(function()
+    if next(EmoteSwapper.SwappedPairs) then
+        ResetEmoteNames()
+    end
+end)
+if EmoteChangerSection then
+    EmoteChangerSection:Destroy()
+end
+if EmoteChangerDivider then
+    EmoteChangerDivider:Destroy()
+end
             end
         end)
     end
 end
 
-Tabs.Visuals:Section({ Title = "Emote Changer", TextSize = 20 })
-Tabs.Visuals:Divider()
+EmoteChangerSection = Tabs.Visuals:Section({ Title = "Emote Changer", TextSize = 20 })
+EmoteChangerDivider = Tabs.Visuals:Divider()
 
 for i = 1, 12 do
    currentEmoteInputs[i] = Tabs.Visuals:Input({
@@ -4248,8 +4854,8 @@ VisualsEmoteReset = Tabs.Visuals:Button({
         })
     end
 })
-
-     Tabs.Visuals:Section({ Title = "Character", TextSize = 20 })
+     
+     
      
      currentCarryAnim = ""
 selectedCarryAnim = ""
@@ -8451,10 +9057,10 @@ TimeChangerInput = Tabs.Utility:Input({
 
 player.CharacterAdded:Connect(function()
     hasRevived = false
-    if featureStates.AutoSelfRevive then
-        task.wait(1)
+ --[[ Disabled I don't like the stupid red error thing
+   if featureStates.AutoSelfRevive then
         startAutoSelfRevive()
-    end
+        ]]
 end)
 getgenv().lagSwitchEnabled = false
 getgenv().lagDuration = 0.5
@@ -9758,7 +10364,152 @@ Tabs.Teleport:Button({
         end
     end
 })
+local objectives = {}
+local objectiveDropdown
+local teleportButton
+local refreshButton
 
+local function findObjectives()
+    objectives = {}
+    
+    local gameFolder = workspace:FindFirstChild("Game")
+    if not gameFolder then return false end
+    
+    local mapFolder = gameFolder:FindFirstChild("Map")
+    if not mapFolder then return false end
+    
+    local partsFolder = mapFolder:FindFirstChild("Parts")
+    if not partsFolder then return false end
+    
+    local objectivesFolder = partsFolder:FindFirstChild("Objectives")
+    if not objectivesFolder then return false end
+    
+    for _, obj in pairs(objectivesFolder:GetChildren()) do
+        if obj:IsA("Model") then
+            local primaryPart = obj.PrimaryPart
+            if not primaryPart then
+                for _, part in pairs(obj:GetChildren()) do
+                    if part:IsA("BasePart") then
+                        primaryPart = part
+                        break
+                    end
+                end
+            end
+            
+            if primaryPart then
+                table.insert(objectives, {
+                    Name = obj.Name,
+                    Part = primaryPart,
+                    Position = primaryPart.Position,
+                    Size = primaryPart.Size
+                })
+            end
+        end
+    end
+    
+    return #objectives > 0
+end
+
+local function updateObjectiveDropdown()
+    local hasObjectives = findObjectives()
+    
+    if not objectiveDropdown then
+        warn("Objective dropdown not found in updateObjectiveDropdown")
+        return
+    end
+    
+    if hasObjectives and objectives then
+        local objectiveNames = {}
+        for _, obj in ipairs(objectives) do
+            if obj and obj.Name then
+                table.insert(objectiveNames, obj.Name)
+            end
+        end
+        
+        if #objectiveNames > 0 then
+            objectiveDropdown:Refresh(objectiveNames, objectiveNames[1])
+        else
+            objectiveDropdown:Refresh({"No valid objectives"}, "No valid objectives")
+        end
+    else
+        objectiveDropdown:Refresh({"No objectives found"}, "No objectives found")
+    end
+end
+
+objectiveDropdown = Tabs.Teleport:Dropdown({
+    Title = "Select Objective",
+    Values = {"Loading..."},
+    Value = "Loading...",
+    Enabled = false,
+    Callback = function(value)
+    end
+})
+
+teleportButton = Tabs.Teleport:Button({
+    Title = "Teleport to Objective",
+    Icon = "navigation",
+    Enabled = false,
+    Callback = function()
+        local selectedName = objectiveDropdown.Value
+        if selectedName == "No objectives found" or selectedName == "Loading..." then
+            return
+        end
+        
+        local selectedObjective
+        for _, obj in ipairs(objectives) do
+            if obj.Name == selectedName then
+                selectedObjective = obj
+                break
+            end
+        end
+        
+        if not selectedObjective then
+            return
+        end
+        
+        local character = player.Character
+        if not character then return end
+        
+        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+        if not humanoidRootPart then return end
+        
+        local teleportPosition = selectedObjective.Position + Vector3.new(0, 5, 0)
+        
+        local raycastParams = RaycastParams.new()
+        raycastParams.FilterDescendantsInstances = {character}
+        raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+        
+        local ray = workspace:Raycast(teleportPosition, Vector3.new(0, -10, 0), raycastParams)
+        if ray then
+            teleportPosition = ray.Position + Vector3.new(0, 3, 0)
+        end
+        
+        humanoidRootPart.CFrame = CFrame.new(teleportPosition)
+    end
+})
+
+refreshButton = Tabs.Teleport:Button({
+    Title = "Refresh Objectives",
+    Icon = "refresh-cw",
+    Callback = function()
+        updateObjectiveDropdown()
+    end
+})
+task.spawn(function()
+    task.wait(3)
+    updateObjectiveDropdown()
+    
+    if workspace:FindFirstChild("Game") then
+        local gameFolder = workspace.Game
+        
+        if gameFolder:FindFirstChild("Stats") then
+            gameFolder.Stats:GetAttributeChangedSignal("RoundStarted"):Connect(function()
+                task.wait(2)
+                updateObjectiveDropdown()
+            end)
+        end
+    end
+end)
     -- Settings Tab
     Tabs.Settings:Section({ Title = "Settings", TextSize = 40 })
     Tabs.Settings:Section({ Title = "Personalize", TextSize = 20 })
@@ -10171,6 +10922,15 @@ Tabs.Settings:Slider({
     Value = { Min = 10, Max = 1000, Default = 100, Step = 10 },
     Callback = function(value)
         scaleGui("CrouchGui", value)
+    end
+})
+
+Tabs.Settings:Slider({
+    Title = "Easy Trimp Gui Size",
+    Desc = "Adjust EmoteGui interface size (100 = normal size)",
+    Value = { Min = 10, Max = 1000, Default = 100, Step = 10 },
+    Callback = function(value)
+        scaleGui("EasyTrimpGui", value)
     end
 })
 
