@@ -1,19 +1,3 @@
-ResetWhenTakeDamageToggle = Tabs.Main:Toggle({
-    Title = "Reset when take damage",
-    Value = featureStates.ResetWhenTakeDamage,
-    Callback = function(value)
-        featureStates.ResetWhenTakeDamage = value
-    end
-})
-
-ResetDamageTypeDropdown = Tabs.Main:Dropdown({
-    Title = "Reset damage types",
-    Values = {"Any Damage", "Low Health"},
-    Value = featureStates.ResetDamageType,
-    Callback = function(value)
-        featureStates.ResetDamageType = value
-    end
-})
    local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
