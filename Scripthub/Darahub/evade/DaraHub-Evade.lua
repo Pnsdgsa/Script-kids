@@ -4402,232 +4402,6 @@ if not success then
             end)
             VisualsEmoteReset = nil
         end
-end
-    if player.Character then
-        task.spawn(onRespawn)
-    end
-    
-    player.CharacterAdded:Connect(function()
-        task.wait(1)
-        onRespawn()
-    end)
-    
-    if workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players") then
-        workspace.Game.Players.ChildAdded:Connect(function(child)
-            if child.Name == player.Name then
-                task.wait(0.5)
-                onRespawn()
-            end
-        end)
-        
-        workspace.Game.Players.ChildRemoved:Connect(function(child)
-            if child.Name == player.Name then
-                currentTag = nil
-                pendingSlot = nil
-                Tabs.Visuals:Section({ Title = "Emote Swapper", TextSize = 20 })
-Tabs.Visuals:Divider()
-
-EmoteSwapper = {
-    CurrentEmotes = {},
-    SelectedEmotes = {},
-    SwappedPairs = {},
-    InputFields = {}
-}
-
-for i = 1, 12 do
-    EmoteSwapper.CurrentEmotes[i] = ""
-    EmoteSwapper.SelectedEmotes[i] = ""
-end
-
-Tabs.Visuals:Section({ Title = "Current Emotes", TextSize = 16 })
-
-for i = 1, 12 do
-    EmoteSwapper.InputFields["CurrentEmote" .. i] = Tabs.Visuals:Input({
-        Title = "Current Emote " .. i,
-        Placeholder = "Enter current emote name",
-        Value = "",
-        Callback = function(value)
-            EmoteSwapper.CurrentEmotes[i] = value
-        end
-    })
-end
-
-Tabs.Visuals:Section({ Title = "Selected Emotes", TextSize = 16 })
-
-for i = 1, 12 do
-    EmoteSwapper.InputFields["SelectedEmote" .. i] = Tabs.Visuals:Input({
-        Title = "Select Emote " .. i,
-        Placeholder = "Enter replacement emote name",
-        Value = "",
-        Callback = function(value)
-            EmoteSwapper.SelectedEmotes[i] = value
-        end
-    })
-end
-
-function SwapEmoteNames(currentName, selectedName)
-    Items = game:GetService("ReplicatedStorage"):FindFirstChild("Items")
-    if not Items then return false end
-    
-    EmotesFolder = Items:FindFirstChild("Emotes")
-    if not EmotesFolder then return false end
-    
-    currentEmoteObj = EmotesFolder:FindFirstChild(currentName)
-    selectedEmoteObj = EmotesFolder:FindFirstChild(selectedName)
-    
-    if currentEmoteObj and selectedEmoteObj then
-        tempName = selectedName .. "_EmoteSwapTemp"
-        
-        while EmotesFolder:FindFirstChild(tempName) do
-            tempName = tempName .. "_"
-        end
-        
-        currentEmoteObj.Name = tempName
-        selectedEmoteObj.Name = currentName
-        currentEmoteObj.Name = selectedName
-        
-        return true
-    end
-    return false
-end
-
-function ResetEmoteNames()
-    Items = game:GetService("ReplicatedStorage"):FindFirstChild("Items")
-    if not Items then return false end
-    
-    EmotesFolder = Items:FindFirstChild("Emotes")
-    if not EmotesFolder then return false end
-    
-    for currentEmote, selectedEmote in pairs(EmoteSwapper.SwappedPairs) do
-        currentEmoteObj = EmotesFolder:FindFirstChild(selectedEmote)
-        selectedEmoteObj = EmotesFolder:FindFirstChild(currentEmote)
-        
-        if currentEmoteObj and selectedEmoteObj then
-            tempName = currentEmote .. "_EmoteSwapTemp"
-            
-            while EmotesFolder:FindFirstChild(tempName) do
-                tempName = tempName .. "_"
-            end
-            
-            currentEmoteObj.Name = tempName
-            selectedEmoteObj.Name = selectedEmote
-            currentEmoteObj.Name = currentEmote
-        end
-    end
-    
-    EmoteSwapper.SwappedPairs = {}
-    return true
-end
-
-EmoteSwapApplyButton = Tabs.Visuals:Button({
-    Title = "Apply Emote Swap",
-    Desc = "Swap the current emotes with selected ones",
-    Icon = "refresh-cw",
-    Callback = function()
-        swappedCount = 0
-        failedCount = 0
-        
-        for i = 1, 12 do
-            currentEmote = EmoteSwapper.CurrentEmotes[i]
-            selectedEmote = EmoteSwapper.SelectedEmotes[i]
-            
-            if currentEmote ~= "" and selectedEmote ~= "" then
-                if SwapEmoteNames(currentEmote, selectedEmote) then
-                    EmoteSwapper.SwappedPairs[currentEmote] = selectedEmote
-                    swappedCount = swappedCount + 1
-                else
-                    failedCount = failedCount + 1
-                end
-            end
-        end
-        
-        message = ""
-        if swappedCount > 0 then
-            message = "Successfully swapped " .. tostring(swappedCount) .. " emote(s)"
-        end
-        if failedCount > 0 then
-            if message ~= "" then message = message .. " | " end
-            message = message .. "Failed to swap " .. tostring(failedCount) .. " emote(s)"
-        end
-        if message == "" then
-            message = "No emotes specified to swap"
-        end
-        
-        WindUI:Notify({
-            Title = "Emote Swapper",
-            Content = message,
-            Icon = swappedCount > 0 and "check-circle" or "x-circle",
-            Duration = 3
-        })
-    end
-})
-
-EmoteSwapResetButton = Tabs.Visuals:Button({
-    Title = "Reset Emote Module",
-    Desc = "Restore all emotes to their original names",
-    Icon = "rotate-ccw",
-    Callback = function()
-        if ResetEmoteNames() then
-            for i = 1, 12 do
-                EmoteSwapper.CurrentEmotes[i] = ""
-                EmoteSwapper.SelectedEmotes[i] = ""
-                
-                if EmoteSwapper.InputFields["CurrentEmote" .. i] then
-                    EmoteSwapper.InputFields["CurrentEmote" .. i]:Set("")
-                end
-                if EmoteSwapper.InputFields["SelectedEmote" .. i] then
-                    EmoteSwapper.InputFields["SelectedEmote" .. i]:Set("")
-                end
-            end
-            
-            WindUI:Notify({
-                Title = "Emote Swapper",
-                Content = "All emotes have been restored to original names!",
-                Icon = "check-circle",
-                Duration = 3
-            })
-        else
-            WindUI:Notify({
-                Title = "Emote Swapper",
-                Content = "Failed to reset emotes!",
-                Icon = "x-circle",
-                Duration = 3
-            })
-        end
-    end
-})
-
-player.CharacterAdded:Connect(function(character)
-    task.wait(0.5)
-    
-    if character:GetAttribute("Downed") then
-        return
-    end
-    
-    if next(EmoteSwapper.SwappedPairs) then
-        ResetEmoteNames()
-        
-        task.wait(0.1)
-        
-        for currentEmote, selectedEmote in pairs(EmoteSwapper.SwappedPairs) do
-            SwapEmoteNames(currentEmote, selectedEmote)
-        end
-    end
-end)
-
-player.CharacterRemoving:Connect(function()
-    if next(EmoteSwapper.SwappedPairs) then
-        ResetEmoteNames()
-    end
-end)
-if EmoteChangerSection then
-    EmoteChangerSection:Destroy()
-end
-if EmoteChangerDivider then
-    EmoteChangerDivider:Destroy()
-end
-            end
-        end)
     end
 end
 
@@ -5856,7 +5630,200 @@ FakeStreaksInput = Tabs.Visuals:Input({
         end
     end
 })
+Tabs.Visuals:Section({ Title = "Emote Swapper (Very buggy)", TextSize = 20 })
+Tabs.Visuals:Section({ Title = "What's different of emote Swapper and emote changer? well it's different because emote swap is gonna sawp emote from replace storage and emote changer is gonna fetch what emote you executed from remote spy, this may not working on shitty executeor", TextSize = 10 })
+Tabs.Visuals:Divider()
 
+EmoteSwapper = {
+    CurrentEmotes = {},
+    SelectedEmotes = {},
+    SwappedPairs = {},
+    InputFields = {}
+}
+
+for i = 1, 12 do
+    EmoteSwapper.CurrentEmotes[i] = ""
+    EmoteSwapper.SelectedEmotes[i] = ""
+end
+
+Tabs.Visuals:Section({ Title = "Current Emotes", TextSize = 16 })
+
+for i = 1, 12 do
+    EmoteSwapper.InputFields["CurrentEmote" .. i] = Tabs.Visuals:Input({
+        Title = "Current Emote " .. i,
+        Placeholder = "Enter current emote name",
+        Value = "",
+        Callback = function(value)
+            EmoteSwapper.CurrentEmotes[i] = value
+        end
+    })
+end
+
+Tabs.Visuals:Section({ Title = "Selected Emotes", TextSize = 16 })
+
+for i = 1, 12 do
+    EmoteSwapper.InputFields["SelectedEmote" .. i] = Tabs.Visuals:Input({
+        Title = "Select Emote " .. i,
+        Placeholder = "Enter replacement emote name",
+        Value = "",
+        Callback = function(value)
+            EmoteSwapper.SelectedEmotes[i] = value
+        end
+    })
+end
+
+function SwapEmoteNames(currentName, selectedName)
+    Items = game:GetService("ReplicatedStorage"):FindFirstChild("Items")
+    if not Items then return false end
+    
+    EmotesFolder = Items:FindFirstChild("Emotes")
+    if not EmotesFolder then return false end
+    
+    currentEmoteObj = EmotesFolder:FindFirstChild(currentName)
+    selectedEmoteObj = EmotesFolder:FindFirstChild(selectedName)
+    
+    if currentEmoteObj and selectedEmoteObj then
+        tempName = selectedName .. "_EmoteSwapTemp"
+        
+        while EmotesFolder:FindFirstChild(tempName) do
+            tempName = tempName .. "_"
+        end
+        
+        currentEmoteObj.Name = tempName
+        selectedEmoteObj.Name = currentName
+        currentEmoteObj.Name = selectedName
+        
+        return true
+    end
+    return false
+end
+
+function ResetEmoteNames()
+    Items = game:GetService("ReplicatedStorage"):FindFirstChild("Items")
+    if not Items then return false end
+    
+    EmotesFolder = Items:FindFirstChild("Emotes")
+    if not EmotesFolder then return false end
+    
+    for currentEmote, selectedEmote in pairs(EmoteSwapper.SwappedPairs) do
+        currentEmoteObj = EmotesFolder:FindFirstChild(selectedEmote)
+        selectedEmoteObj = EmotesFolder:FindFirstChild(currentEmote)
+        
+        if currentEmoteObj and selectedEmoteObj then
+            tempName = currentEmote .. "_EmoteSwapTemp"
+            
+            while EmotesFolder:FindFirstChild(tempName) do
+                tempName = tempName .. "_"
+            end
+            
+            currentEmoteObj.Name = tempName
+            selectedEmoteObj.Name = selectedEmote
+            currentEmoteObj.Name = currentEmote
+        end
+    end
+    
+    return true
+end
+
+EmoteSwapApplyButton = Tabs.Visuals:Button({
+    Title = "Apply Emote Swap",
+    Desc = "Swap the current emotes with selected ones",
+    Icon = "refresh-cw",
+    Callback = function()
+        swappedCount = 0
+        failedCount = 0
+        
+        for i = 1, 12 do
+            currentEmote = EmoteSwapper.CurrentEmotes[i]
+            selectedEmote = EmoteSwapper.SelectedEmotes[i]
+            
+            if currentEmote ~= "" and selectedEmote ~= "" then
+                if SwapEmoteNames(currentEmote, selectedEmote) then
+                    EmoteSwapper.SwappedPairs[currentEmote] = selectedEmote
+                    swappedCount = swappedCount + 1
+                else
+                    failedCount = failedCount + 1
+                end
+            end
+        end
+        
+        message = ""
+        if swappedCount > 0 then
+            message = "Successfully swapped " .. tostring(swappedCount) .. " emote(s)"
+        end
+        if failedCount > 0 then
+            if message ~= "" then message = message .. " | " end
+            message = message .. "Failed to swap " .. tostring(failedCount) .. " emote(s)"
+        end
+        if message == "" then
+            message = "No emotes specified to swap"
+        end
+        
+        WindUI:Notify({
+            Title = "Emote Swapper",
+            Content = message,
+            Icon = swappedCount > 0 and "check-circle" or "x-circle",
+            Duration = 3
+        })
+    end
+})
+
+EmoteSwapResetButton = Tabs.Visuals:Button({
+    Title = "Reset Emote Module",
+    Desc = "Restore all emotes to their original names",
+    Icon = "rotate-ccw",
+    Callback = function()
+        if ResetEmoteNames() then
+            EmoteSwapper.SwappedPairs = {}
+            
+            for i = 1, 12 do
+                EmoteSwapper.CurrentEmotes[i] = ""
+                EmoteSwapper.SelectedEmotes[i] = ""
+                
+                if EmoteSwapper.InputFields["CurrentEmote" .. i] then
+                    EmoteSwapper.InputFields["CurrentEmote" .. i]:Set("")
+                end
+                if EmoteSwapper.InputFields["SelectedEmote" .. i] then
+                    EmoteSwapper.InputFields["SelectedEmote" .. i]:Set("")
+                end
+            end
+            
+            WindUI:Notify({
+                Title = "Emote Swapper",
+                Content = "All emotes have been restored to original names!",
+                Icon = "check-circle",
+                Duration = 3
+            })
+        else
+            WindUI:Notify({
+                Title = "Emote Swapper",
+                Content = "Failed to reset emotes!",
+                Icon = "x-circle",
+                Duration = 3
+            })
+        end
+    end
+})
+
+player.CharacterRemoving:Connect(function()
+    if next(EmoteSwapper.SwappedPairs) then
+        ResetEmoteNames()
+    end
+end)
+
+player.CharacterAdded:Connect(function(character)
+    task.wait(1)
+    
+    if character:GetAttribute("Downed") then
+        return
+    end
+    
+    if next(EmoteSwapper.SwappedPairs) then
+        for currentEmote, selectedEmote in pairs(EmoteSwapper.SwappedPairs) do
+            SwapEmoteNames(currentEmote, selectedEmote)
+        end
+    end
+end)
 task.spawn(function()
     task.wait(1)
     currentStreak = game:GetService("Players").LocalPlayer:GetAttribute("Streak")
