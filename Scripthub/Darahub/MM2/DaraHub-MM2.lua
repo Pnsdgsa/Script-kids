@@ -1,7 +1,7 @@
-if getgenv().DaraHubEvadeExecuted then
+if getgenv().DaraHubExecuted then
     return
 end
-getgenv().DaraHubEvadeExecuted = true
+getgenv().DaraHubExecuted = true
 
 WindUI = nil
 
