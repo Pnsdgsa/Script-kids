@@ -2647,14 +2647,14 @@ function meter()
     end)
     if ok then return v end
 end
-
+--[[
 old = hookmetamethod(game, "__newindex", function(a, b, c)
     if not checkcaller() and allow and meter() and a == meter() and b == "Text" then
         return
     end
     return old(a, b, c)
 end)
-
+]]
 RunService.RenderStepped:Connect(function()
     dt = tick() - last
     last = tick()
