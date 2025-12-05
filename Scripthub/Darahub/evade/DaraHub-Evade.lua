@@ -834,6 +834,8 @@ local function isPlayerModelPresent()
     return PlayersFolder and PlayersFolder:FindFirstChild(player.Name) ~= nil
 end
 local featureStates = {
+   ResetWhenTakeDamage = false,
+    ResetDamageType = "Any Damage",
     AutoWhistle = false,
     CustomGravity = false,
     GravityValue = originalGameGravity,
@@ -11376,13 +11378,6 @@ if not workspace:FindFirstChild("SecurityPart") then
     SecurityPart.CanCollide = true
     SecurityPart.Parent = workspace
 end
-   local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-
-local featureStates = {
-    ResetWhenTakeDamage = false,
-    ResetDamageType = "Any Damage"
-}
 
 local function monitorAnyDamage()
     local function setupCharacter(character)
