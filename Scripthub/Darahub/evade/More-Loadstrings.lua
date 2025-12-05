@@ -228,180 +228,114 @@ loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/r
 
 
 -- revote button fixed
-
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")  -- For potential heartbeats if needed
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui", 10)
-if not playerGui then warn("PlayerGui not loaded") return end
-
-print("Starting GUI fixer script...")
-
--- Helper: Wait for child with timeout and fallback to ChildAdded (non-blocking)
-local function waitForChildWithFallback(parent, childName, timeout)
-    timeout = timeout or 10
-    local startTime = os.clock()
-    
-    -- Quick check if already exists
-    local child = parent:FindFirstChild(childName)
-    if child then return child end
-    
-    -- Timed WaitForChild first
-    child = parent:WaitForChild(childName, timeout)
-    if child then return child end
-    
-    -- Fallback: Use ChildAdded with remaining timeout
-    local remainingTime = timeout - (os.clock() - startTime)
-    if remainingTime <= 0 then
-        warn(childName .. " not found within " .. timeout .. "s")
-        return nil
-    end
-    
-    local connection
-    connection = parent.ChildAdded:Connect(function(newChild)
-        if newChild.Name == childName then
-            connection:Disconnect()
-            print(childName .. " added dynamically!")
+local function waitForVisibleButton()
+    while true do
+        local global = PlayerGui:FindFirstChild("Global")
+        if global then
+            local canDisable = global:FindFirstChild("CanDisable")
+            if canDisable then
+                local voteActive = canDisable:FindFirstChild("VoteActive")
+                if voteActive then
+                    local maximizeButton = voteActive:FindFirstChild("MaximizeButton")
+                    if maximizeButton and maximizeButton.Visible then
+                        return maximizeButton
+                    end
+                end
+            end
         end
-    end)
-    
-    -- Wait out the remaining time
-    local waited = 0
-    while waited < remainingTime do
-        RunService.Heartbeat:Wait()
-        waited = os.clock() - startTime
-        if parent:FindFirstChild(childName) then
-            connection:Disconnect()
-            return parent:FindFirstChild(childName)
-        end
-    end
-    
-    connection:Disconnect()
-    warn(childName .. " never added within timeout")
-    return nil
-end
-
--- Wait for main GUI chain with fallback
-local globalGui = waitForChildWithFallback(playerGui, "Global", 15)
-if not globalGui then warn("Global GUI not found - aborting") return end
-print("Global GUI loaded")
-
-local canDisable = waitForChildWithFallback(globalGui, "CanDisable", 15)
-if not canDisable then warn("CanDisable not found - aborting") return end
-print("CanDisable loaded")
-
-local voteActive = waitForChildWithFallback(canDisable, "VoteActive", 15)
-if not voteActive then warn("VoteActive not found - aborting") return end
-print("VoteActive loaded")
-
-local voteWindow = waitForChildWithFallback(canDisable, "Vote", 15)
-if not voteWindow then warn("Vote window not found - aborting") return end
-print("Vote window loaded")
-
--- Dynamic button detection: Prioritize Revote if it exists/becomes visible, else MaximizeButton
-local button
-local function findButton()
-    -- Check for Revote (wait if needed)
-    local revote = waitForChildWithFallback(voteActive, "Revote", 5)
-    if revote and revote:IsA("GuiButton") and revote.Visible then  -- Ensure it's a button and visible
-        print("Using Revote button")
-        return revote
-    end
-    
-    -- Fallback to MaximizeButton
-    local maximize = waitForChildWithFallback(voteActive, "MaximizeButton", 5)
-    if maximize and maximize:IsA("GuiButton") then
-        print("Using MaximizeButton")
-        return maximize
-    end
-    
-    return nil
-end
-
-button = findButton()
-if not button then
-    warn("No suitable button found - will retry in 2s...")
-    -- Optional: Retry once after a delay (e.g., if GUI updates)
-    wait(2)
-    button = findButton()
-    if not button then
-        warn("Button still not found after retry - aborting")
-        return
+        task.wait(0.5)
     end
 end
 
--- Debounce attribute setup (use os.clock for precision)
-local DEBOUNCE_TIME = 1  -- seconds
+local lastVoteMaps = nil
+local lastVoteGamemodes = nil
 
-local function onButtonActivated()
-    local success, err = pcall(function()
-        local lastRevote = voteActive:GetAttribute("LastRevote") or 0
-        if os.clock() - lastRevote <= DEBOUNCE_TIME then
-            warn("Revote debounced")
+game:GetService("ReplicatedStorage").Events.Player.Vote.OnClientEvent:Connect(function(voteMaps, voteGamemodes)
+    if voteMaps and type(voteMaps) == "table" then
+        lastVoteMaps = voteMaps
+    end
+    
+    if voteGamemodes and type(voteGamemodes) == "table" then
+        lastVoteGamemodes = voteGamemodes
+        print("Captured VoteGamemodes:", table.concat(voteGamemodes, ", "))
+    else
+        lastVoteGamemodes = nil
+    end
+end)
+
+local function createDuplicateRevoteButton(originalButton)
+    local duplicate = originalButton:Clone()
+    duplicate.Name = "FixedRevoteButtonWhyTFDidEvadeDevMessThisShitUp"
+    duplicate.Parent = originalButton.Parent
+    
+    duplicate.Position = originalButton.Position
+    
+    originalButton.Position = originalButton.Position - UDim2.new(0, 0, 0, 0)
+    
+    duplicate.Text = "Revote"
+    
+    duplicate.Activated:Connect(function()
+        
+        if not lastVoteMaps then
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "VoteMaps",
+    Text = "No VoteMaps stored yet. Waiting for next 1-3 rounds.",
+    Duration = 5,
+})
             return
         end
-        voteActive:SetAttribute("LastRevote", os.clock())
         
-        voteWindow.Visible = true
-        voteActive.Visible = false
-        
-        print("Map revote button triggered successfully!")
+        if lastVoteGamemodes then
+            firesignal(
+                game:GetService("ReplicatedStorage").Events.Player.Vote.OnClientEvent,
+                lastVoteMaps,
+                lastVoteGamemodes
+            )
+            
+        else
+            firesignal(
+                game:GetService("ReplicatedStorage").Events.Player.Vote.OnClientEvent,
+                lastVoteMaps
+            )
+            
+        end
     end)
     
-    if not success then
-        warn("Error in button activation: " .. tostring(err))
-        -- Fallback always applies
-        voteWindow.Visible = true
-        voteActive.Visible = false
-        print("Fallback: Forced map voting window open.")
-    end
+    return duplicate
 end
 
--- Connect with single pcall wrapper
-local connection = button.Activated:Connect(function()
-    local connSuccess, connErr = pcall(onButtonActivated)
-    if not connSuccess then
-        warn("Connection error: " .. tostring(connErr))
-    end
-end)
-
-print("Button fixed! Connection active. ID:", connection)
-
--- Cleanup: Disconnect on player leaving or script context change
-local function cleanup()
-    if connection then
-        connection:Disconnect()
-        connection = nil
-        print("Connection cleaned up")
-    end
-end
-
-Players.PlayerRemoving:Connect(function(leavingPlayer)
-    if leavingPlayer == player then
-        cleanup()
-    end
-end)
-
--- Also clean on ancestry change (backup)
-player.AncestryChanged:Connect(cleanup)
-
--- Optional: Heartbeat retry if button visibility changes (advanced)
-spawn(function()
-    while button.Parent do
-        wait(5)  -- Check every 5s
-        if button.Visible == false and (voteActive:FindFirstChild("Revote") and voteActive.Revote.Visible) then
-            print("Revote became available - switching buttons")
-            cleanup()  -- Disconnect old
-            button = voteActive.Revote
-            connection = button.Activated:Connect(function()
-                pcall(onButtonActivated)
-            end)
-            print("Switched to new connection")
+local function monitorButtonVisibility()
+    print("Monitoring for maximize button visibility...")
+    
+    while true do
+        local global = PlayerGui:FindFirstChild("Global")
+        if global then
+            local canDisable = global:FindFirstChild("CanDisable")
+            if canDisable then
+                local voteActive = canDisable:FindFirstChild("VoteActive")
+                if voteActive then
+                    local maximizeButton = voteActive:FindFirstChild("MaximizeButton")
+                    if maximizeButton then
+                        if maximizeButton.Visible then
+                            if not voteActive:FindFirstChild("FixShitRevoteButton") then
+                                print("Maximize button is visible! Creating duplicate...")
+                                createDuplicateRevoteButton(maximizeButton)
+                                break
+                            end
+                        end
+                    end
+                end
+            end
         end
+        task.wait(0.1)
     end
-end)
---[[ Shit codes ]]
+end
+
+monitorButtonVisibility()--[[ Shit codes ]]
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local events = player.PlayerScripts.Events.temporary_events
