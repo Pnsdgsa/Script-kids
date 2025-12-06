@@ -25,7 +25,7 @@ WindUI:SetTheme("Dark")
 
 -- Create WindUI window
 local Window = WindUI:CreateWindow({
-    Title = "Dara Hub",
+    Title = "Dara Hub | Evade",
     Icon = "rbxassetid://137330250139083",
     Author = "Made by: Pnsdg And Yomka",
     Folder = "DaraHub",
@@ -59,7 +59,7 @@ if featureStates.DisableCameraShake == nil then
 end
 Window:SetIconSize(48)
 Window:Tag({
-    Title = "V1.3.5",
+    Title = "V1.3.6",
     Color = Color3.fromHex("#30ff6a")
 })
 -- my name is retep and I em evil >:)
@@ -2612,6 +2612,70 @@ player.CharacterAdded:Connect(function()
         createEmoteGui(0)
     end
 end)
+Tabs.Main:Section({ Title = "TAS", TextSize = 20 })
+Tabs.Main:Divider()
+Running = false
+Frames = {}
+TimeStart = tick()
+
+Player = game:GetService("Players").LocalPlayer
+getChar = function()
+    Character = Player.Character
+    if Character then
+        return Character
+    else
+        Player.CharacterAdded:Wait()
+        return getChar()
+    end
+end
+
+StartRecord = function()
+    Frames = {}
+    Running = true
+    TimeStart = tick()
+    while Running == true do
+        game:GetService("RunService").Heartbeat:wait()
+        Character = getChar()
+        table.insert(Frames, {
+            Character.HumanoidRootPart.CFrame,
+            Character.Humanoid:GetState().Value,
+            tick() - TimeStart
+        })
+    end
+end
+
+StopRecord = function()
+    Running = false
+end
+
+PlayTAS = function()
+    Character = getChar()
+    TimePlay = tick()
+    FrameCount = #Frames
+    OldFrame = 1
+    TASLoop = game:GetService("RunService").Heartbeat:Connect(function()
+        CurrentTime = tick()
+        if (CurrentTime - TimePlay) >= Frames[FrameCount][3] then
+            TASLoop:Disconnect()
+            return
+        end
+        for i = OldFrame, math.min(OldFrame + 60, FrameCount) do
+            Frame = Frames[i]
+            if Frame and Frame[3] <= (CurrentTime - TimePlay) then
+                OldFrame = i
+                Character.HumanoidRootPart.CFrame = Frame[1]
+                Character.Humanoid:ChangeState(Frame[2])
+            end
+        end
+    end)
+end
+
+
+
+Tabs.Main:Button({ Title = "Start recording", Color = Color3.fromHex("#30FF6A"), Callback = StartRecord })
+Tabs.Main:Button({ Title = "Stop recording",  Color = Color3.fromHex("#ff4830"), Callback = StopRecord })
+Tabs.Main:Button({ Title = "Play",            Color = Color3.fromHex("#30FF6A"), Callback = PlayTAS })
+Tabs.Main:Section({ Title = "Keybind" })
    -- Player Tabs
    Tabs.Player:Section({ Title = "Player", TextSize = 40 })
     Tabs.Player:Divider()
@@ -7439,6 +7503,11 @@ BoxticketTypeDropdown = Tabs.ESP:Dropdown({
         end
     end
 })
+
+game:GetService("Players").LocalPlayer.PlayerScripts.Events.temporary_events.JumpReact:Fire()
+game:GetService("Players").LocalPlayer.PlayerScripts.Events.temporary_events.EndJump:Fire()
+
+getgenv().autoJumpType = "Bounce"
 getgenv().bhopMode = "Acceleration"
 getgenv().bhopAccelValue = -0.5
 getgenv().bhopHoldActive = false
@@ -7449,30 +7518,30 @@ featureStates.BhopGuiVisible = false
 featureStates.Bhop = false
 featureStates.BhopHold = false
 
-local player = game:GetService("Players").LocalPlayer
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local Players = game:GetService("Players")
-local Tabs = Tabs or {Auto = {}}
+player = game:GetService("Players").LocalPlayer
+RunService = game:GetService("RunService")
+UserInputService = game:GetService("UserInputService")
+Players = game:GetService("Players")
+Tabs = Tabs or {Auto = {}}
 
-local isMobile = isMobile or UserInputService.TouchEnabled
+isMobile = isMobile or UserInputService.TouchEnabled
 
-local bhopConnection = nil
-local bhopLoaded = false
-local bhopKeyConnection = nil
-local characterConnection = nil
-local frictionTables = {}
+bhopConnection = nil
+bhopLoaded = false
+bhopKeyConnection = nil
+characterConnection = nil
+frictionTables = {}
 
-local Character = nil
-local Humanoid = nil
-local HumanoidRootPart = nil
-local LastJump = 0
+Character = nil
+Humanoid = nil
+HumanoidRootPart = nil
+LastJump = 0
 
-local GROUND_CHECK_DISTANCE = 3.5
-local MAX_SLOPE_ANGLE = 45
-local AIR_RANGE = 0.1
+GROUND_CHECK_DISTANCE = 3.5
+MAX_SLOPE_ANGLE = 45
+AIR_RANGE = 0.1
 
-local function findFrictionTables()
+findFrictionTables = function()
     frictionTables = {}
     for _, t in pairs(getgc(true)) do
         if type(t) == "table" and rawget(t, "Friction") then
@@ -7481,7 +7550,7 @@ local function findFrictionTables()
     end
 end
 
-local function setFriction(value)
+setFriction = function(value)
     for _, e in ipairs(frictionTables) do
         if e.obj and type(e.obj) == "table" and rawget(e.obj, "Friction") then
             e.obj.Friction = value
@@ -7489,7 +7558,7 @@ local function setFriction(value)
     end
 end
 
-local function resetBhopFriction()
+resetBhopFriction = function()
     for _, e in ipairs(frictionTables) do
         if e.obj and type(e.obj) == "table" and rawget(e.obj, "Friction") then
             e.obj.Friction = e.original
@@ -7498,7 +7567,7 @@ local function resetBhopFriction()
     frictionTables = {}
 end
 
-local function applyBhopFriction()
+applyBhopFriction = function()
     if getgenv().bhopMode == "Acceleration" then
         findFrictionTables()
         if #frictionTables > 0 then
@@ -7509,54 +7578,60 @@ local function applyBhopFriction()
     end
 end
 
-local function IsOnGround()
+IsOnGround = function()
     if not Character or not HumanoidRootPart or not Humanoid then return false end
 
-    local state = Humanoid:GetState()
+    state = Humanoid:GetState()
     if state == Enum.HumanoidStateType.Jumping or 
        state == Enum.HumanoidStateType.Freefall or
        state == Enum.HumanoidStateType.Swimming then
         return false
     end
 
-    local raycastParams = RaycastParams.new()
+    raycastParams = RaycastParams.new()
     raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
     raycastParams.FilterDescendantsInstances = {Character}
     raycastParams.IgnoreWater = true
 
-    local rayOrigin = HumanoidRootPart.Position
-    local rayDirection = Vector3.new(0, -GROUND_CHECK_DISTANCE, 0)
-    local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+    rayOrigin = HumanoidRootPart.Position
+    rayDirection = Vector3.new(0, -GROUND_CHECK_DISTANCE, 0)
+    raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
 
     if not raycastResult then return false end
 
-    local surfaceNormal = raycastResult.Normal
-    local angle = math.deg(math.acos(surfaceNormal:Dot(Vector3.new(0, 1, 0))))
+    surfaceNormal = raycastResult.Normal
+    angle = math.deg(math.acos(surfaceNormal:Dot(Vector3.new(0, 1, 0))))
 
     return angle <= MAX_SLOPE_ANGLE
 end
 
-local function updateBhop()
+updateBhop = function()
     if not bhopLoaded then return end
     
-    local character = player.Character
-    local humanoid = character and character:FindFirstChild("Humanoid")
+    character = player.Character
+    humanoid = character and character:FindFirstChild("Humanoid")
     if not character or not humanoid then
         return
     end
 
-    local isBhopActive = getgenv().autoJumpEnabled or getgenv().bhopHoldActive
+    isBhopActive = getgenv().autoJumpEnabled or getgenv().bhopHoldActive
 
     if isBhopActive then
-        local now = tick()
+        now = tick()
         if IsOnGround() and (now - LastJump) > getgenv().jumpCooldown then
-            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            if getgenv().autoJumpType == "Realistic" then
+                game:GetService("Players").LocalPlayer.PlayerScripts.Events.temporary_events.JumpReact:Fire()
+                task.wait(0.1)
+                game:GetService("Players").LocalPlayer.PlayerScripts.Events.temporary_events.EndJump:Fire()
+            else
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
             LastJump = now
         end
     end
 end
 
-local function loadBhop()
+loadBhop = function()
     if bhopLoaded then return end
     
     bhopLoaded = true
@@ -7568,7 +7643,7 @@ local function loadBhop()
     applyBhopFriction()
 end
 
-local function unloadBhop()
+unloadBhop = function()
     if not bhopLoaded then return end
     
     bhopLoaded = false
@@ -7582,8 +7657,8 @@ local function unloadBhop()
     resetBhopFriction()
 end
 
-local function checkBhopState()
-    local shouldLoad = getgenv().autoJumpEnabled or getgenv().bhopHoldActive
+checkBhopState = function()
+    shouldLoad = getgenv().autoJumpEnabled or getgenv().bhopHoldActive
     
     if shouldLoad then
         loadBhop()
@@ -7592,7 +7667,7 @@ local function checkBhopState()
     end
 end
 
-local function reapplyBhopOnRespawn()
+reapplyBhopOnRespawn = function()
     if getgenv().autoJumpEnabled or getgenv().bhopHoldActive then
         wait(0.5)
         applyBhopFriction()
@@ -7600,15 +7675,15 @@ local function reapplyBhopOnRespawn()
     end
 end
 
-local function makeDraggable(frame)
+makeDraggable = function(frame)
     frame.Active = true
     frame.Draggable = true
     
-    local dragDetector = Instance.new("UIDragDetector")
+    dragDetector = Instance.new("UIDragDetector")
     dragDetector.Parent = frame
     
-    local originalBackground = frame.BackgroundColor3
-    local originalTransparency = frame.BackgroundTransparency
+    originalBackground = frame.BackgroundColor3
+    originalTransparency = frame.BackgroundTransparency
     
     frame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -7623,7 +7698,7 @@ local function makeDraggable(frame)
     end)
 end
 
-local function setupBhopKeybind()
+setupBhopKeybind = function()
     if bhopKeyConnection then
         bhopKeyConnection:Disconnect()
     end
@@ -7648,13 +7723,13 @@ local function setupBhopKeybind()
     end)
 end
 
-local function setupJumpButton()
-    local success, err = pcall(function()
-        local touchGui = player:WaitForChild("PlayerGui", 5):WaitForChild("TouchGui", 5)
+setupJumpButton = function()
+    success, err = pcall(function()
+        touchGui = player:WaitForChild("PlayerGui", 5):WaitForChild("TouchGui", 5)
         if not touchGui then return end
-        local touchControlFrame = touchGui:WaitForChild("TouchControlFrame", 5)
+        touchControlFrame = touchGui:WaitForChild("TouchControlFrame", 5)
         if not touchControlFrame then return end
-        local jumpButton = touchControlFrame:WaitForChild("JumpButton", 5)
+        jumpButton = touchControlFrame:WaitForChild("JumpButton", 5)
         if not jumpButton then return end
         
         jumpButton.MouseButton1Down:Connect(function()
@@ -7671,18 +7746,18 @@ local function setupJumpButton()
     end)
 end
 
-local function createBhopGui(yOffset)
-    local bhopGuiOld = player.PlayerGui:FindFirstChild("BhopGui")
+createBhopGui = function(yOffset)
+    bhopGuiOld = player.PlayerGui:FindFirstChild("BhopGui")
     if bhopGuiOld then bhopGuiOld:Destroy() end
     
-    local bhopGui = Instance.new("ScreenGui")
+    bhopGui = Instance.new("ScreenGui")
     bhopGui.Name = "BhopGui"
     bhopGui.IgnoreGuiInset = true
     bhopGui.ResetOnSpawn = false
     bhopGui.Enabled = isMobile and featureStates.BhopGuiVisible or false
     bhopGui.Parent = player.PlayerGui
 
-    local frame = Instance.new("Frame")
+    frame = Instance.new("Frame")
     frame.Size = UDim2.new(0, 60, 0, 60)
     frame.Position = UDim2.new(0.5, -30, 0.12 + (yOffset or 0), 0)
     frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
@@ -7692,16 +7767,16 @@ local function createBhopGui(yOffset)
     
     makeDraggable(frame)
 
-    local corner = Instance.new("UICorner")
+    corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 6)
     corner.Parent = frame
 
-    local stroke = Instance.new("UIStroke")
+    stroke = Instance.new("UIStroke")
     stroke.Color = Color3.fromRGB(150, 150, 150)
     stroke.Thickness = 2
     stroke.Parent = frame
 
-    local label = Instance.new("TextLabel")
+    label = Instance.new("TextLabel")
     label.Text = "Bhop"
     label.Size = UDim2.new(0.9, 0, 0.5, 0)
     label.Position = UDim2.new(0.05, 0, 0, 0)
@@ -7714,7 +7789,7 @@ local function createBhopGui(yOffset)
     label.TextScaled = true
     label.Parent = frame
 
-    local bhopGuiButton = Instance.new("TextButton")
+    bhopGuiButton = Instance.new("TextButton")
     bhopGuiButton.Name = "ToggleButton"
     bhopGuiButton.Text = getgenv().autoJumpEnabled and "On" or "Off"
     bhopGuiButton.Size = UDim2.new(0.9, 0, 0.5, 0)
@@ -7728,7 +7803,7 @@ local function createBhopGui(yOffset)
     bhopGuiButton.TextScaled = true
     bhopGuiButton.Parent = frame
 
-    local buttonCorner = Instance.new("UICorner")
+    buttonCorner = Instance.new("UICorner")
     buttonCorner.CornerRadius = UDim.new(0, 4)
     buttonCorner.Parent = bhopGuiButton
 
@@ -7748,7 +7823,7 @@ local function createBhopGui(yOffset)
     return bhopGui, bhopGuiButton
 end
 
-local jumpGui, jumpToggleBtn = createBhopGui(0.12)
+jumpGui, jumpToggleBtn = createBhopGui(0.12)
 
 setupJumpButton()
 setupBhopKeybind()
@@ -7776,6 +7851,15 @@ characterConnection = player.CharacterAdded:Connect(function(character)
     setupJumpButton()
     reapplyBhopOnRespawn()
 end)
+
+AutoJumpTypeDropdown = Tabs.Auto:Dropdown({
+    Title = "Auto Jump type",
+    Values = {"Bounce", "Realistic"},
+    Value = "Bounce",
+    Callback = function(value)
+        getgenv().autoJumpType = value
+    end
+})
 
 BhopToggle = Tabs.Auto:Toggle({
     Title = "Bhop",
@@ -7835,7 +7919,7 @@ BhopAccelInput = Tabs.Auto:Input({
     Numeric = true,
     Callback = function(value)
         if tostring(value):sub(1, 1) == "-" then
-            local n = tonumber(value)
+            n = tonumber(value)
             if n then
                 getgenv().bhopAccelValue = n
                 if getgenv().autoJumpEnabled or getgenv().bhopHoldActive then
@@ -7851,7 +7935,7 @@ JumpCooldownInput = Tabs.Auto:Input({
     Placeholder = "0.7",
     Numeric = true,
     Callback = function(value)
-        local n = tonumber(value)
+        n = tonumber(value)
         if n and n > 0 then
             getgenv().jumpCooldown = n
         end
@@ -10706,6 +10790,7 @@ end)
             Color = "White"
         })
     end
+    Tabs.Settings:Section({ Title = "Keybinds" })
         Tabs.Settings:Keybind({
         Flag = "Keybind",
         Title = "Keybind",
@@ -10715,7 +10800,9 @@ end)
             Window:SetToggleKey(Enum.KeyCode[RightControl])
         end
     })
-
+Tabs.Settings:Keybind({ Flag = "StartRecord", Title = "Start Recording", Value = "", Callback = StartRecord })
+Tabs.Settings:Keybind({ Flag = "StopRecord",  Title = "Stop Recording",  Value = "", Callback = StopRecord })
+Tabs.Settings:Keybind({ Flag = "PlayTAS",     Title = "Play TAS",        Value = "", Callback = PlayTAS })
 Tabs.Settings:Section({ Title = "Game Settings (In Beta)", TextSize = 35 })
 Tabs.Settings:Section({ Title = "Note: This is a permanent Changes, it's can be used to pass limit value", TextSize = 15 })
 Tabs.Settings:Divider()
@@ -10963,6 +11050,58 @@ Tabs.Settings:Slider({
         scaleGui("LagSwitchGui", value)
     end
 })
+Tabs.Settings:Section({ Title = "UI Visiblety", TextSize = 20 })
+Tabs.Settings:Divider()
+
+TopGuiButtonDropdown = Tabs.Settings:Dropdown({
+    Title = "Top UI Visiblety",
+    Desc = "Show/hide buttons in CustomTopGui",
+    Values = {"SecondaryButton", "ReloadButton", "LeaderboardButton"},
+    Multi = true,
+    AllowNone = true,
+    Value = {"SecondaryButton", "ReloadButton", "LeaderboardButton"},
+    Callback = function(values)
+        playerGui = player.PlayerGui
+        customTopGui = playerGui:FindFirstChild("CustomTopGui")
+        if not customTopGui then return end
+        frame = customTopGui:FindFirstChild("Frame")
+        if not frame then return end
+        rightFrame = frame:FindFirstChild("Right")
+        if not rightFrame then return end
+        
+        buttonNames = {"SecondaryButton", "ReloadButton", "LeaderboardButton"}
+        
+        for _, buttonName in ipairs(buttonNames) do
+            frame = rightFrame:FindFirstChild(buttonName)
+            if frame then
+                frameVisible = false
+                for _, selectedName in ipairs(values) do
+                    if selectedName == buttonName then
+                        frameVisible = true
+                        break
+                    end
+                end
+                frame.Visible = frameVisible
+            end
+        end
+    end
+})
+FPSCounterToggle = Tabs.Settings:Toggle({
+    Title = "Show FPS Counter",
+    Value = true,
+    Callback = function(state)
+        FPSCounter = game:GetService("CoreGui"):FindFirstChild("FPSCounter")
+        if FPSCounter and FPSCounter:IsA("ScreenGui") then
+            FPSCounter.Enabled = state
+        end
+    end
+})
+
+task.wait(0.5)
+FPSCounter = game:GetService("CoreGui"):FindFirstChild("FPSCounter")
+if FPSCounter and FPSCounter:IsA("ScreenGui") then
+    FPSCounterToggle:Set(FPSCounter.Enabled)
+end
 do
      InviteCode = "ny6pJgnR6c"
      DiscordAPI = "https://discord.com/api/v10/invites/" .. InviteCode .. "?with_counts=true&with_expiration=true"
