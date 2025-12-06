@@ -7016,6 +7016,7 @@ Tabs.Settings:Slider({
         WindUI.TransparencyValue = value
     end
 })
+    Tabs.Settings:Section({ Title = "Keybinds" })
         Tabs.Settings:Keybind({
         Flag = "Keybind",
         Title = "Keybind",
@@ -7025,6 +7026,9 @@ Tabs.Settings:Slider({
             Window:SetToggleKey(Enum.KeyCode[RightControl])
         end
     })
+Tabs.Settings:Keybind({ Flag = "StartRecord", Title = "Start Recording", Value = "", Callback = StartRecord })
+Tabs.Settings:Keybind({ Flag = "StopRecord",  Title = "Stop Recording",  Value = "", Callback = StopRecord })
+Tabs.Settings:Keybind({ Flag = "PlayTAS",     Title = "Play TAS",        Value = "", Callback = PlayTAS })
 UpdateConfigList()
 
 lastConfigUpdate = 0
