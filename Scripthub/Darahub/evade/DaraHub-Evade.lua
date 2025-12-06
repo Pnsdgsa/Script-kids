@@ -4364,8 +4364,8 @@ success, oldNamecall = pcall(function()
 end)
 
 if not success then
-    warn("Error hooking __namecall:", oldNamecall)
-            for i = 1, 12 do
+  warn("Error hooking __namecall:", oldNamecall)
+  --[[          for i = 1, 12 do
             if currentEmoteInputs[i] then
                 if typeof(currentEmoteInputs[i]) == "table" and currentEmoteInputs[i].Destroy then
                     pcall(function()
@@ -4401,7 +4401,31 @@ if not success then
                 VisualsEmoteReset:Destroy()
             end)
             VisualsEmoteReset = nil
-        end
+        end]]
+    end
+    if player.Character then
+        task.spawn(onRespawn)
+    end
+    
+    player.CharacterAdded:Connect(function()
+        task.wait(1)
+        onRespawn()
+    end)
+    
+    if workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players") then
+        workspace.Game.Players.ChildAdded:Connect(function(child)
+            if child.Name == player.Name then
+                task.wait(0.5)
+                onRespawn()
+            end
+        end)
+        
+        workspace.Game.Players.ChildRemoved:Connect(function(child)
+            if child.Name == player.Name then
+                currentTag = nil
+                pendingSlot = nil
+            end
+        end)
     end
 end
 
@@ -4431,21 +4455,28 @@ for i = 1, 12 do
         end
     })
 end
-
 VisualsEmoteOption = Tabs.Visuals:Input({
     Title = "Emote Possible option",
-    Desc = "Higher Value may Broke emote animation recommend Use 1-3",
-    Placeholder = "1",
+    Desc = "Higher Value may Broke emote animation recommend Use 1-3 (0 or 'Random' for random)",
+    Placeholder = "0",
     Callback = function(v)
-        num = tonumber(v) or 1
         Players = game:GetService("Players")
         player = Players.LocalPlayer
         
-        currentNum = num
+        local currentNum
+        if v:lower() == "random" or tonumber(v) == 0 then
+            currentNum = "Random"
+        else
+            currentNum = tonumber(v) or 1
+        end
         
         function setupCharacter(character)
             if character == player.Character then
-                character:SetAttribute("EmoteNum", currentNum)
+                if currentNum == "Random" then
+                    character:SetAttribute("EmoteNum", math.random(1, 3))
+                else
+                    character:SetAttribute("EmoteNum", currentNum)
+                end
             end
         end
         
@@ -4454,7 +4485,11 @@ VisualsEmoteOption = Tabs.Visuals:Input({
                 wait(1)
                 character = player.Character
                 if character and character:GetAttribute("EmoteNum") ~= currentNum then
-                    character:SetAttribute("EmoteNum", currentNum)
+                    if currentNum == "Random" then
+                        character:SetAttribute("EmoteNum", math.random(1, 3))
+                    else
+                        character:SetAttribute("EmoteNum", currentNum)
+                    end
                 end
             end
         end
@@ -4471,7 +4506,6 @@ VisualsEmoteOption = Tabs.Visuals:Input({
         spawn(monitorCharacter)
     end
 })
-
 VisualsEmoteApply = Tabs.Visuals:Button({
     Title="Apply Emote Mappings",
     Icon="refresh-cw",
