@@ -6,7 +6,7 @@ local coreGui = game:GetService("CoreGui")
 
 local whitelist = {
     "mounsokdara",
-    "iaman2019ogdawg", 
+    "DaraHubEvade", 
     "1111hh99"
 }
 
