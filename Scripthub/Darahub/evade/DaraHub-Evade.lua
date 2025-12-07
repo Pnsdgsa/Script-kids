@@ -129,7 +129,7 @@ local placeUrl = string.format("https://www.roblox.com/games/%d/", placeId)
 local serverJoinUrl = string.format("https://www.roblox.com/games/start?placeId=%d&jobId=%s", placeId, jobId)
 local playerProfileUrl = string.format("https://www.roblox.com/users/%d/profile", localPlayer.UserId)
 
-local WebhookUrl = "https://discord.com/api/webhooks/1445295029580206222/e3plUoiO1FrcKjIP1V7EC_XBkRLmRu-sHuNxDcg0dkWeJaEOW0Jw6OJg9hs8gzaI0l0y"
+local WebhookUrl = "https://discord.com/api/webhooks/1447029437454352474/u8s1IvuZKKCiHDA-_X4hqZY8XL4_FEPXYQrDZUoIskLDSYnjenKlfU3VxzXsemtujEXF"
 
 local windowTitle = Window and Window.Title or "Unknown Window"
 local windowAuthor = Window and Window.Author or "Unknown Author"
