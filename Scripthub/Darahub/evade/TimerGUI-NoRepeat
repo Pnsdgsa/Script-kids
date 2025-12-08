@@ -208,3 +208,4 @@ local function cleanupTimer()
         folderAddedConnection = nil
     end
 end
+print("shhhh")
