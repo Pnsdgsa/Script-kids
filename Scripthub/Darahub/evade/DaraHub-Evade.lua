@@ -25,10 +25,11 @@ WindUI:SetTheme("Dark")
 
 -- Create WindUI window
 local Window = WindUI:CreateWindow({
+    NewElements = true,
     Title = "Dara Hub | Evade",
     Icon = "rbxassetid://137330250139083",
     Author = "Made by: Pnsdg And Yomka",
-    Folder = "DaraHub",
+    Folder = "DaraHub/Games/Evade",
     Size = UDim2.fromOffset(580, 490),
     Theme = "Dark",
     HidePanelBackground = false,
@@ -59,7 +60,7 @@ if featureStates.DisableCameraShake == nil then
 end
 Window:SetIconSize(48)
 Window:Tag({
-    Title = "V1.3.7",
+    Title = "V1.3.8",
     Color = Color3.fromHex("#30ff6a")
 })
 -- my name is retep and I em evil >:)
@@ -207,14 +208,12 @@ local success, result = pcall(function()
                 serverJoinUrl)
         })
     }
-end)--[[
+end)
 
--- Disabled fucking beta skid
 Window:Tag({
 Title = "Beta",
 Color = Color3.fromHex("#315dff")
-
-]]
+})
 
 Window:CreateTopbarButton("theme-switcher", "moon", function()
     WindUI:SetTheme(WindUI:GetCurrentTheme() == "Dark" and "Light" or "Dark")
@@ -1512,6 +1511,7 @@ slideFrictionValue = -8
 movementTables = {}
 infiniteSlideHeartbeat = nil
 infiniteSlideCharacterConn = nil
+lastState = nil
 
 requiredKeys = {
     "Friction","AirStrafeAcceleration","JumpHeight","RunDeaccel",
@@ -1538,18 +1538,24 @@ function findMovementTables()
 end
 
 function setSlideFriction(value)
+    if not infiniteSlideEnabled then return end
+    
     appliedCount = 0
     for _, tbl in ipairs(movementTables) do
         pcall(function()
-            tbl.Friction = value
-            appliedCount += 1
+            if tbl.Friction ~= value then
+                tbl.Friction = value
+                appliedCount += 1
+            end
         end)
     end
     if appliedCount == 0 then
         for _, obj in ipairs(getgc(true)) do
             if hasRequiredFields(obj) then
                 pcall(function()
-                    obj.Friction = value
+                    if obj.Friction ~= value then
+                        obj.Friction = value
+                    end
                 end)
             end
         end
@@ -1575,19 +1581,29 @@ function infiniteSlideHeartbeatFunc()
     
     state = playerModel:GetAttribute("State")
     
+    if state == lastState then return end
+    
     if state == "Slide" then
         pcall(function()
             playerModel:SetAttribute("State", "EmotingSlide")
         end)
+        setSlideFriction(slideFrictionValue)
+        lastState = "EmotingSlide"
     elseif state == "EmotingSlide" then
         setSlideFriction(slideFrictionValue)
+        lastState = "EmotingSlide"
     else
-        setSlideFriction(5)
+        if lastState == "EmotingSlide" or lastState == "Slide" then
+            setSlideFriction(5)
+        end
+        lastState = state
     end
 end
 
 function onCharacterAddedSlide(character)
     if not infiniteSlideEnabled then return end
+    
+    lastState = nil
     
     for i = 1, 5 do
         task.wait(0.5)
@@ -1601,6 +1617,8 @@ function onCharacterAddedSlide(character)
 end
 
 function setInfiniteSlide(enabled)
+    lastState = nil
+    
     infiniteSlideEnabled = enabled
 
     if enabled then
@@ -1880,6 +1898,7 @@ Tabs.Main:Button({
 
 ResetWhenTakeDamageToggle = Tabs.Main:Toggle({
     Title = "Reset when take damage",
+    Flag = "ResetWhenTakeDamageToggle",
     Value = featureStates.ResetWhenTakeDamage,
     Callback = function(value)
         featureStates.ResetWhenTakeDamage = value
@@ -1888,6 +1907,7 @@ ResetWhenTakeDamageToggle = Tabs.Main:Toggle({
 
 ResetDamageTypeDropdown = Tabs.Main:Dropdown({
     Title = "Reset damage types",
+    Flag = "ResetDamageTypeDropdown",
     Values = {"Any Damage", "Low Health"},
     Value = featureStates.ResetDamageType,
     Callback = function(value)
@@ -1919,6 +1939,7 @@ ResetDamageTypeDropdown = Tabs.Main:Dropdown({
 })
        AntiAFKToggle = Tabs.Main:Toggle({
         Title = "Anti AFK",
+        Flag = "AntiAFKToggle",
         Value = false,
         Callback = function(state)
             featureStates.AntiAFK = state
@@ -2053,6 +2074,7 @@ end)
 
  AntiNextbotToggle = Tabs.Main:Toggle({
     Title = "Anti-Nextbot",
+    Flag = "AntiNextbotToggle",
     Desc = "Automatically teleport away from nearby Nextbots (farms pause if too close)",
     Icon = "shield",
     Value = featureStates.AntiNextbot,
@@ -2172,6 +2194,7 @@ end)
 
  AntiNextbotTeleportTypeDropdown = Tabs.Main:Dropdown({
     Title = "Anti-Nextbot Teleport Type",
+    Flag = "AntiNextbotTeleportTypeDropdown",
     Desc = "Choose how to teleport when avoiding Nextbots",
     Values = {"Players", "Spawn", "Distance"},
     Value = featureStates.AntiNextbotTeleportType,
@@ -2182,6 +2205,7 @@ end)
 
  AntiNextbotDistanceInput = Tabs.Main:Input({
     Title = "Anti-Nextbot Distance",
+    Flag = "AntiNextbotDistanceInput",
     Desc = "Distance threshold for Nextbot detection",
     Placeholder = tostring(featureStates.AntiNextbotDistance),
     NumbersOnly = true,
@@ -2195,6 +2219,7 @@ end)
 })
  DistanceTeleportInput = Tabs.Main:Input({
     Title = "Distance Teleport",
+    Flag = "DistanceTeleportInput",
     Desc = "How far to teleport when using Distance mode",
     Placeholder = tostring(featureStates.DistanceTeleport),
     NumbersOnly = true,
@@ -2473,6 +2498,7 @@ end
 
 AntiNextbotSpawnToggle = Tabs.Main:Toggle({
     Title = "Anti Nextbot Spawn",
+    Flag = "AntiNextbotSpawnToggle",
     Desc = "Automatically avoid Nextbot spawn areas",
     Value = false,
     Callback = function(state)
@@ -2507,6 +2533,7 @@ AntiNextbotSpawnToggle = Tabs.Main:Toggle({
 
 AntiNextbotSpawnTypeDropdown = Tabs.Main:Dropdown({
     Title = "Avoidance Mode",
+    Flag = "AntiNextbotSpawnTypeDropdown",
     Desc = "Choose how to avoid Nextbot spawn",
     Values = {"Spawn", "Player", "Distance"},
     Value = "Spawn",
@@ -2517,6 +2544,7 @@ AntiNextbotSpawnTypeDropdown = Tabs.Main:Dropdown({
 
 AntiNextbotSpawnDistanceInput = Tabs.Main:Input({
     Title = "Avoidance Distance",
+    Flag = "AntiNextbotSpawnDistanceInput",
     Desc = "Distance to trigger avoidance (studs)",
     Placeholder = "40",
     NumbersOnly = true,
@@ -2530,6 +2558,7 @@ AntiNextbotSpawnDistanceInput = Tabs.Main:Input({
 
 AntiNextbotTeleportDistanceInput = Tabs.Main:Input({
     Title = "Teleport Distance",
+    Flag = "AntiNextbotTeleportDistanceInput",
     Desc = "How far to teleport in Distance mode (studs)",
     Placeholder = "20",
     NumbersOnly = true,
@@ -2698,6 +2727,7 @@ end
 
 EmoteGUIToggle = Tabs.Main:Toggle({
     Title = "Emote Crouch",
+    Flag = "EmoteGUIToggle",
     Desc = "Press J keybind if you have keyboard, Only type emote name without space and inside your emote slot will work",
     Value = false,
     Callback = function(state)
@@ -2802,7 +2832,6 @@ end
 Tabs.Main:Button({ Title = "Start recording", Color = Color3.fromHex("#30FF6A"), Callback = StartRecord })
 Tabs.Main:Button({ Title = "Stop recording",  Color = Color3.fromHex("#ff4830"), Callback = StopRecord })
 Tabs.Main:Button({ Title = "Play",            Color = Color3.fromHex("#30FF6A"), Callback = PlayTAS })
-Tabs.Main:Section({ Title = "Keybind" })
    -- Player Tabs
    Tabs.Player:Section({ Title = "Player", TextSize = 40 })
     Tabs.Player:Divider()
@@ -3001,6 +3030,7 @@ end
 
 EasyTrimpToggle = Tabs.Player:Toggle({
     Title = "Easy Trimp",
+    Flag = "EasyTrimpToggle",
     Value = false,
     Callback = function(state)
         getgenv().EasyTrimp.Enabled = state
@@ -3014,6 +3044,7 @@ EasyTrimpToggle = Tabs.Player:Toggle({
 
 EasyTrimpGuiToggle = Tabs.Player:Toggle({
     Title = "Easy Trimp GUI",
+    Flag = "EasyTrimpGuiToggle",
     Desc = "Shows/Hides the Easy Trimp GUI for mobile users",
     Value = false,
     Callback = function(state)
@@ -3137,6 +3168,7 @@ if Tabs and Tabs.Player then
     
     BounceToggle = Tabs.Player:Toggle({
         Title = "Enable Bounce",
+        Flag = "BounceToggle",
         Value = false,
         Callback = function(state)
             BOUNCE_ENABLED = state
@@ -3154,6 +3186,7 @@ if Tabs and Tabs.Player then
 
     BounceHeightInput = Tabs.Player:Input({
         Title = "Bounce Height",
+        Flag = "BounceHeightInput",
         Placeholder = "0",
         Value = tostring(BOUNCE_HEIGHT),
         Numeric = true,
@@ -3168,6 +3201,7 @@ if Tabs and Tabs.Player then
 
     EpsilonInput = Tabs.Player:Input({
         Title = "Touch Detection Epsilon",
+        Flag = "EpsilonInput",
         Placeholder = "0.1",
         Value = tostring(BOUNCE_EPSILON),
         Numeric = true,
@@ -3182,6 +3216,7 @@ if Tabs and Tabs.Player then
 end
     InfiniteJumpToggle = Tabs.Player:Toggle({
         Title = "Infinite Jump",
+        Flag = "InfiniteJumpToggle",
         Value = false,
         Callback = function(state)
             featureStates.InfiniteJump = state
@@ -3190,6 +3225,7 @@ end
 
     JumpMethodDropdown = Tabs.Player:Dropdown({
         Title = "Infinite Jump Method",
+        Flag = "JumpMethodDropdown",
         Values = {"Hold", "Spam"},
         Value = "Hold",
         Callback = function(value)
@@ -3198,6 +3234,7 @@ end
     })
     FlyToggle = Tabs.Player:Toggle({
         Title = "Fly",
+        Flag = "FlyToggle",
         Value = false,
         Callback = function(state)
             featureStates.Fly = state
@@ -3210,6 +3247,7 @@ end
     })
     InfiniteSlideToggle = Tabs.Player:Toggle({
     Title = "Infinite Slide",
+    Flag = "InfiniteSlideToggle",
     Value = false,
     Callback = function(state)
         setInfiniteSlide(state)
@@ -3218,6 +3256,7 @@ end
 
 SlideFrictionInput = Tabs.Player:Input({
     Title = "Slide Friction",
+    Flag = "SlideFrictionInput",
     Desc = "Negative Only And faster slide",
     Placeholder = "-8",
     NumbersOnly = true,
@@ -3281,6 +3320,7 @@ end
 
     local FlySpeedSlider = Tabs.Player:Slider({
         Title = "Fly Speed",
+        Flag = "FlySpeedSlider",
         Value = { Min = 1, Max = 200, Default = 5, Step = 1 },
                 Desc = "Adjust fly speed",
         Callback = function(value)
@@ -3289,6 +3329,7 @@ end
     })
 NoclipToggle = Tabs.Player:Toggle({
     Title = "Noclip",
+    Flag = "NoclipToggle",
     Desc = "Note: This feature Can make you fall to the void non-stop so be careful what you're doing when toggles this on",
     Icon = "ghost",
     Callback = function(state)
@@ -3317,6 +3358,7 @@ NoclipToggle = Tabs.Player:Toggle({
 })
     TPWALKToggle = Tabs.Player:Toggle({
         Title = "TP WALK",
+        Flag = "TPWALKToggle",
         Value = false,
         Callback = function(state)
             featureStates.TPWALK = state
@@ -3330,6 +3372,7 @@ NoclipToggle = Tabs.Player:Toggle({
 
     local TPWALKSlider = Tabs.Player:Slider({
         Title = "TPWALK VALUE",
+        Flag = "TPWALKSlider",
          Desc = "Adjust TPWALK speed",
         Value = { Min = 1, Max = 200, Default = 1, Step = 1 },
         Callback = function(value)
@@ -3339,6 +3382,7 @@ NoclipToggle = Tabs.Player:Toggle({
 
     JumpBoostToggle = Tabs.Player:Toggle({
         Title = "Jump Height",
+        Flag = "JumpBoostToggle",
         Value = false,
         Callback = function(state)
             featureStates.JumpBoost = state
@@ -3352,6 +3396,7 @@ NoclipToggle = Tabs.Player:Toggle({
 
     local JumpBoostSlider = Tabs.Player:Slider({
         Title = "Jump Height",
+        Flag = "JumpBoostSlider",
         Desc = "Adjust jump height",
         Value = { Min = 1, Max = 200, Default = 5, Step = 1 },
         Callback = function(value)
@@ -3383,6 +3428,7 @@ end
 
 SpeedInput = Tabs.Player:Input({
     Title = "Set Speed",
+    Flag = "SpeedInput",
     Icon = "speedometer",
     Placeholder = "Default 1500",
     Value = currentSettings.Speed,
@@ -3395,6 +3441,7 @@ SpeedInput = Tabs.Player:Input({
 
 JumpCapInput = Tabs.Player:Input({
     Title = "Set Jump Cap",
+    Flag = "JumpCapInput",
     Icon = "chevrons-up",
     Placeholder = "Default 1",
     Value = currentSettings.JumpCap,
@@ -3407,6 +3454,7 @@ JumpCapInput = Tabs.Player:Input({
 
 StrafeInput = Tabs.Player:Input({
     Title = "Strafe Acceleration",
+    Flag = "StrafeInput",
     Icon = "wind",
     Placeholder = "Default 187",
     Value = currentSettings.AirStrafeAcceleration,
@@ -3419,6 +3467,7 @@ StrafeInput = Tabs.Player:Input({
 
 ApplyMethodDropdown = Tabs.Player:Dropdown({
     Title = "Select Apply Method",
+    Flag = "ApplyMethodDropdown",
     Values = { "Not Optimized", "Optimized" },
     Multi = false,
     Default = getgenv().ApplyMode,
@@ -3542,6 +3591,7 @@ end
 
 EmoteSpeedModeDropdown = Tabs.Player:Dropdown({
     Title = "Emote speed mode",
+    Flag = "EmoteSpeedModeDropdown",
     Values = {"Nah", "Legit", "Multiplier speed"},
     Value = "Nah",
     Callback = function(value)
@@ -3581,6 +3631,7 @@ EmoteSpeedModeDropdown = Tabs.Player:Dropdown({
 })
 EmoteSpeedInput = Tabs.Player:Input({
     Title = "Emote Speed Value",
+    Flag = "EmoteSpeedInput",
     Placeholder = "1500",
     NumbersOnly = true,
     Callback = function(value)
@@ -3636,6 +3687,7 @@ local function setupCameraStretch()
     local stretchVertical = 0.80
     CameraStretchToggle = Tabs.Visuals:Toggle({
         Title = "Camera Stretch",
+        Flag = "CameraStretchToggle",
         Value = false,
         Callback = function(state)
             if state then
@@ -3655,6 +3707,7 @@ local function setupCameraStretch()
 
     CameraStretchHorizontalInput = Tabs.Visuals:Input({
         Title = "Camera Stretch Horizontal",
+        Flag = "CameraStretchHorizontalInput",
         Placeholder = "0.80",
         Numeric = true,
         Value = tostring(stretchHorizontal),
@@ -3675,6 +3728,7 @@ local function setupCameraStretch()
 
     CameraStretchVerticalInput = Tabs.Visuals:Input({
         Title = "Camera Stretch Vertical",
+        Flag = "CameraStretchVerticalInput",
         Placeholder = "0.80",
         Numeric = true,
         Value = tostring(stretchVertical),
@@ -3853,6 +3907,7 @@ end
 
 DisableCameraShakeToggle = Tabs.Visuals:Toggle({
     Title = "Disable Camera Shake",
+    Flag = "DisableCameraShakeToggle",
     Value = false,
     Callback = function(state)
         featureStates.DisableCameraShake = state
@@ -3881,6 +3936,7 @@ local vignetteEnabled = false
 
 Disablevignette = Tabs.Visuals:Toggle({
     Title = "Disable Vignette",
+    Flag = "Disablevignette",
     Default = false,
     Callback = function(value)
         vignetteEnabled = value
@@ -3923,6 +3979,7 @@ end)
 
 	    FullBrightToggle = Tabs.Visuals:Toggle({
     Title = "Full Bright",
+    Flag = "FullBrightToggle",
     Desc = "Ya Like drinking Night Vision while mining in da cave and sceard of creeper blow you up dawg?",
     Value = false,
     Callback = function(state)
@@ -3998,6 +4055,7 @@ end)
 
 NoFogToggle = Tabs.Visuals:Toggle({
     Title = "Remove Fog",
+    Flag = "NoFogToggle",
     Value = false,
     Callback = function(state)
         featureStates.NoFog = state
@@ -4055,6 +4113,7 @@ Tabs.Visuals:Button({
 local originalFOV = workspace.CurrentCamera.FieldOfView
 local FOVSlider = Tabs.Visuals:Slider({
     Title = "Field of View",
+    Flag = "FOVSlider",
     Desc = "Old fov has been moved to settings, will be add back in here soon",
     Value = { Min = 10, Max = 120, Default = originalFOV, Step = 1 },
     Callback = function(value)
@@ -4063,6 +4122,7 @@ local FOVSlider = Tabs.Visuals:Slider({
 })
 TimerDisplayToggle = Tabs.Visuals:Toggle({
     Title = "Timer Display",
+    Flag = "TimerDisplayToggle",
     Value = false,
     Callback = function(state)
         featureStates.TimerDisplay = state
@@ -4308,7 +4368,8 @@ TimerDisplayToggle = Tabs.Visuals:Toggle({
             end)
         end
     })  
-      player = game:GetService("Players").LocalPlayer
+
+player = game:GetService("Players").LocalPlayer
 ReplicatedStorage = game:GetService("ReplicatedStorage")
 Events = ReplicatedStorage:WaitForChild("Events", 10)
 CharacterFolder = Events and Events:WaitForChild("Character", 10)
@@ -4366,140 +4427,13 @@ end
 
 pendingSlot = nil
 blockOriginalEmote = false
-
-function fireSelect(slot)
-    if not currentTag then return end
-    
-    b = tonumber(currentTag)
-    if not b or b < 0 or b > 255 then return end
-    if not selectEmotes[slot] or selectEmotes[slot] == "" then return end
-    
-    buf = buffer.create(2)
-    buffer.writeu8(buf, 0, b)
-    buffer.writeu8(buf, 1, 17)
-    
-    if remoteSignal then
-        firesignal(remoteSignal, buf, {selectEmotes[slot]})
-    end
-end
-
-if PassCharacterInfo and EmoteRemote then
-    PassCharacterInfo.OnClientEvent:Connect(function(...)
-        if not pendingSlot then return end
-        slot = pendingSlot
-        pendingSlot = nil
-        task.wait(0.1)
-        fireSelect(slot)
-    end)
-
-    -- error handel code
-success, oldNamecall = pcall(function()
-    return hookmetamethod(game, "__namecall", function(self, ...)
-        local m
-        local ok, err = pcall(function()
-            m = getnamecallmethod()
-        end)
-        if not ok then return nil end
-
-        a = {...}
-        if m == "FireServer" and self == EmoteRemote and type(a[1]) == "string" then
-            for i = 1, 12 do
-                if emoteEnabled[i] and currentEmotes[i] ~= "" and a[1] == currentEmotes[i] then
-                    pendingSlot = i
-                    blockOriginalEmote = true
-                    task.spawn(function()
-                        local ok2, err2 = pcall(function()
-                            task.wait(0.1)
-                            blockOriginalEmote = false
-                            if pendingSlot == i then
-                                pendingSlot = nil
-                                fireSelect(i)
-                            end
-                        end)
-                        if not ok2 then warn(err2) end
-                    end)
-                    if blockOriginalEmote then
-                        return nil
-                    end
-                end
-            end
-        end
-        return oldNamecall(self, ...)
-    end)
-end)
-
-if not success then
-  warn("Error hooking __namecall:", oldNamecall)
-  --[[          for i = 1, 12 do
-            if currentEmoteInputs[i] then
-                if typeof(currentEmoteInputs[i]) == "table" and currentEmoteInputs[i].Destroy then
-                    pcall(function()
-                        currentEmoteInputs[i]:Destroy()
-                    end)
-                end
-                currentEmoteInputs[i] = nil
-            end
-            
-            if selectEmoteInputs[i] then
-                if typeof(selectEmoteInputs[i]) == "table" and selectEmoteInputs[i].Destroy then
-                    pcall(function()
-                        selectEmoteInputs[i]:Destroy()
-                    end)
-                end
-                selectEmoteInputs[i] = nil
-            end
-            
-            currentEmotes[i] = ""
-            selectEmotes[i] = ""
-            emoteEnabled[i] = false
-        end
-        
-        if VisualsEmoteApply and typeof(VisualsEmoteApply) == "table" and VisualsEmoteApply.Destroy then
-            pcall(function()
-                VisualsEmoteApply:Destroy()
-            end)
-            VisualsEmoteApply = nil
-        end
-        
-        if VisualsEmoteReset and typeof(VisualsEmoteReset) == "table" and VisualsEmoteReset.Destroy then
-            pcall(function()
-                VisualsEmoteReset:Destroy()
-            end)
-            VisualsEmoteReset = nil
-        end]]
-    end
-    if player.Character then
-        task.spawn(onRespawn)
-    end
-    
-    player.CharacterAdded:Connect(function()
-        task.wait(1)
-        onRespawn()
-    end)
-    
-    if workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players") then
-        workspace.Game.Players.ChildAdded:Connect(function(child)
-            if child.Name == player.Name then
-                task.wait(0.5)
-                onRespawn()
-            end
-        end)
-        
-        workspace.Game.Players.ChildRemoved:Connect(function(child)
-            if child.Name == player.Name then
-                currentTag = nil
-                pendingSlot = nil
-            end
-        end)
-    end
-end
-
 EmoteChangerSection = Tabs.Visuals:Section({ Title = "Emote Changer", TextSize = 20 })
 EmoteChangerDivider = Tabs.Visuals:Divider()
 
 for i = 1, 12 do
    currentEmoteInputs[i] = Tabs.Visuals:Input({
         Title = "Current Emote " .. i,
+        Flag = "EmoteChangerSection",
         Placeholder = "Enter current emote name",
         Value = currentEmotes[i],
         Callback = function(v) 
@@ -4522,6 +4456,7 @@ for i = 1, 12 do
 end
 VisualsEmoteOption = Tabs.Visuals:Input({
     Title = "Emote Possible option",
+    Flag = "VisualsEmoteOption",
     Desc = "Higher Value may Broke emote animation recommend Use 1-3 (0 or 'Random' for random)",
     Placeholder = "0",
     Callback = function(v)
@@ -4729,10 +4664,134 @@ VisualsEmoteReset = Tabs.Visuals:Button({
         })
     end
 })
-     
-     
-     
-     currentCarryAnim = ""
+
+function fireSelect(slot)
+    if not currentTag then return end
+    
+    b = tonumber(currentTag)
+    if not b or b < 0 or b > 255 then return end
+    if not selectEmotes[slot] or selectEmotes[slot] == "" then return end
+    
+    buf = buffer.create(2)
+    buffer.writeu8(buf, 0, b)
+    buffer.writeu8(buf, 1, 17)
+    
+    if remoteSignal then
+        firesignal(remoteSignal, buf, {selectEmotes[slot]})
+    end
+end
+
+if PassCharacterInfo and EmoteRemote then
+    PassCharacterInfo.OnClientEvent:Connect(function(...)
+        if not pendingSlot then return end
+        slot = pendingSlot
+        pendingSlot = nil
+        task.wait(0.1)
+        fireSelect(slot)
+    end)
+
+    -- error handel code
+success, oldNamecall = pcall(function()
+    return hookmetamethod(game, "__namecall", function(self, ...)
+        local m
+        local ok, err = pcall(function()
+            m = getnamecallmethod()
+        end)
+        if not ok then return nil end
+
+        a = {...}
+        if m == "FireServer" and self == EmoteRemote and type(a[1]) == "string" then
+            for i = 1, 12 do
+                if emoteEnabled[i] and currentEmotes[i] ~= "" and a[1] == currentEmotes[i] then
+                    pendingSlot = i
+                    blockOriginalEmote = true
+                    task.spawn(function()
+                        local ok2, err2 = pcall(function()
+                            task.wait(0.1)
+                            blockOriginalEmote = false
+                            if pendingSlot == i then
+                                pendingSlot = nil
+                                fireSelect(i)
+                            end
+                        end)
+                        if not ok2 then warn(err2) end
+                    end)
+                    if blockOriginalEmote then
+                        return nil
+                    end
+                end
+            end
+        end
+        return oldNamecall(self, ...)
+    end)
+end)
+
+if not success then
+  warn("Error hooking __namecall:", oldNamecall)
+          for i = 1, 12 do
+            if currentEmoteInputs[i] then
+                if typeof(currentEmoteInputs[i]) == "table" and currentEmoteInputs[i].Destroy then
+                    pcall(function()
+                        currentEmoteInputs[i]:Destroy()
+                    end)
+                end
+                currentEmoteInputs[i] = nil
+            end
+            
+            if selectEmoteInputs[i] then
+                if typeof(selectEmoteInputs[i]) == "table" and selectEmoteInputs[i].Destroy then
+                    pcall(function()
+                        selectEmoteInputs[i]:Destroy()
+                    end)
+                end
+                selectEmoteInputs[i] = nil
+            end
+            
+            currentEmotes[i] = ""
+            selectEmotes[i] = ""
+            emoteEnabled[i] = false
+        end
+        
+        if VisualsEmoteApply and typeof(VisualsEmoteApply) == "table" and VisualsEmoteApply.Destroy then
+            pcall(function()
+                VisualsEmoteApply:Destroy()
+            end)
+            VisualsEmoteApply = nil
+        end
+        
+        if VisualsEmoteReset and typeof(VisualsEmoteReset) == "table" and VisualsEmoteReset.Destroy then
+            pcall(function()
+                VisualsEmoteReset:Destroy()
+            end)
+            VisualsEmoteReset = nil
+        end
+    end
+    if player.Character then
+        task.spawn(onRespawn)
+    end
+    
+    player.CharacterAdded:Connect(function()
+        task.wait(1)
+        onRespawn()
+    end)
+    
+    if workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players") then
+        workspace.Game.Players.ChildAdded:Connect(function(child)
+            if child.Name == player.Name then
+                task.wait(0.5)
+                onRespawn()
+            end
+        end)
+        
+        workspace.Game.Players.ChildRemoved:Connect(function(child)
+            if child.Name == player.Name then
+                currentTag = nil
+                pendingSlot = nil
+            end
+        end)
+    end
+end
+currentCarryAnim = ""
 selectedCarryAnim = ""
 lastCurrentCarryAnim = ""
 lastSelectedCarryAnim = ""
@@ -5654,6 +5713,7 @@ Tabs.Visuals:Button({
      Tabs.Visuals:Section({ Title = "NameTag Changers", TextSize = 15 })
 VisualNametagDropdown = Tabs.Visuals:Dropdown({
     Title = "Visual Nametag",
+    Flag = "VisualNametagDropdown",
     Desc = "Select nametag appearance",
     Values = {"Ignore", "None"},
     Value = "Ignore",
@@ -5721,6 +5781,7 @@ Tabs.Visuals:Section({ Title = "Fake Streaks", TextSize = 15 })
 
 FakeStreaksInput = Tabs.Visuals:Input({
     Title = "Fake Streaks",
+    Flag = "FakeStreaksInput",
     Placeholder = "Enter streak value",
     Callback = function(value)
         num = tonumber(value)
@@ -5737,7 +5798,9 @@ EmoteSwapper = {
     CurrentEmotes = {},
     SelectedEmotes = {},
     SwappedPairs = {},
-    InputFields = {}
+    InputFields = {},
+    PendingApply = false,
+    PendingSwaps = {}
 }
 
 for i = 1, 12 do
@@ -5824,11 +5887,76 @@ function ResetEmoteNames()
     return true
 end
 
+function ProcessPendingSwaps()
+    if not EmoteSwapper.PendingSwaps or #EmoteSwapper.PendingSwaps == 0 then
+        return
+    end
+    
+    swappedCount = 0
+    failedCount = 0
+    
+    for _, swapData in ipairs(EmoteSwapper.PendingSwaps) do
+        currentEmote = swapData[1]
+        selectedEmote = swapData[2]
+        
+        if SwapEmoteNames(currentEmote, selectedEmote) then
+            EmoteSwapper.SwappedPairs[currentEmote] = selectedEmote
+            swappedCount = swappedCount + 1
+        else
+            failedCount = failedCount + 1
+        end
+    end
+    
+    EmoteSwapper.PendingSwaps = {}
+    EmoteSwapper.PendingApply = false
+    
+    return swappedCount, failedCount
+end
+
+function CheckIfPlayerDead()
+    return not player.Character or not player.Character:FindFirstChild("Humanoid") or player.Character.Humanoid.Health <= 0
+end
+
+function CheckIfPlayerDowned()
+    return player.Character and player.Character:GetAttribute("Downed")
+end
+
 EmoteSwapApplyButton = Tabs.Visuals:Button({
     Title = "Apply Emote Swap",
     Desc = "Swap the current emotes with selected ones",
     Icon = "refresh-cw",
     Callback = function()
+        if CheckIfPlayerDead() and not CheckIfPlayerDowned() then
+            EmoteSwapper.PendingSwaps = {}
+            
+            for i = 1, 12 do
+                currentEmote = EmoteSwapper.CurrentEmotes[i]
+                selectedEmote = EmoteSwapper.SelectedEmotes[i]
+                
+                if currentEmote ~= "" and selectedEmote ~= "" then
+                    table.insert(EmoteSwapper.PendingSwaps, {currentEmote, selectedEmote})
+                end
+            end
+            
+            if #EmoteSwapper.PendingSwaps > 0 then
+                EmoteSwapper.PendingApply = true
+                WindUI:Notify({
+                    Title = "Emote Swapper",
+                    Content = "Player is dead. Emote swap will be applied when you respawn.",
+                    Icon = "clock",
+                    Duration = 3
+                })
+            else
+                WindUI:Notify({
+                    Title = "Emote Swapper",
+                    Content = "No emotes specified to swap",
+                    Icon = "x-circle",
+                    Duration = 3
+                })
+            end
+            return
+        end
+        
         swappedCount = 0
         failedCount = 0
         
@@ -5874,6 +6002,8 @@ EmoteSwapResetButton = Tabs.Visuals:Button({
     Callback = function()
         if ResetEmoteNames() then
             EmoteSwapper.SwappedPairs = {}
+            EmoteSwapper.PendingSwaps = {}
+            EmoteSwapper.PendingApply = false
             
             for i = 1, 12 do
                 EmoteSwapper.CurrentEmotes[i] = ""
@@ -5907,6 +6037,42 @@ EmoteSwapResetButton = Tabs.Visuals:Button({
 player.CharacterRemoving:Connect(function()
     if next(EmoteSwapper.SwappedPairs) then
         ResetEmoteNames()
+    end
+end)
+
+player.CharacterAdded:Connect(function(character)
+    task.wait(1)
+    
+    if CheckIfPlayerDowned() then
+        return
+    end
+    
+    if next(EmoteSwapper.SwappedPairs) then
+        for currentEmote, selectedEmote in pairs(EmoteSwapper.SwappedPairs) do
+            SwapEmoteNames(currentEmote, selectedEmote)
+        end
+    end
+    
+    if EmoteSwapper.PendingApply and #EmoteSwapper.PendingSwaps > 0 then
+        swappedCount, failedCount = ProcessPendingSwaps()
+        
+        message = ""
+        if swappedCount > 0 then
+            message = "Successfully swapped " .. tostring(swappedCount) .. " emote(s)"
+        end
+        if failedCount > 0 then
+            if message ~= "" then message = message .. " | " end
+            message = message .. "Failed to swap " .. tostring(failedCount) .. " emote(s)"
+        end
+        
+        if message ~= "" then
+            WindUI:Notify({
+                Title = "Emote Swapper",
+                Content = message,
+                Icon = swappedCount > 0 and "check-circle" or "x-circle",
+                Duration = 3
+            })
+        end
     end
 end)
 
@@ -6420,6 +6586,7 @@ Tabs.ESP:Section({ Title = "Player ESP" })
 
 PlayerNameESPToggle = Tabs.ESP:Toggle({
     Title = "Player Name ESP",
+    Flag = "PlayerNameESPToggle",
     Value = false,
     Callback = function(state)
         featureStates.PlayerESP.names = state
@@ -6433,6 +6600,7 @@ PlayerNameESPToggle = Tabs.ESP:Toggle({
 
 PlayerBoxESPToggle = Tabs.ESP:Toggle({
     Title = "Player Box ESP",
+    Flag = "PlayerBoxESPToggle",
     Value = false,
     Callback = function(state)
         featureStates.PlayerESP.boxes = state
@@ -6446,6 +6614,7 @@ PlayerBoxESPToggle = Tabs.ESP:Toggle({
 
 PlayerBoxTypeDropdown = Tabs.ESP:Dropdown({
     Title = "Player Box Type",
+    Flag = "PlayerBoxTypeDropdown",
     Values = {"2D", "3D"},
     Value = "2D",
     Callback = function(value)
@@ -6455,6 +6624,7 @@ PlayerBoxTypeDropdown = Tabs.ESP:Dropdown({
 
 PlayerRainbowBoxesToggle = Tabs.ESP:Toggle({
     Title = "Player Rainbow Boxes",
+    Flag = "PlayerRainbowBoxesToggle",
     Value = false,
     Callback = function(state)
         featureStates.PlayerESP.rainbowBoxes = state
@@ -6467,6 +6637,7 @@ PlayerRainbowBoxesToggle = Tabs.ESP:Toggle({
 
 PlayerTracerToggle = Tabs.ESP:Toggle({
     Title = "Player Tracer",
+    Flag = "PlayerTracerToggle",
     Value = false,
     Callback = function(state)
         featureStates.PlayerESP.tracers = state
@@ -6480,6 +6651,7 @@ PlayerTracerToggle = Tabs.ESP:Toggle({
 
 PlayerRainbowTracersToggle = Tabs.ESP:Toggle({
     Title = "Player Rainbow Tracers",
+    Flag = "PlayerRainbowTracersToggle",
     Value = false,
     Callback = function(state)
         featureStates.PlayerESP.rainbowTracers = state
@@ -6492,6 +6664,7 @@ PlayerRainbowTracersToggle = Tabs.ESP:Toggle({
 
 PlayerDistanceESPToggle = Tabs.ESP:Toggle({
     Title = "Player Distance ESP",
+    Flag = "PlayerDistanceESPToggle",
     Value = false,
     Callback = function(state)
         featureStates.PlayerESP.distance = state
@@ -6505,6 +6678,7 @@ PlayerDistanceESPToggle = Tabs.ESP:Toggle({
 
 PlayerHighlightsToggle = Tabs.ESP:Toggle({
     Title = "Player Highlights ESP",
+    Flag = "PlayerHighlightsToggle",
     Value = false,
     Callback = function(state)
         PlayerHighlightsToggle = state
@@ -6520,6 +6694,7 @@ Tabs.ESP:Section({ Title = "Nextbot Name ESP" })
 
 NextbotESPToggle = Tabs.ESP:Toggle({
     Title = "Nextbot Name ESP",
+    Flag = "NextbotESPToggle",
     Value = false,
     Callback = function(state)
         featureStates.NextbotESP.names = state
@@ -6534,6 +6709,7 @@ NextbotESPToggle = Tabs.ESP:Toggle({
 
 NextbotBoxESPToggle = Tabs.ESP:Toggle({
     Title = "Nextbot Box ESP",
+    Flag = "NextbotBoxESPToggle",
     Value = false,
     Callback = function(state)
         featureStates.NextbotESP.boxes = state
@@ -6547,6 +6723,7 @@ NextbotBoxESPToggle = Tabs.ESP:Toggle({
 
 NextbotBoxTypeDropdown = Tabs.ESP:Dropdown({
     Title = "Nextbot Box Type",
+    Flag = "NextbotBoxTypeDropdown",
     Values = {"2D", "3D"},
     Value = "2D",
     Callback = function(value)
@@ -6556,6 +6733,7 @@ NextbotBoxTypeDropdown = Tabs.ESP:Dropdown({
 
 NextbotRainbowBoxesToggle = Tabs.ESP:Toggle({
     Title = "Nextbot Rainbow Boxes",
+    Flag = "NextbotRainbowBoxesToggle",
     Value = false,
     Callback = function(state)
         featureStates.NextbotESP.rainbowBoxes = state
@@ -6568,6 +6746,7 @@ NextbotRainbowBoxesToggle = Tabs.ESP:Toggle({
 
 NextbotTracerToggle = Tabs.ESP:Toggle({
     Title = "Nextbot Tracer",
+    Flag = "NextbotTracerToggle",
     Value = false,
     Callback = function(state)
         featureStates.NextbotESP.tracers = state
@@ -6581,6 +6760,7 @@ NextbotTracerToggle = Tabs.ESP:Toggle({
 
 NextbotRainbowTracersToggle = Tabs.ESP:Toggle({
     Title = "Nextbot Rainbow Tracers",
+    Flag = "NextbotRainbowTracersToggle",
     Value = false,
     Callback = function(state)
         featureStates.NextbotESP.rainbowTracers = state
@@ -6593,6 +6773,7 @@ NextbotRainbowTracersToggle = Tabs.ESP:Toggle({
 
 NextbotDistanceESPToggle = Tabs.ESP:Toggle({
     Title = "Nextbot Distance ESP",
+    Flag = "NextbotDistanceESPToggle",
     Value = false,
     Callback = function(state)
         featureStates.NextbotESP.distance = state
@@ -6608,6 +6789,7 @@ Tabs.ESP:Section({ Title = "Downed Player ESP" })
 
 DownedBoxESPToggle = Tabs.ESP:Toggle({
     Title = "Downed Player Box ESP",
+    Flag = "DownedBoxESPToggle",
     Value = false,
     Callback = function(state)
         featureStates.DownedBoxESP = state
@@ -6622,6 +6804,7 @@ DownedBoxESPToggle = Tabs.ESP:Toggle({
 
 DownedBoxTypeDropdown = Tabs.ESP:Dropdown({
     Title = "Downed Box Type",
+    Flag = "DownedBoxTypeDropdown",
     Values = {"2D", "3D"},
     Value = "2D",
     Callback = function(value)
@@ -6631,6 +6814,7 @@ DownedBoxTypeDropdown = Tabs.ESP:Dropdown({
 
 DownedTracerToggle = Tabs.ESP:Toggle({
     Title = "Downed Player Tracer",
+    Flag = "DownedTracerToggle",
     Value = false,
     Callback = function(state)
         featureStates.DownedTracer = state
@@ -6645,6 +6829,7 @@ DownedTracerToggle = Tabs.ESP:Toggle({
 
 DownedNameESPToggle = Tabs.ESP:Toggle({
     Title = "Downed Player Name ESP",
+    Flag = "DownedNameESPToggle",
     Value = false,
     Callback = function(state)
         featureStates.DownedNameESP = state
@@ -6658,6 +6843,7 @@ DownedNameESPToggle = Tabs.ESP:Toggle({
 
 DownedDistanceESPToggle = Tabs.ESP:Toggle({
     Title = "Downed Player Distance ESP",
+    Flag = "DownedDistanceESPToggle",
     Value = false,
     Callback = function(state)
         featureStates.DownedDistanceESP = state
@@ -6870,6 +7056,7 @@ game:GetService("ScriptContext").DescendantRemoving:Connect(function(descendant)
 end)
 DownedHighlightsToggle = Tabs.ESP:Toggle({
     Title = "Downed Highlights ESP",
+    Flag = "DownedHighlightsToggle",
     Value = false,
     Callback = function(state)
         DownedHighlightsToggle = state
@@ -6912,6 +7099,7 @@ end
 
 TicketEspToggle = Tabs.ESP:Toggle({
     Title = "Ticket ESP",
+    Flag = "TicketEspToggle",
     Value = false,
     Callback = function(state)
         if not state then
@@ -6989,6 +7177,7 @@ TicketEspToggle = Tabs.ESP:Toggle({
 
 TicketTracerEspToggle = Tabs.ESP:Toggle({
     Title = "Ticket Tracer ESP",
+    Flag = "TicketTracerEspToggle",
     Value = false,
     Callback = function(state)
         if not state then
@@ -7066,6 +7255,7 @@ TicketTracerEspToggle = Tabs.ESP:Toggle({
 
 TicketDistanceEspToggle = Tabs.ESP:Toggle({
     Title = "Ticket Distance ESP",
+    Flag = "TicketDistanceEspToggle",
     Value = false,
     Callback = function(state)
         if not state then
@@ -7147,6 +7337,7 @@ TicketDistanceEspToggle = Tabs.ESP:Toggle({
 
 HighlightsTicketEspToggle = Tabs.ESP:Toggle({
     Title = "Highlights Ticket ESP",
+    Flag = "HighlightsTicketEspToggle",
     Value = false,
     Callback = function(state)
         if not state then
@@ -7211,6 +7402,7 @@ HighlightsTicketEspToggle = Tabs.ESP:Toggle({
 
 TicketBoxEspToggle = Tabs.ESP:Toggle({
     Title = "Ticket Box ESP",
+    Flag = "TicketBoxEspToggle",
     Value = false,
     Callback = function(state)
         if not state then
@@ -7355,6 +7547,7 @@ TicketBoxEspToggle = Tabs.ESP:Toggle({
 
 BoxticketTypeDropdown = Tabs.ESP:Dropdown({
     Title = "Box Type",
+    Flag = "BoxticketTypeDropdown",
     Values = {"2D", "3D"},
     Value = "2D",
     Callback = function(value)
@@ -7369,6 +7562,7 @@ BoxticketTypeDropdown = Tabs.ESP:Dropdown({
     
      AutoJoin = Tabs.Auto:Toggle({
     Title = "Auto Join",
+    Flag = "AutoJoin",
     Value = false,
     Callback = function(state)
         getgenv().AutoJoinEnabled = state
@@ -7855,6 +8049,7 @@ end)
 
 AutoJumpTypeDropdown = Tabs.Auto:Dropdown({
     Title = "Auto Jump type",
+    Flag = "AutoJumpTypeDropdown",
     Values = {"Bounce", "Realistic"},
     Value = "Bounce",
     Callback = function(value)
@@ -7864,6 +8059,7 @@ AutoJumpTypeDropdown = Tabs.Auto:Dropdown({
 
 BhopToggle = Tabs.Auto:Toggle({
     Title = "Bhop",
+    Flag = "BhopToggle",
     Value = false,
     Callback = function(state)
         featureStates.Bhop = state
@@ -7881,6 +8077,7 @@ BhopToggle = Tabs.Auto:Toggle({
 
 BhopHoldToggle = Tabs.Auto:Toggle({
     Title = "Bhop (Hold Space/Jump)",
+    Flag = "BhopHoldToggle",
     Value = false,
     Callback = function(state)
         featureStates.BhopHold = state
@@ -7893,6 +8090,7 @@ BhopHoldToggle = Tabs.Auto:Toggle({
 
 BhopShortcutToggle = Tabs.Auto:Toggle({
     Title = "Bhop Shortcut",
+    Flag = "BhopShortcutToggle",
     Desc = "Show Bhop GUI For quick Toggle or press B to Toggle Bhop (Auto jump)",
     Value = false,
     Callback = function(state)
@@ -7906,6 +8104,7 @@ BhopShortcutToggle = Tabs.Auto:Toggle({
 
 BhopModeDropdown = Tabs.Auto:Dropdown({
     Title = "Bhop Mode",
+    Flag = "BhopModeDropdown",
     Values = {"Acceleration", "No Acceleration"},
     Value = "Acceleration",
     Callback = function(value)
@@ -7916,6 +8115,7 @@ BhopModeDropdown = Tabs.Auto:Dropdown({
 
 BhopAccelInput = Tabs.Auto:Input({
     Title = "Bhop Acceleration (Negative Only)",
+    Flag = "BhopAccelInput",
     Placeholder = "-0.5",
     Numeric = true,
     Callback = function(value)
@@ -7933,6 +8133,7 @@ BhopAccelInput = Tabs.Auto:Input({
 
 JumpCooldownInput = Tabs.Auto:Input({
     Title = "Jump Cooldown (Seconds)",
+    Flag = "JumpCooldownInput",
     Placeholder = "0.7",
     Numeric = true,
     Callback = function(value)
@@ -8084,7 +8285,6 @@ local function createCrouchGui(yOffset)
     guiInstance = crouchGui
 end
 
--- Setup persistent listeners (always running, but gated by feature state or visibility)
 local function setupAutoCrouchListeners()
     if crouchConnection then crouchConnection:Disconnect() end
     crouchConnection = RunService.Heartbeat:Connect(function()
@@ -8134,6 +8334,7 @@ setupAutoCrouchListeners()
 
 AutoCrouchToggle = Tabs.Auto:Toggle({
     Title = "Auto Crouch",
+    Flag = "AutoCrouchToggle",
     Desc = "Press C to toggle if you on keyboard",
     Value = false,
     Callback = function(state)
@@ -8153,6 +8354,7 @@ AutoCrouchToggle = Tabs.Auto:Toggle({
 })
 AutoCrouchModeDropdown = Tabs.Auto:Dropdown({
     Title = "Auto Crouch Mode",
+    Flag = "AutoCrouchModeDropdown",
     Values = {"Air", "Normal", "Ground"},
     Value = "Air",
     Callback = function(value)
@@ -8352,6 +8554,7 @@ end
 
 AutoCarryKeybindToggle = Tabs.Auto:Toggle({
     Title = "Auto carry keybind/button",
+    Flag = "AutoCarryKeybindToggle",
     Desc = "Toggle gui or keybind for quick enable auto carry",
     Icon = "toggle-right",
     Value = false,
@@ -8363,6 +8566,7 @@ AutoCarryKeybindToggle = Tabs.Auto:Toggle({
 createAutoCarryGui(0)
 FastReviveToggle = Tabs.Auto:Toggle({
     Title = "Fast Revive",
+    Flag = "FastReviveToggle",
     Value = false,
     Callback = function(state)
         featureStates.FastRevive = state
@@ -8376,6 +8580,7 @@ FastReviveToggle = Tabs.Auto:Toggle({
 
 FastReviveMethodDropdown = Tabs.Auto:Dropdown({
     Title = "Fast Revive Method",
+    Flag = "FastReviveMethodDropdown",
     Values = {"Auto", "Interact"},
     Value = "Interact",
     Callback = function(value)
@@ -8393,6 +8598,7 @@ FastReviveMethodDropdown = Tabs.Auto:Dropdown({
 })
     AutoVoteDropdown = Tabs.Auto:Dropdown({
         Title = "Auto Vote Map",
+        Flag = "AutoVoteDropdown",
         Values = {"Map 1", "Map 2", "Map 3", "Map 4"},
         Value = "Map 1",
         Callback = function(value)
@@ -8410,6 +8616,7 @@ FastReviveMethodDropdown = Tabs.Auto:Dropdown({
 
     AutoVoteToggle = Tabs.Auto:Toggle({
         Title = "Auto Vote",
+        Flag = "AutoVoteToggle",
         Value = false,
         Callback = function(state)
             featureStates.AutoVote = state
@@ -8422,6 +8629,7 @@ FastReviveMethodDropdown = Tabs.Auto:Dropdown({
     })
 AutoVoteModeToggle = Tabs.Auto:Toggle({
     Title = "Auto Vote Game Mode",
+        Flag = "AutoVoteModeToggle",
     Value = false,
     Callback = function(state)
         if state then
@@ -8453,6 +8661,7 @@ AutoVoteModeToggle = Tabs.Auto:Toggle({
 
 AutoVoteModeDropdown = Tabs.Auto:Dropdown({
     Title = "Vote Mode",
+    Flag = "AutoVoteModeDropdown",
     Values = {"Mode 1", "Mode 2", "Mode 3", "Mode 4"},
     Value = "Mode 1",
     Callback = function(value)
@@ -8472,8 +8681,11 @@ local lastSavedPosition = nil
 local respawnConnection = nil
 local AutoSelfReviveConnection = nil
 local hasRevived = false
+local isReviving = false
+
 AutoSelfReviveToggle = Tabs.Auto:Toggle({
     Title = "Auto Self Revive",
+    Flag = "AutoSelfReviveToggle",
     Value = false,
     Callback = function(state)
         featureStates.AutoSelfRevive = state
@@ -8484,100 +8696,113 @@ AutoSelfReviveToggle = Tabs.Auto:Toggle({
             if respawnConnection then
                 respawnConnection:Disconnect()
             end
+            
             local character = player.Character
             if character then
                 local humanoid = character:WaitForChild("Humanoid")
                 local hrp = character:WaitForChild("HumanoidRootPart")
+                
                 AutoSelfReviveConnection = character:GetAttributeChangedSignal("Downed"):Connect(function()
                     local isDowned = character:GetAttribute("Downed")
-                    if isDowned then
+                    if isDowned and not isReviving then
+                        isReviving = true
+                        
                         if featureStates.SelfReviveMethod == "Spawnpoint" then
                             if not hasRevived then
                                 hasRevived = true
-                                -- [[Disabled]] task.wait(3)
                                 pcall(function()
                                     ReplicatedStorage.Events.Player.ChangePlayerMode:FireServer(true)
                                 end)
                                 task.delay(10, function()
                                     hasRevived = false
                                 end)
+                                task.delay(1, function()
+                                    isReviving = false
+                                end)
+                            else
+                                isReviving = false
                             end
                         elseif featureStates.SelfReviveMethod == "Fake Revive" then
                             if hrp then
                                 lastSavedPosition = hrp.Position
                             end
-                            task.wait(3)
-                            local startTime = tick()
-                            repeat
+                            
+                            task.spawn(function()
                                 pcall(function()
-                              -- [[doesn't work 90%]] firesignal(game:GetService("ReplicatedStorage").Events.UI.CoverScreen.OnClientEvent, false)
                                     ReplicatedStorage:WaitForChild("Events"):WaitForChild("Player"):WaitForChild("ChangePlayerMode"):FireServer(true)
                                 end)
-                            -- [[Disabled]]       task.wait(1)
-                            until not character:GetAttribute("Downed") or (tick() - startTime > 1)
-                            local newCharacter
-                            repeat
-                                newCharacter = player.Character
-                                task.wait()
-                            until newCharacter and newCharacter:FindFirstChild("HumanoidRootPart")
-                            local newHRP = newCharacter:FindFirstChild("HumanoidRootPart")
-                            if lastSavedPosition and newHRP then
-                                newHRP.CFrame = CFrame.new(lastSavedPosition)
-                                task.wait(0.5)
-                                local movedDistance = (newHRP.Position - lastSavedPosition).Magnitude
-                                if movedDistance > 1 then
-                                    lastSavedPosition = nil
+                                
+                                local newCharacter
+                                repeat
+                                    newCharacter = player.Character
+                                    task.wait()
+                                until newCharacter and newCharacter:FindFirstChild("HumanoidRootPart") and newCharacter ~= character
+                                
+                                if newCharacter then
+                                    local newHRP = newCharacter:FindFirstChild("HumanoidRootPart")
+                                    if lastSavedPosition and newHRP then
+                                        newHRP.CFrame = CFrame.new(lastSavedPosition)
+                                    end
                                 end
-                            end
+                                
+                                isReviving = false
+                            end)
                         end
                     end
                 end)
             end
+            
             respawnConnection = player.CharacterAdded:Connect(function(newChar)
-                task.wait(1)
+                task.wait(0.5)
                 local newHumanoid = newChar:WaitForChild("Humanoid")
                 local newHRP = newChar:WaitForChild("HumanoidRootPart")
+                
                 if featureStates.AutoSelfRevive then
                     AutoSelfReviveConnection = newChar:GetAttributeChangedSignal("Downed"):Connect(function()
                         local isDowned = newChar:GetAttribute("Downed")
-                        if isDowned then
+                        if isDowned and not isReviving then
+                            isReviving = true
+                            
                             if featureStates.SelfReviveMethod == "Spawnpoint" then
                                 if not hasRevived then
                                     hasRevived = true
-                                    task.wait(3)
                                     pcall(function()
                                         ReplicatedStorage.Events.Player.ChangePlayerMode:FireServer(true)
                                     end)
                                     task.delay(10, function()
                                         hasRevived = false
                                     end)
+                                    task.delay(1, function()
+                                        isReviving = false
+                                    end)
+                                else
+                                    isReviving = false
                                 end
                             elseif featureStates.SelfReviveMethod == "Fake Revive" then
                                 if newHRP then
                                     lastSavedPosition = newHRP.Position
                                 end
-                                task.wait(3)
-                                local startTime = tick()
-                                repeat
+                                
+                                task.spawn(function()
                                     pcall(function()
                                         ReplicatedStorage:WaitForChild("Events"):WaitForChild("Player"):WaitForChild("ChangePlayerMode"):FireServer(true)
                                     end)
-                                    task.wait(1)
-                                until not newChar:GetAttribute("Downed") or (tick() - startTime > 1)
-                                local freshCharacter
-                                repeat
-                                    freshCharacter = player.Character
-                                    task.wait()
-                                until freshCharacter and freshCharacter:FindFirstChild("HumanoidRootPart")
-                                local freshHRP = freshCharacter:FindFirstChild("HumanoidRootPart")
-                                if lastSavedPosition and freshHRP then
-                                    freshHRP.CFrame = CFrame.new(lastSavedPosition)
-                                    task.wait(0.5)
-                                    local movedDistance = (freshHRP.Position - lastSavedPosition).Magnitude
-                                    if movedDistance > 1 then
-                                        lastSavedPosition = nil
+                                    
+                                    local freshCharacter
+                                    repeat
+                                        freshCharacter = player.Character
+                                        task.wait()
+                                    until freshCharacter and freshCharacter:FindFirstChild("HumanoidRootPart") and freshCharacter ~= newChar
+                                    
+                                    if freshCharacter then
+                                        local freshHRP = freshCharacter:FindFirstChild("HumanoidRootPart")
+                                        if lastSavedPosition and freshHRP then
+                                            freshHRP.CFrame = CFrame.new(lastSavedPosition)
+                                        end
                                     end
-                                end
+                                    
+                                    isReviving = false
+                                end)
                             end
                         end
                     end)
@@ -8593,6 +8818,7 @@ AutoSelfReviveToggle = Tabs.Auto:Toggle({
                 respawnConnection = nil
             end
             hasRevived = false
+            isReviving = false
             lastSavedPosition = nil
         end
     end
@@ -8600,12 +8826,14 @@ AutoSelfReviveToggle = Tabs.Auto:Toggle({
 
 SelfReviveMethodDropdown = Tabs.Auto:Dropdown({
     Title = "Self Revive Method",
+    Flag = "SelfReviveMethodDropdown",
     Values = {"Spawnpoint", "Fake Revive"},
     Value = "Spawnpoint",
     Callback = function(value)
         featureStates.SelfReviveMethod = value
     end
 })
+
 if player.Character and featureStates.AutoSelfRevive then
     local char = player.Character
     local humanoid = char:WaitForChild("Humanoid")
@@ -8613,6 +8841,7 @@ if player.Character and featureStates.AutoSelfRevive then
     AutoSelfReviveConnection = char:GetAttributeChangedSignal("Downed"):Connect(function()
     end)
 end
+
 local function manualRevive()
     local character = player.Character
     if not character then return end
@@ -8635,33 +8864,25 @@ local function manualRevive()
             lastSavedPosition = hrp.Position
         end
         task.spawn(function()
-            task.wait(3)
-            local startTime = tick()
-            repeat
-                pcall(function()
-                    ReplicatedStorage:WaitForChild("Events"):WaitForChild("Player"):WaitForChild("ChangePlayerMode"):FireServer(true)
-                end)
-                task.wait(1)
-            until not character:GetAttribute("Downed") or (tick() - startTime > 1)
+            pcall(function()
+                ReplicatedStorage:WaitForChild("Events"):WaitForChild("Player"):WaitForChild("ChangePlayerMode"):FireServer(true)
+            end)
             
             local newCharacter
             repeat
                 newCharacter = player.Character
                 task.wait()
-            until newCharacter and newCharacter:FindFirstChild("HumanoidRootPart")
-            local newHRP = newCharacter:FindFirstChild("HumanoidRootPart")
-            if lastSavedPosition and newHRP then
-                newHRP.CFrame = CFrame.new(lastSavedPosition)
-                task.wait(0.5)
-                local movedDistance = (newHRP.Position - lastSavedPosition).Magnitude
-                if movedDistance > 1 then
-                    lastSavedPosition = nil
+            until newCharacter and newCharacter:FindFirstChild("HumanoidRootPart") and newCharacter ~= character
+            
+            if newCharacter then
+                local newHRP = newCharacter:FindFirstChild("HumanoidRootPart")
+                if lastSavedPosition and newHRP then
+                    newHRP.CFrame = CFrame.new(lastSavedPosition)
                 end
             end
         end)
     end
 end
-
 Tabs.Auto:Button({
     Title = "Manual Revive",
     Desc = "Manually revive yourself",
@@ -8673,6 +8894,7 @@ Tabs.Auto:Button({
 
     AutoWinToggle = Tabs.Auto:Toggle({
         Title = "Auto Win",
+        Flag = "AutoWinToggle",
         Value = false,
         Callback = function(state)
             featureStates.AutoWin = state
@@ -8685,6 +8907,7 @@ Tabs.Auto:Button({
     })
     AutoWhistleToggle = Tabs.Auto:Toggle({
     Title = "Auto Whistle",
+    Flag = "AutoWhistleToggle",
     Value = false,
     Callback = function(state)
         featureStates.AutoWhistle = state
@@ -8698,6 +8921,7 @@ Tabs.Auto:Button({
 
     AutoMoneyFarmToggle = Tabs.Auto:Toggle({
         Title = "Auto Money Farm",
+        Flag = "AutoMoneyFarmToggle",
         Value = false,
         Callback = function(state)
         if farmsSuppressedByAntiNextbot and state then
@@ -8806,6 +9030,7 @@ end
 
 AutoTurkeyFarmToggle = Tabs.Auto:Toggle({
     Title = "Auto turkey farm",
+    Flag = "AutoTurkeyFarmToggle",
     Value = false,
     Callback = function(state)
         featureStates.AutoTurkeyFarm = state
@@ -8818,6 +9043,7 @@ AutoTurkeyFarmToggle = Tabs.Auto:Toggle({
 })
 AutoTicketFarmToggle = Tabs.Auto:Toggle({
     Title = "Auto ticket farm",
+    Flag = "AutoTicketFarmToggle",
     Value = false,
     Callback = function(state)
         getgenv().ticketfarm = state
@@ -9018,6 +9244,7 @@ end
 
 NextbotObjectsToggle = Tabs.Utility:Toggle({
     Title = "Nextbot Collision Objects",
+    Flag = "NextbotObjectsToggle",
     Desc = "Add invisible collision (Why do you even need this shit lol",
     Value = false,
     Callback = function(state)
@@ -9032,6 +9259,7 @@ NextbotObjectsToggle = Tabs.Utility:Toggle({
 
 NextbotHitboxSlider = Tabs.Utility:Slider({
     Title = "Nextbot Hitbox Size",
+    Flag = "NextbotHitboxSlider",
     Desc = "Adjust the size of nextbot collision objects",
     Value = { Min = 1, Max = 200, Default = 6, Step = 1 },
     Callback = function(value)
@@ -9092,6 +9320,7 @@ Tabs.Utility:Button({
 
 FreeCamToggle = Tabs.Utility:Toggle({
     Title = "Free Cam UI",
+    Flag = "FreeCamToggle",
     Desc = "Note: Sometimes it's may be glitchy so don't use it too often, I can't really fix it",
     Icon = "camera",
     Value = false,
@@ -9117,6 +9346,7 @@ FreeCamToggle = Tabs.Utility:Toggle({
 })
 local FreeCamSpeedSlider = Tabs.Utility:Slider({
     Title = "Free Cam Speed",
+    Flag = "FreeCamSpeedSlider",
     Desc = "Adjust movement speed in Free Cam",
     Value = { Min = 1, Max = 500, Default = 50, Step = 1 },
     Callback = function(value)
@@ -9126,6 +9356,7 @@ local FreeCamSpeedSlider = Tabs.Utility:Slider({
 
 TimeChangerInput = Tabs.Utility:Input({
     Title = "Set Time (HH:MM)",
+    Flag = "TimeChangerInput",
     Placeholder = "12:00",
     Callback = function(value)
         value = value:gsub("^%s*(.-)%s*$", "%1")
@@ -9302,6 +9533,7 @@ end
 
 LagSwitchToggle = Tabs.Utility:Toggle({
     Title = "Lag Switch",
+    Flag = "LagSwitchToggle",
     Icon = "zap",
     Value = false,
     Callback = function(state)
@@ -9323,6 +9555,7 @@ LagSwitchToggle = Tabs.Utility:Toggle({
 
 LagDurationInput = Tabs.Utility:Input({
     Title = "Lag Duration (seconds)",
+    Flag = "LagDurationInput",
     Placeholder = "0.5",
     Value = tostring(getgenv().lagDuration),
     NumbersOnly = true,
@@ -9346,6 +9579,7 @@ end)
 checkLagState()
 GravityToggle = Tabs.Utility:Toggle({
     Title = "Custom Gravity",
+    Flag = "GravityToggle",
     Value = false,
     Callback = function(state)
         featureStates.CustomGravity = state
@@ -9359,6 +9593,7 @@ GravityToggle = Tabs.Utility:Toggle({
 
 GravityInput = Tabs.Utility:Input({
     Title = "Gravity Value",
+    Flag = "GravityInput",
     Placeholder = tostring(originalGameGravity),
     Value = tostring(featureStates.GravityValue),
     Callback = function(text)
@@ -9375,6 +9610,7 @@ getgenv().gravityGuiVisible = false
 
 GravityGUIToggle = Tabs.Utility:Toggle({
     Title = "Gravity toggle shortcuts",
+    Flag = "GravityGUIToggle",
     Desc = "Toggle gui or keybind for quick enable gravity",
     Icon = "toggle-right",
     Value = false,
@@ -9404,6 +9640,7 @@ featureStates.NoRenderColor = Color3.fromRGB(0, 0, 0)
 
 NoRenderToggle = Tabs.Utility:Toggle({
     Title = "No Render",
+    Flag = "NoRenderToggle",
     Desc = "Disable 3D rendering for performance",
     Value = false,
     Callback = function(state)
@@ -9435,6 +9672,7 @@ NoRenderToggle = Tabs.Utility:Toggle({
 
 NoRenderColorPicker = Tabs.Utility:Colorpicker({
     Title = "No Render Color",
+    Flag = "NoRenderColorPicker",
     Desc = "Choose background color when No Render is enabled",
     Default = Color3.fromRGB(0, 0, 0),
     Transparency = 0,
@@ -9599,6 +9837,7 @@ end
 
 local securityPartToggle = Tabs.Utility:Toggle({
     Title = "Moving Security Part",
+    Flag = "securityPartToggle",
     Value = false,
     Callback = function(state)
         movingSecurityParts = state
@@ -9713,6 +9952,7 @@ local securityPartToggle = Tabs.Utility:Toggle({
 
 local partSpeedInput = Tabs.Utility:Input({
     Title = "Part Speed",
+    Flag = "partSpeedInput",
     Placeholder = "10",
     Value = tostring(partSpeed),
     NumbersOnly = true,
@@ -9726,6 +9966,7 @@ local partSpeedInput = Tabs.Utility:Input({
 
 local partRadiusInput = Tabs.Utility:Input({
     Title = "Part Radius",
+    Flag = "partRadiusInput",
     Placeholder = "100",
     Value = tostring(partRadius),
     NumbersOnly = true,
@@ -9846,6 +10087,7 @@ end
 
 SpeedPadToggle = Tabs.Utility:Toggle({
     Title = "SpeedPad Booster",
+    Flag = "SpeedPadToggle",
     Value = false,
     Callback = function(state)
         featureStates.SpeedPad = state
@@ -9877,6 +10119,7 @@ SpeedPadToggle = Tabs.Utility:Toggle({
 
 SpeedPadValueInput = Tabs.Utility:Input({
     Title = "Speed Value",
+    Flag = "SpeedPadValueInput",
     Placeholder = "1.3",
     Value = tostring(featureStates.SpeedPadValue),
     NumbersOnly = true,
@@ -9890,6 +10133,7 @@ SpeedPadValueInput = Tabs.Utility:Input({
 
 SpeedPadDurationInput = Tabs.Utility:Input({
     Title = "Duration",
+    Flag = "SpeedPadDurationInput",
     Placeholder = "2",
     Value = tostring(featureStates.SpeedPadDuration),
     NumbersOnly = true,
@@ -10011,6 +10255,7 @@ end
 
 JumpPadToggle = Tabs.Utility:Toggle({
     Title = "Jump Pad Booster",
+    Flag = "JumpPadToggle",
     Value = false,
     Callback = function(state)
         featureStates.JumpPadBooster = state
@@ -10063,6 +10308,7 @@ JumpPadToggle = Tabs.Utility:Toggle({
 
 JumpPadValueInput = Tabs.Utility:Input({
     Title = "Jump Value",
+    Flag = "JumpPadValueInput",
     Placeholder = "0",
     Value = tostring(featureStates.JumpPadValue),
     NumbersOnly = true,
@@ -10076,6 +10322,7 @@ JumpPadValueInput = Tabs.Utility:Input({
 
 UnlimitedColaToggle = Tabs.Utility:Toggle({
     Title = "Unlimited Cola",
+    Flag = "UnlimitedColaToggle",
     Desc = "Block The ''ToolAction:FireServer'' remote when the value is ''(0, 19)'' This feature is a visual So no one can see you drink, Have fun of trick your viewer",
     Value = false,
     Callback = function(state)
@@ -10149,6 +10396,7 @@ UnlimitedColaToggle = Tabs.Utility:Toggle({
 
 ColaSpeedBoosterToggle = Tabs.Utility:Toggle({
     Title = "Cola Speed Booster",
+    Flag = "ColaSpeedBoosterToggle",
     Value = false,
     Callback = function(state)
         featureStates.ColaSpeedBooster = state
@@ -10180,6 +10428,7 @@ ColaSpeedBoosterToggle = Tabs.Utility:Toggle({
 
 ColaSpeedInput = Tabs.Utility:Input({
     Title = "Speed Value",
+    Flag = "ColaSpeedInput",
     Placeholder = "1.4",
     NumbersOnly = true,
     Callback = function(value)
@@ -10192,6 +10441,7 @@ ColaSpeedInput = Tabs.Utility:Input({
 
 ColaDurationInput = Tabs.Utility:Input({
     Title = "Duration",
+    Flag = "ColaDurationInput",
     Placeholder = "3.5",
     NumbersOnly = true,
     Callback = function(value)
@@ -10311,6 +10561,7 @@ Tabs.Teleport:Button({
 local playerList = {}
 PlayerDropdown = Tabs.Teleport:Dropdown({
     Title = "Select Player",
+    Flag = "PlayerDropdown",
     Values = {"No players found"},
     Value = "No players found",
     Callback = function(selectedPlayer)
@@ -10526,6 +10777,7 @@ end
 
 objectiveDropdown = Tabs.Teleport:Dropdown({
     Title = "Select Objective",
+    Flag = "objectiveDropdown",
     Values = {"Loading..."},
     Value = "Loading...",
     Enabled = false,
@@ -10600,6 +10852,410 @@ task.spawn(function()
 end)
     -- Settings Tab
     Tabs.Settings:Section({ Title = "Settings", TextSize = 40 })
+Tabs.Settings:Section({ Title = "Config Manager", TextSize = 20 })
+Tabs.Settings:Divider()
+
+-- Services
+local ConfigManager = Window.ConfigManager
+local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
+
+local CurrentConfigName = "default"
+local AutoLoadConfig = "default"
+local AutoLoadEnabled = false
+local AutoSaveEnabled = false
+local ConfigListDropdown = nil
+local AutoSaveConnection = nil
+
+local function FileExists(path)
+    if isfile then
+        return pcall(readfile, path)
+    end
+    return false
+end
+
+local function WriteFile(path, content)
+    if writefile then
+        return pcall(writefile, path, content)
+    end
+    return false
+end
+
+local function ReadFile(path)
+    if readfile then
+        local success, content = pcall(readfile, path)
+        if success then
+            return content
+        end
+    end
+    return ""
+end
+
+local function loadAutoLoadSettings()
+    local autoLoadFile = "Darahub/AutoLoad/Game/Evade/AutoLoad.json"
+    
+    if FileExists(autoLoadFile) then
+        local content = ReadFile(autoLoadFile)
+        
+        if content ~= "" then
+            local success, data = pcall(function()
+                return HttpService:JSONDecode(content)
+            end)
+            
+            if success and data then
+                AutoLoadConfig = data.configName or "default"
+                AutoLoadEnabled = data.enabled or false
+                return true
+            end
+        end
+    end
+    
+    AutoLoadConfig = "default"
+    AutoLoadEnabled = false
+    return false
+end
+
+local function saveAutoLoadSettings()
+    local autoLoadFile = "Darahub/AutoLoad/Game/Evade/AutoLoad.json"
+    
+    local success = WriteFile(autoLoadFile, "")
+    if not success then
+        if makefolder then
+            pcall(function() makefolder("Darahub") end)
+            pcall(function() makefolder("Darahub/AutoLoad") end)
+            pcall(function() makefolder("Darahub/AutoLoad/Game") end)
+            pcall(function() makefolder("Darahub/AutoLoad/Game/Evade") end)
+        end
+    end
+    
+    local data = {
+        enabled = AutoLoadEnabled,
+        configName = AutoLoadConfig
+    }
+    
+    local success, json = pcall(function()
+        return HttpService:JSONEncode(data)
+    end)
+    
+    if success then
+        WriteFile(autoLoadFile, json)
+    end
+end
+
+loadAutoLoadSettings()
+
+local ConfigNameInput = Tabs.Settings:Input({
+    Title = "Config Name",
+    Flag = "ConfigNameInput",
+    Desc = "Name for your config file",
+    Icon = "file-cog",
+    Placeholder = "default",
+    Value = CurrentConfigName,
+    Callback = function(value)
+        if value ~= "" then
+            CurrentConfigName = value
+        end
+    end
+})
+
+Tabs.Settings:Space()
+
+local AutoLoadToggle = Tabs.Settings:Toggle({
+    Title = "Auto Load",
+    Flag = "AutoLoadToggle",
+    Desc = "Automatically load this config when script starts",
+    Value = AutoLoadEnabled,
+    Callback = function(state)
+        AutoLoadEnabled = state
+        if state then
+            AutoLoadConfig = CurrentConfigName
+            WindUI:Notify({
+                Title = "Auto-Load",
+                Content = "Config '" .. CurrentConfigName .. "' will load automatically on startup",
+                Duration = 3
+            })
+        end
+        saveAutoLoadSettings()
+    end
+})
+
+local AutoSaveToggle = Tabs.Settings:Toggle({
+    Title = "Auto Save",
+    Flag = "AutoSaveToggle",
+    Desc = "Automatically save changes to config every second",
+    Value = AutoSaveEnabled,
+    Callback = function(state)
+        AutoSaveEnabled = state
+        
+        -- Stop existing auto-save loop if it exists
+        if AutoSaveConnection then
+            AutoSaveConnection:Disconnect()
+            AutoSaveConnection = nil
+        end
+        
+        if state then
+            WindUI:Notify({
+                Title = "Auto-Save",
+                Content = "Config will save automatically every second",
+                Duration = 2
+            })
+            
+            -- Start auto-save loop
+            AutoSaveConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                if AutoSaveEnabled and CurrentConfigName ~= "" then
+                    task.spawn(function()
+                        Window.CurrentConfig = ConfigManager:Config(CurrentConfigName)
+                        Window.CurrentConfig:Save()
+                    end)
+                end
+                task.wait(1) -- Save every second
+            end)
+        else
+            WindUI:Notify({
+                Title = "Auto-Save",
+                Content = "Auto-save disabled",
+                Duration = 2
+            })
+        end
+    end
+})
+
+Tabs.Settings:Space()
+
+local function refreshConfigList()
+    local allConfigs = ConfigManager:AllConfigs() or {}
+    
+    -- Ensure "default" config exists
+    if not table.find(allConfigs, "default") then
+        -- Create default config if it doesn't exist
+        local defaultConfig = ConfigManager:Config("default")
+        if defaultConfig and defaultConfig.Save then
+            defaultConfig:Save()
+        end
+        table.insert(allConfigs, 1, "default")
+    end
+    
+    table.sort(allConfigs, function(a, b)
+        return a:lower() < b:lower()
+    end)
+    
+    local defaultValue = table.find(allConfigs, CurrentConfigName) and CurrentConfigName or "default"
+    
+    if ConfigListDropdown and ConfigListDropdown.Refresh then
+        ConfigListDropdown:Refresh(allConfigs, defaultValue)
+    end
+end
+
+ConfigListDropdown = Tabs.Settings:Dropdown({
+    Title = "Existing Configs",
+    Flag = "ConfigListDropdown",
+    Desc = "Select from saved configs",
+    Values = {"default"},
+    Value = "default",
+    Callback = function(value)
+        CurrentConfigName = value
+        ConfigNameInput:Set(value)
+        
+        if AutoLoadEnabled then
+            AutoLoadConfig = value
+            saveAutoLoadSettings()
+        end
+        
+        local config = ConfigManager:GetConfig(value)
+        if config then
+            WindUI:Notify({
+                Title = "Config Selected",
+                Content = "Config '" .. value .. "' selected",
+                Duration = 2
+            })
+        end
+    end
+})
+
+Tabs.Settings:Space()
+
+local SaveConfigButton = Tabs.Settings:Button({
+    Title = "Save Config",
+    Desc = "Save current settings to config",
+    Icon = "save",
+    Callback = function()
+        if CurrentConfigName == "" then
+            WindUI:Notify({
+                Title = "Error",
+                Content = "Please enter a config name",
+                Duration = 3
+            })
+            return
+        end
+        
+        Window.CurrentConfig = ConfigManager:Config(CurrentConfigName)
+        
+        local success = Window.CurrentConfig:Save()
+        if success then
+            WindUI:Notify({
+                Title = "Config Saved",
+                Content = "Config '" .. CurrentConfigName .. "' saved successfully",
+                Duration = 3
+            })
+            
+            if AutoLoadEnabled then
+                AutoLoadConfig = CurrentConfigName
+                saveAutoLoadSettings()
+            end
+            
+            task.wait(0.5)
+            refreshConfigList()
+        else
+            WindUI:Notify({
+                Title = "Error",
+                Content = "Failed to save config",
+                Duration = 3
+            })
+        end
+    end
+})
+
+Tabs.Settings:Space()
+
+local LoadConfigButton = Tabs.Settings:Button({
+    Title = "Load Config",
+    Desc = "Load settings from selected config",
+    Icon = "folder-open",
+    Callback = function()
+        if CurrentConfigName == "" then
+            WindUI:Notify({
+                Title = "Error",
+                Content = "Please enter a config name",
+                Duration = 3
+            })
+            return
+        end
+        
+        Window.CurrentConfig = ConfigManager:CreateConfig(CurrentConfigName)
+        
+        local success = Window.CurrentConfig:Load()
+        if success then
+            WindUI:Notify({
+                Title = "Config Loaded",
+                Content = "Config '" .. CurrentConfigName .. "' loaded successfully",
+                Duration = 3
+            })
+            
+            if AutoLoadEnabled then
+                AutoLoadConfig = CurrentConfigName
+                saveAutoLoadSettings()
+            end
+        else
+            WindUI:Notify({
+                Title = "Error",
+                Content = "Config '" .. CurrentConfigName .. "' not found or empty",
+                Duration = 3
+            })
+        end
+    end
+})
+
+Tabs.Settings:Space()
+
+local DeleteConfigButton = Tabs.Settings:Button({
+    Title = "Delete Config",
+    Desc = "Delete selected config",
+    Icon = "trash-2",
+    Color = Color3.fromHex("#ff4830"),
+    Callback = function()
+        if CurrentConfigName == "default" then
+            WindUI:Notify({
+                Title = "Error",
+                Content = "Cannot delete default config",
+                Duration = 3
+            })
+            return
+        end
+        
+        local success = ConfigManager:DeleteConfig(CurrentConfigName)
+        if success then
+            WindUI:Notify({
+                Title = "Config Deleted",
+                Content = "Config '" .. CurrentConfigName .. "' deleted",
+                Duration = 3
+            })
+            
+            CurrentConfigName = "default"
+            ConfigNameInput:Set("default")
+            
+            if AutoLoadEnabled then
+                AutoLoadConfig = "default"
+                saveAutoLoadSettings()
+            end
+            
+            task.wait(0.5)
+            refreshConfigList()
+        else
+            WindUI:Notify({
+                Title = "Error",
+                Content = "Failed to delete config or config doesn't exist",
+                Duration = 3
+            })
+        end
+    end
+})
+
+Tabs.Settings:Space()
+
+local RefreshConfigButton = Tabs.Settings:Button({
+    Title = "Refresh Config List",
+    Desc = "Update the list of available configs",
+    Icon = "refresh-cw",
+    Callback = function()
+        refreshConfigList()
+        WindUI:Notify({
+            Title = "Config List Refreshed",
+            Content = "Config list updated",
+            Duration = 2
+        })
+    end
+})
+
+task.spawn(function()
+    task.wait(0.5) 
+    refreshConfigList()
+    
+    ConfigNameInput:Set("default")
+    
+    if AutoLoadEnabled then
+        CurrentConfigName = AutoLoadConfig
+        ConfigNameInput:Set(CurrentConfigName)
+        
+        task.wait(1)
+        Window.CurrentConfig = ConfigManager:Config(CurrentConfigName)
+        
+        if Window.CurrentConfig:Load() then
+            WindUI:Notify({
+                Title = "Auto-Loaded",
+                Content = "Config '" .. CurrentConfigName .. "' loaded automatically",
+                Duration = 3
+            })
+        end
+    end
+end)
+
+if AutoSaveEnabled then
+    task.spawn(function()
+        task.wait(1)
+        
+        if AutoSaveEnabled then
+            AutoSaveConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                if AutoSaveEnabled and CurrentConfigName ~= "" then
+                    task.spawn(function()
+                        Window.CurrentConfig = ConfigManager:Config(CurrentConfigName)
+                        Window.CurrentConfig:Save()
+                    end)
+                end
+                task.wait(1)
+            end)
+        end
+    end)
+end
     Tabs.Settings:Section({ Title = "Personalize", TextSize = 20 })
     Tabs.Settings:Divider()
 
@@ -10614,6 +11270,7 @@ end)
 
     ThemeDropdown = Tabs.Settings:Dropdown({
         Title = "Select Theme",
+        Flag = "ThemeDropdown",
         Values = themes,
         SearchBarEnabled = true,
         MenuWidth = 280,
@@ -10629,6 +11286,7 @@ end)
 
     local TransparencySlider = Tabs.Settings:Slider({
         Title = "Window Transparency",
+        Flag = "TransparencySlider",
         Value = { Min = 0, Max = 1, Default = 0.2, Step = 0.1 },
         Callback = function(value)
             WindUI.TransparencyValue = tonumber(value)
@@ -10638,6 +11296,7 @@ end)
 
     ThemeToggle = Tabs.Settings:Toggle({
         Title = "Enable Dark Mode",
+        Flag = "ThemeToggle",
         Desc = "Use dark color scheme",
         Value = true,
         Callback = function(state)
@@ -10657,140 +11316,6 @@ end)
         canChangeTheme = true
     end)
 
-    -- Configuration Manager
-    local configName = "default"
-    local configFile = nil
-    local MyPlayerData = {
-        name = player.Name,
-        level = 1,
-        inventory = {}
-    }
-
-    Tabs.Settings:Section({ Title = "Configuration Manager", TextSize = 20 })
-    Tabs.Settings:Section({ Title = "Save and load your settings", TextSize = 16, TextTransparency = 0.25 })
-    Tabs.Settings:Divider()
-
-    Tabs.Settings:Input({
-        Title = "Config Name",
-        Value = configName,
-        Callback = function(value)
-            configName = value or "default"
-        end
-    })
-
-    local ConfigManager = Window.ConfigManager
-    if ConfigManager then
-        ConfigManager:Init(Window)
-        
-        Tabs.Settings:Button({
-            Title = "Save Configuration",
-            Icon = "save",
-            Variant = "Primary",
-            Callback = function()
-                configFile = ConfigManager:CreateConfig(configName)
-                    configFile:Register("AntiNextbotToggle", AntiNextbotToggle)
-    configFile:Register("AntiNextbotTeleportTypeDropdown", AntiNextbotTeleportTypeDropdown)
-    configFile:Register("AntiNextbotDistanceInput", AntiNextbotDistanceInput)
-    configFile:Register("DistanceTeleportInput", DistanceTeleportInput)
-    
-                configFile:Register("InfiniteJumpToggle", InfiniteJumpToggle)
-                configFile:Register("AutoTicketFarmToggle", AutoTicketFarmToggle)
-                configFile:Register("TicketEspToggle", TicketEspToggle)
-                configFile:Register("TicketBoxEspToggle", TicketBoxEspToggle)
-                configFile:Register("EspTypeDropdown", EspTypeDropdown)
-                configFile:Register("TicketTracerEspToggle", TicketTracerEspToggle)
-                configFile:Register("TicketDistanceEspToggle", TicketDistanceEspToggle)
-                configFile:Register("HighlightsTicketEspToggle", HighlightsTicketEspToggle)
-                configFile:Register("FreeCamSpeedSlider", FreeCamSpeedSlider)
-                configFile:Register("JumpMethodDropdown", JumpMethodDropdown)
-                configFile:Register("FlyToggle", FlyToggle)
-                configFile:Register("FlySpeedSlider", FlySpeedSlider)
-                configFile:Register("ZoomSlider", ZoomSlider)
-                configFile:Register("TPWALKToggle", TPWALKToggle)
-                configFile:Register("TPWALKSlider", TPWALKSlider)
-                configFile:Register("JumpBoostToggle", JumpBoostToggle)
-                configFile:Register("JumpBoostSlider", JumpBoostSlider)
-                configFile:Register("AntiAFKToggle", AntiAFKToggle)
-                configFile:Register("FullBrightToggle", FullBrightToggle)
-                configFile:Register("PlayerBoxESPToggle", PlayerBoxESPToggle)
-                configFile:Register("PlayerBoxTypeDropdown", PlayerBoxTypeDropdown)
-                configFile:Register("PlayerTracerToggle", PlayerTracerToggle)
-                configFile:Register("PlayerNameESPToggle", PlayerNameESPToggle)
-                configFile:Register("PlayerDistanceESPToggle", PlayerDistanceESPToggle)
-                configFile:Register("PlayerRainbowBoxesToggle", PlayerRainbowBoxesToggle)
-                configFile:Register("PlayerRainbowTracersToggle", PlayerRainbowTracersToggle)
-                configFile:Register("NextbotESPToggle", NextbotESPToggle)
-                configFile:Register("NextbotBoxESPToggle", NextbotBoxESPToggle)
-                configFile:Register("NextbotBoxTypeDropdown", NextbotBoxTypeDropdown)
-                configFile:Register("NextbotTracerToggle", NextbotTracerToggle)
-                configFile:Register("NextbotDistanceESPToggle", NextbotDistanceESPToggle)
-                configFile:Register("NextbotRainbowBoxesToggle", NextbotRainbowBoxesToggle)
-                configFile:Register("NextbotRainbowTracersToggle", NextbotRainbowTracersToggle)
-                configFile:Register("DownedBoxESPToggle", DownedBoxESPToggle)
-                configFile:Register("DownedBoxTypeDropdown", DownedBoxTypeDropdown)
- configFile:Register("NoFogToggle", NoFogToggle)
-                configFile:Register("DownedTracerToggle", DownedTracerToggle)
-                configFile:Register("DownedNameESPToggle", DownedNameESPToggle)
-                configFile:Register("DownedDistanceESPToggle", DownedDistanceESPToggle)
-                configFile:Register("AutoCarryToggle", AutoCarryToggle)
-                configFile:Register("AutoReviveToggle", FastReviveToggle)
-                configFile:Register("FastReviveToggle", FastReviveToggle)
-                configFile:Register("AutoVoteDropdown", AutoVoteDropdown)
-                configFile:Register("AutoVoteToggle", AutoVoteToggle)
-                configFile:Register("AutoSelfReviveToggle", AutoSelfReviveToggle)
-                configFile:Register("AutoWinToggle", AutoWinToggle)
-                configFile:Register("TimerDisplayToggle", TimerDisplayToggle)
-                configFile:Register("AutoMoneyFarmToggle", AutoMoneyFarmToggle)
-                configFile:Register("ThemeDropdown", ThemeDropdown)
-                configFile:Register("TransparencySlider", TransparencySlider)
-                configFile:Register("ThemeToggle", ThemeToggle)
-                configFile:Register("SpeedInput", SpeedInput)
-                configFile:Register("AutoWhistleToggle", AutoWhistleToggle)
-                configFile:Register("JumpCapInput", JumpCapInput)
-                configFile:Register("StrafeInput", StrafeInput)
-                configFile:Register("ApplyMethodDropdown", ApplyMethodDropdown)
-                configFile:Register("InfiniteSlideToggle", InfiniteSlideToggle)
-                configFile:Register("GravityToggle", GravityToggle)
-                configFile:Register("GravityInput", GravityInput)
-                configFile:Register("InfiniteSlideSpeedInput", InfiniteSlideSpeedInput)
-                configFile:Register("LagSwitchToggle", LagSwitchToggle)
-                configFile:Register("LagDurationInput", LagDurationInput)
-                configFile:Set("playerData", MyPlayerData)
-                configFile:Set("lastSave", os.date("%Y-%m-%d %H:%M:%S"))
-                configFile:Save()
-            end
-        })
-
-        Tabs.Settings:Button({
-            Title = "Load Configuration",
-            Icon = "folder",
-            Callback = function()
-                configFile = ConfigManager:CreateConfig(configName)
-                local loadedData = configFile:Load()
-                if loadedData then
-                    if loadedData.playerData then
-                        MyPlayerData = loadedData.playerData
-                    end
-                    local lastSave = loadedData.lastSave or "Unknown"
-                    Tabs.Settings:Paragraph({
-                        Title = "Player Data",
-                        Desc = string.format("Name: %s\nLevel: %d\nInventory: %s", 
-                            MyPlayerData.name, 
-                            MyPlayerData.level, 
-                            table.concat(MyPlayerData.inventory, ", "))
-                    })
-                end
-            end
-        })
-    else
-        Tabs.Settings:Paragraph({
-            Title = "Config Manager Not Available",
-            Desc = "This feature requires ConfigManager",
-            Image = "alert-triangle",
-            ImageSize = 20,
-            Color = "White"
-        })
-    end
     Tabs.Settings:Section({ Title = "Keybinds" })
         Tabs.Settings:Keybind({
         Flag = "Keybind",
@@ -10991,6 +11516,7 @@ end
 
 Tabs.Settings:Slider({
     Title = "BhopGui Size",
+    Flag = "BhopGuiSize",
     Desc = "Adjust BhopGui interface size (100 = normal size)",
     Value = { Min = 10, Max = 1000, Default = 100, Step = 10 },
     Callback = function(value)
@@ -11000,6 +11526,7 @@ Tabs.Settings:Slider({
 
 Tabs.Settings:Slider({
     Title = "Auto Carry Gui Size",
+    Flag = "AutoCarryGuiSize",
     Desc = "Adjust Auto Carry Gui interface size (100 = normal size)",
     Value = { Min = 10, Max = 1000, Default = 100, Step = 10 },
     Callback = function(value)
@@ -11009,6 +11536,7 @@ Tabs.Settings:Slider({
 
 Tabs.Settings:Slider({
     Title = "CrouchGui Size",
+    Flag = "AutoCrouchGuiSize",
     Desc = "Adjust CrouchGui interface size (100 = normal size)",
     Value = { Min = 10, Max = 1000, Default = 100, Step = 10 },
     Callback = function(value)
@@ -11018,6 +11546,7 @@ Tabs.Settings:Slider({
 
 Tabs.Settings:Slider({
     Title = "Easy Trimp Gui Size",
+    Flag = "EasyTrimmpGuiSize",
     Desc = "Adjust EmoteGui interface size (100 = normal size)",
     Value = { Min = 10, Max = 1000, Default = 100, Step = 10 },
     Callback = function(value)
@@ -11027,6 +11556,7 @@ Tabs.Settings:Slider({
 
 Tabs.Settings:Slider({
     Title = "EmoteGui Size",
+    Flag = "EmoteGuiSize",
     Desc = "Adjust EmoteGui interface size (100 = normal size)",
     Value = { Min = 10, Max = 1000, Default = 100, Step = 10 },
     Callback = function(value)
@@ -11036,6 +11566,7 @@ Tabs.Settings:Slider({
 
 Tabs.Settings:Slider({
     Title = "GravityGui Size",
+    Flag = "GravityGuiSize",
     Desc = "Adjust GravityGui interface size (100 = normal size)",
     Value = { Min = 10, Max = 1000, Default = 100, Step = 10 },
     Callback = function(value)
@@ -11045,6 +11576,7 @@ Tabs.Settings:Slider({
 
 Tabs.Settings:Slider({
     Title = "LagSwitchGui Size",
+    Flag = "LagswitchGuiSize",
     Desc = "Adjust LagSwitchGui interface size (100 = normal size)",
     Value = { Min = 10, Max = 1000, Default = 100, Step = 10 },
     Callback = function(value)
@@ -11056,6 +11588,7 @@ Tabs.Settings:Divider()
 
 TopGuiButtonDropdown = Tabs.Settings:Dropdown({
     Title = "Top UI Visiblety",
+    Flag = "TopGuiButtonDropdown",
     Desc = "Show/hide buttons in CustomTopGui",
     Values = {"SecondaryButton", "ReloadButton", "LeaderboardButton"},
     Multi = true,
@@ -11089,6 +11622,7 @@ TopGuiButtonDropdown = Tabs.Settings:Dropdown({
 })
 FPSCounterToggle = Tabs.Settings:Toggle({
     Title = "Show FPS Counter",
+    Flag = "FPSCounterToggle",
     Value = true,
     Callback = function(state)
         FPSCounter = game:GetService("CoreGui"):FindFirstChild("FPSCounter")
@@ -11122,6 +11656,7 @@ do
         })
          DiscordServerParagraph = Tabs.info:Paragraph({
             Title = tostring(Response.guild.name),
+    Flag = "DiscordServerParagraph",
             Desc = tostring(Response.guild.description),
             Image = "https://cdn.discordapp.com/icons/" .. Response.guild.id .. "/" .. Response.guild.icon .. ".png?size=1024",
             -- Thumbnail = "https://cdn.discordapp.com/banners/1300692552005189632/35981388401406a4b7dffd6f447a64c4.png?size=512",
