@@ -8908,6 +8908,8 @@ Tabs.Auto:Button({
             featureStates.AutoWin = state
             if state then
                 startAutoWin()
+                startAntiAFK()
+                AntiAFKToggle:Set(true)
             else
                 stopAutoWin()
             end
@@ -8959,6 +8961,8 @@ farmsSuppressedByAntiNextbot = false
                 FastReviveToggle:Set(true)
                 AutoSelfReviveToggle:Set(true)
                 startAutoRevive()
+                startAntiAFK()
+                AntiAFKToggle:Set(true)
             else
                 stopAutoMoneyFarm()
             end
@@ -9044,6 +9048,8 @@ AutoTurkeyFarmToggle = Tabs.Auto:Toggle({
         featureStates.AutoTurkeyFarm = state
         if state then
             startAutoTurkeyFarm()
+            startAntiAFK()
+            AntiAFKToggle:Set(true)
         else
             stopAutoTurkeyFarm()
         end
@@ -9061,6 +9067,8 @@ AutoTicketFarmToggle = Tabs.Auto:Toggle({
         local ticketProcessedTime = 0
 
         if state then
+        startAntiAFK()
+        AntiAFKToggle:Set(true)
             local securityPart = workspace:FindFirstChild("SecurityPart")
             if not securityPart then
                 print("SecurityPart not found")
