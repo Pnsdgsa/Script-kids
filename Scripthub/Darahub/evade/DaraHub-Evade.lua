@@ -1309,7 +1309,15 @@ local function stopAutoVote()
     end
 end
 
-
+if not workspace:FindFirstChild("SecurityPart") then
+    local SecurityPart = Instance.new("Part")
+    SecurityPart.Name = "SecurityPart"
+    SecurityPart.Size = Vector3.new(10, 1, 10)
+    SecurityPart.Position = Vector3.new(5000, 5000, 5000)
+    SecurityPart.Anchored = true
+    SecurityPart.CanCollide = true
+    SecurityPart.Parent = workspace
+end
 local function startAutoWin()
     local securityPart = workspace:FindFirstChild("SecurityPart")
     if not securityPart then
@@ -12045,16 +12053,6 @@ end
 
 --[[the part of loadstring prevent error]]
 loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/More-Loadstrings.lua'))()
-if not workspace:FindFirstChild("SecurityPart") then
-    local SecurityPart = Instance.new("Part")
-    SecurityPart.Name = "SecurityPart"
-    SecurityPart.Size = Vector3.new(10, 1, 10)
-    SecurityPart.Position = Vector3.new(5000, 5000, 5000)
-    SecurityPart.Anchored = true
-    SecurityPart.CanCollide = true
-    SecurityPart.Parent = workspace
-end
-
 local function monitorAnyDamage()
     local function setupCharacter(character)
         local humanoid = character:WaitForChild("Humanoid")
