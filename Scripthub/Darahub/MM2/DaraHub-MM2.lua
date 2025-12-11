@@ -20,11 +20,12 @@ end
 WindUI.TransparencyValue = 0.2
 WindUI:SetTheme("Dark")
 
-Window = WindUI:CreateWindow({
-    Title = "Dara Hub | MM2",
+local Window = WindUI:CreateWindow({
+    NewElements = true,
+    Title = "Dara Hub | Murder Mystery 2",
     Icon = "rbxassetid://137330250139083",
     Author = "Made by: Pnsdg And Yomka",
-    Folder = "DaraHub",
+    Folder = "DaraHub/Games/Murder-Mystery-2(Normal-Mode)",
     Size = UDim2.fromOffset(580, 490),
     Theme = "Dark",
     HidePanelBackground = false,
@@ -32,6 +33,7 @@ Window = WindUI:CreateWindow({
     HideSearchBar = false,
     SideBarWidth = 200
 })
+
 
 isWindowOpen = false
 updateWindowOpenState = function()
@@ -529,6 +531,7 @@ end)
 
 InfiniteJumpToggle = Tabs.Player:Toggle({
     Title = "Infinite Jump",
+        Flag = "InfiniteJumpToggle",
     Value = featureStates.InfiniteJump,
     Callback = function(state)
         featureStates.InfiniteJump = state
@@ -537,6 +540,7 @@ InfiniteJumpToggle = Tabs.Player:Toggle({
 
 SpeedToggle = Tabs.Player:Toggle({
     Title = "Speed Hack",
+        Flag = "SpeedToggle",
     Value = featureStates.SpeedHack,
     Callback = function(state)
         featureStates.SpeedHack = state
@@ -550,6 +554,7 @@ SpeedToggle = Tabs.Player:Toggle({
 
 SpeedSlider = Tabs.Player:Slider({
     Title = "Speed Value",
+        Flag = "SpeedSlider",
     Desc = "Adjust walk speed",
     Value = { Min = 16, Max = 200, Default = featureStates.SpeedValue, Step = 1 },
     Callback = function(value)
@@ -594,6 +599,7 @@ end
 
 NoclipToggle = Tabs.Player:Toggle({
     Title = "Noclip",
+        Flag = "NoclipToggle",
     Value = featureStates.Noclip,
     Callback = function(state)
         featureStates.Noclip = state
@@ -664,6 +670,7 @@ end
 
 FlyToggle = Tabs.Player:Toggle({
     Title = "Fly",
+        Flag = "FlyToggle",
     Value = featureStates.Fly,
     Callback = function(state)
         featureStates.Fly = state
@@ -682,6 +689,7 @@ FlyToggle = Tabs.Player:Toggle({
 
 FlySpeedSlider = Tabs.Player:Slider({
     Title = "Fly Speed",
+        Flag = "FlySpeedSlider",
     Value = { Min = 1, Max = 200, Default = featureStates.FlySpeed, Step = 1 },
     Desc = "Adjust fly speed",
     Callback = function(value)
@@ -763,6 +771,7 @@ end
 
 GodModeToggle = Tabs.Player:Toggle({
     Title = "God Mode",
+        Flag = "GodModeToggle",
     Desc = "Become invincible",
     Value = false,
     Callback = function(state)
@@ -778,6 +787,7 @@ GodModeToggle = Tabs.Player:Toggle({
 
 GodModeMethodDropdown = Tabs.Player:Dropdown({
     Title = "God Mode Method",
+        Flag = "GodModeMethodDropdown",
     Values = {"Health Math.huge", "Humanoid Replacement (Very buggy)"},
     Value = "Health Math.huge",
     MenuWidth = 400,
@@ -835,6 +845,7 @@ end
 
 TPWALKToggle = Tabs.Player:Toggle({
     Title = "TP WALK",
+        Flag = "TPWALKToggle",
     Value = featureStates.TPWALK,
     Callback = function(state)
         featureStates.TPWALK = state
@@ -848,6 +859,7 @@ TPWALKToggle = Tabs.Player:Toggle({
 
 TPWALKSlider = Tabs.Player:Slider({
     Title = "TPWALK VALUE",
+        Flag = "TPWALKSlider",
     Desc = "Adjust TPWALK speed",
     Value = { Min = 1, Max = 200, Default = featureStates.TpwalkValue, Step = 1 },
     Callback = function(value)
@@ -894,6 +906,7 @@ end
 
 JumpBoostToggle = Tabs.Player:Toggle({
     Title = "Jump Height",
+        Flag = "JumpBoostToggle",
     Value = featureStates.JumpBoost,
     Callback = function(state)
         featureStates.JumpBoost = state
@@ -907,6 +920,7 @@ JumpBoostToggle = Tabs.Player:Toggle({
 
 JumpBoostSlider = Tabs.Player:Slider({
     Title = "Jump Power",
+        Flag = "JumpBoostSlider",
     Desc = "Adjust jump height",
     Value = { Min = 1, Max = 200, Default = featureStates.JumpPower, Step = 1 },
     Callback = function(value)
@@ -1233,6 +1247,7 @@ Tabs.Combat:Section({ Title = "Aimbot Settings" })
 
 AimbotToggle = Tabs.Combat:Toggle({
     Title = "Aimbot",
+        Flag = "AimbotToggle",
     Value = false,
     Callback = function(state)
         AimbotEnabled = state
@@ -1246,6 +1261,7 @@ AimbotToggle = Tabs.Combat:Toggle({
 
 AimPartDropdown = Tabs.Combat:Dropdown({
     Title = "Aim Part",
+        Flag = "AimPartDropdown",
     Desc = "Select which part to aim at",
     Values = { "Head", "Body", "Legs" },
     Value = "Head",
@@ -1256,6 +1272,7 @@ AimPartDropdown = Tabs.Combat:Dropdown({
 --[[ I'm done
 TargetRoleDropdown = Tabs.Combat:Dropdown({
     Title = "Target Role",
+        Flag = "TargetRoleDropdown",
     Desc = "Select which roles to target",
     Values = { "Murderer", "Sheriff", "Hero", "Innocent", "Unknown" },
     Value = {},
@@ -1268,6 +1285,7 @@ TargetRoleDropdown = Tabs.Combat:Dropdown({
 ]]
 SmoothnessSlider = Tabs.Combat:Slider({
     Title = "Smoothness",
+        Flag = "SmoothnessSlider",
     Desc = "Higher = smoother aim, Lower = snappier aim",
     Value = { Min = 1, Max = 20, Default = 10, Step = 1 },
     Callback = function(value)
@@ -1277,6 +1295,7 @@ SmoothnessSlider = Tabs.Combat:Slider({
 
 WallCheckToggle = Tabs.Combat:Toggle({
     Title = "Wall Check",
+        Flag = "WallCheckToggle",
     Value = false,
     Callback = function(state)
         wallCheckEnabled = state
@@ -1287,6 +1306,7 @@ Tabs.Combat:Section({ Title = "FOV Settings" })
 
 ShowFOVToggle = Tabs.Combat:Toggle({
     Title = "Show FOV Circle",
+        Flag = "ShowFOVToggle",
     Value = false,
     Callback = function(state)
         ShowFOV = state
@@ -1296,6 +1316,7 @@ ShowFOVToggle = Tabs.Combat:Toggle({
 
 LockFOVToggle = Tabs.Combat:Toggle({
     Title = "Lock FOV On Middle Screen",
+        Flag = "LockFOVToggle",
     Value = true,
     Callback = function(state)
         lockFOVToCenter = state
@@ -1305,6 +1326,7 @@ LockFOVToggle = Tabs.Combat:Toggle({
 
 FOVRadiusSlider = Tabs.Combat:Slider({
     Title = "FOV Radius",
+        Flag = "FOVRadiusSlider",
     Desc = "Size of the targeting area",
     Value = { Min = 10, Max = 500, Default = 100, Step = 5 },
     Callback = function(value)
@@ -1315,6 +1337,7 @@ FOVRadiusSlider = Tabs.Combat:Slider({
 
 FOVColorPicker = Tabs.Combat:Colorpicker({
     Title = "FOV Color",
+        Flag = "FOVColorPicker",
     Desc = "FOV Circle Color",
     Default = Color3.fromRGB(0, 255, 0),
     Locked = false,
@@ -1326,6 +1349,7 @@ FOVColorPicker = Tabs.Combat:Colorpicker({
 
 FOVThicknessSlider = Tabs.Combat:Slider({
     Title = "FOV Thickness",
+        Flag = "FOVThicknessSlider",
     Desc = "Thickness of the FOV circle",
     Value = { Min = 1, Max = 10, Default = 2, Step = 1 },
     Callback = function(value)
@@ -2295,6 +2319,7 @@ end
 
 AutoEquipKnifeToggle = Tabs.Combat:Toggle({
     Title = "Auto Equip Knife",
+        Flag = "AutoEquipKnifeToggle",
     Value = false,
     Callback = function(state)
         autoEquipKnife = state
@@ -2304,6 +2329,7 @@ AutoEquipKnifeToggle = Tabs.Combat:Toggle({
 
 KillModeDropdown = Tabs.Combat:Dropdown({
     Title = "Kill Mode",
+        Flag = "KillModeDropdown",
     Values = {"Kill Aura", "Kill Nearby", "Kill All"},
     Value = "Kill Aura",
     Callback = function(value)
@@ -2314,6 +2340,7 @@ KillModeDropdown = Tabs.Combat:Dropdown({
 
 KillAuraSlider = Tabs.Combat:Slider({
     Title = "Knife Kill Aura Rage",
+        Flag = "KillAuraSlider",
     Desc = "Adjust kill aura radius",
     Value = { Min = 1, Max = 200, Default = 10, Step = 1 },
     Callback = function(value)
@@ -2326,6 +2353,7 @@ KillAuraSlider = Tabs.Combat:Slider({
 
 ShowAuraToggle = Tabs.Combat:Toggle({
     Title = "Show Aura Circle",
+        Flag = "ShowAuraToggle",
     Value = false,
     Callback = function(state)
         showAuraCircle = state
@@ -2335,6 +2363,7 @@ ShowAuraToggle = Tabs.Combat:Toggle({
 
 AutoKillToggle = Tabs.Combat:Toggle({
     Title = "Auto Kill",
+        Flag = "AutoKillToggle",
     Value = false,
     Callback = function(state)
         autoKillEnabled = state
@@ -2399,6 +2428,7 @@ local function setupCameraStretch()
     local stretchVertical = 0.80
     CameraStretchToggle = Tabs.Visuals:Toggle({
         Title = "Camera Stretch",
+        Flag = "CameraStretchToggle",
         Value = false,
         Callback = function(state)
             if state then
@@ -2418,6 +2448,7 @@ local function setupCameraStretch()
 
     CameraStretchHorizontalInput = Tabs.Visuals:Input({
         Title = "Camera Stretch Horizontal",
+        Flag = "CameraStretchHorizontalInput",
         Placeholder = "0.80",
         Numeric = true,
         Value = tostring(stretchHorizontal),
@@ -2438,6 +2469,7 @@ local function setupCameraStretch()
 
     CameraStretchVerticalInput = Tabs.Visuals:Input({
         Title = "Camera Stretch Vertical",
+        Flag = "CameraStretchVerticalInput",
         Placeholder = "0.80",
         Numeric = true,
         Value = tostring(stretchVertical),
@@ -2458,6 +2490,7 @@ local function setupCameraStretch()
 end
 	    FullBrightToggle = Tabs.Visuals:Toggle({
     Title = "Full Bright",
+        Flag = "FullBrightToggle",
     Desc = "Ya Like drinking Night Vision while mining in da cave and sceard of creeper blow you up dawg?",
     Value = false,
     Callback = function(state)
@@ -2532,6 +2565,7 @@ end
 })
 local FOVSlider = Tabs.Visuals:Slider({
     Title = "Field of View",
+        Flag = "FOVSlider",
     Value = { Min = 1, Max = 120, Default = originalFOV, Step = 1 },
     Callback = function(value)
         workspace.CurrentCamera.FieldOfView = tonumber(value)
@@ -2869,6 +2903,7 @@ end
 
 RoundTimerToggle = Tabs.Visuals:Toggle({
     Title = "Round Timer Display",
+        Flag = "RoundTimerToggle",
     Desc = "Show round timer in top middle of screen",
     Value = false,
     Callback = function(state)
@@ -3904,6 +3939,7 @@ Tabs.Esp:Section({ Title = "Innocent ESP" })
 
 InnocentNameESPToggle = Tabs.Esp:Toggle({
     Title = "Innocent Name ESP",
+        Flag = "InnocentNameESPToggle",
     Value = false,
     Callback = function(state)
         featureStates.InnocentESP.names = state
@@ -3913,6 +3949,7 @@ InnocentNameESPToggle = Tabs.Esp:Toggle({
 
 InnocentBoxESPToggle = Tabs.Esp:Toggle({
     Title = "Innocent Box ESP",
+        Flag = "InnocentBoxESPToggle",
     Value = false,
     Callback = function(state)
         featureStates.InnocentESP.boxes = state
@@ -3922,6 +3959,7 @@ InnocentBoxESPToggle = Tabs.Esp:Toggle({
 
 InnocentBoxTypeDropdown = Tabs.Esp:Dropdown({
     Title = "Innocent Box Type",
+        Flag = "InnocentBoxTypeDropdown",
     Values = {"2D", "3D"},
     Value = "2D",
     Callback = function(value)
@@ -3931,6 +3969,7 @@ InnocentBoxTypeDropdown = Tabs.Esp:Dropdown({
 
 InnocentTracerToggle = Tabs.Esp:Toggle({
     Title = "Innocent Tracer",
+        Flag = "InnocentTracerToggle",
     Value = false,
     Callback = function(state)
         featureStates.InnocentESP.tracers = state
@@ -3940,6 +3979,7 @@ InnocentTracerToggle = Tabs.Esp:Toggle({
 
 InnocentDistanceESPToggle = Tabs.Esp:Toggle({
     Title = "Innocent Distance ESP",
+        Flag = "InnocentDistanceESPToggle",
     Value = false,
     Callback = function(state)
         featureStates.InnocentESP.distance = state
@@ -3949,6 +3989,7 @@ InnocentDistanceESPToggle = Tabs.Esp:Toggle({
 
 InnocentHighlightsToggle = Tabs.Esp:Toggle({
     Title = "Innocent Highlights",
+        Flag = "InnocentHighlightsToggle",
     Value = false,
     Callback = function(state)
         featureStates.InnocentHighlights = state
@@ -3961,6 +4002,7 @@ Tabs.Esp:Section({ Title = "Murder ESP" })
 
 MurderNameESPToggle = Tabs.Esp:Toggle({
     Title = "Murder Name ESP",
+        Flag = "MurderNameESPToggle",
     Value = false,
     Callback = function(state)
         featureStates.MurderESP.names = state
@@ -3970,6 +4012,7 @@ MurderNameESPToggle = Tabs.Esp:Toggle({
 
 MurderBoxESPToggle = Tabs.Esp:Toggle({
     Title = "Murder Box ESP",
+        Flag = "MurderBoxESPToggle",
     Value = false,
     Callback = function(state)
         featureStates.MurderESP.boxes = state
@@ -3979,6 +4022,7 @@ MurderBoxESPToggle = Tabs.Esp:Toggle({
 
 MurderBoxTypeDropdown = Tabs.Esp:Dropdown({
     Title = "Murder Box Type",
+        Flag = "MurderBoxTypeDropdown",
     Values = {"2D", "3D"},
     Value = "2D",
     Callback = function(value)
@@ -3988,6 +4032,7 @@ MurderBoxTypeDropdown = Tabs.Esp:Dropdown({
 
 MurderTracerToggle = Tabs.Esp:Toggle({
     Title = "Murder Tracer",
+        Flag = "MurderTracerToggle",
     Value = false,
     Callback = function(state)
         featureStates.MurderESP.tracers = state
@@ -3997,6 +4042,7 @@ MurderTracerToggle = Tabs.Esp:Toggle({
 
 MurderDistanceESPToggle = Tabs.Esp:Toggle({
     Title = "Murder Distance ESP",
+        Flag = "MurderDistanceESPToggle",
     Value = false,
     Callback = function(state)
         featureStates.MurderESP.distance = state
@@ -4006,6 +4052,7 @@ MurderDistanceESPToggle = Tabs.Esp:Toggle({
 
 MurderHighlightsToggle = Tabs.Esp:Toggle({
     Title = "Murder Highlights",
+        Flag = "MurderHighlightsToggle",
     Value = false,
     Callback = function(state)
         featureStates.MurderHighlights = state
@@ -4018,6 +4065,7 @@ Tabs.Esp:Section({ Title = "Hero/Sheriff ESP" })
 
 HeroSheriffNameESPToggle = Tabs.Esp:Toggle({
     Title = "Hero/Sheriff Name ESP",
+        Flag = "HeroSheriffNameESPToggle",
     Value = false,
     Callback = function(state)
         featureStates.HeroSheriffESP.names = state
@@ -4027,6 +4075,7 @@ HeroSheriffNameESPToggle = Tabs.Esp:Toggle({
 
 HeroSheriffBoxESPToggle = Tabs.Esp:Toggle({
     Title = "Hero/Sheriff Box ESP",
+        Flag = "HeroSheriffBoxESPToggle",
     Value = false,
     Callback = function(state)
         featureStates.HeroSheriffESP.boxes = state
@@ -4036,6 +4085,7 @@ HeroSheriffBoxESPToggle = Tabs.Esp:Toggle({
 
 HeroSheriffBoxTypeDropdown = Tabs.Esp:Dropdown({
     Title = "Hero/Sheriff Box Type",
+        Flag = "HeroSheriffBoxTypeDropdown",
     Values = {"2D", "3D"},
     Value = "2D",
     Callback = function(value)
@@ -4045,6 +4095,7 @@ HeroSheriffBoxTypeDropdown = Tabs.Esp:Dropdown({
 
 HeroSheriffTracerToggle = Tabs.Esp:Toggle({
     Title = "Hero/Sheriff Tracer",
+        Flag = "HeroSheriffTracerToggle",
     Value = false,
     Callback = function(state)
         featureStates.HeroSheriffESP.tracers = state
@@ -4054,6 +4105,7 @@ HeroSheriffTracerToggle = Tabs.Esp:Toggle({
 
 HeroSheriffDistanceESPToggle = Tabs.Esp:Toggle({
     Title = "Hero/Sheriff Distance ESP",
+        Flag = "HeroSheriffDistanceESPToggle",
     Value = false,
     Callback = function(state)
         featureStates.HeroSheriffESP.distance = state
@@ -4063,6 +4115,7 @@ HeroSheriffDistanceESPToggle = Tabs.Esp:Toggle({
 
 SheriffHeroHighlightsToggle = Tabs.Esp:Toggle({
     Title = "Sheriff/Hero Highlights",
+        Flag = "SheriffHeroHighlightsToggle",
     Value = false,
     Callback = function(state)
         featureStates.SheriffHeroHighlights = state
@@ -4074,6 +4127,7 @@ Tabs.Esp:Section({ Title = "Gun ESP" })
 
 GunNameESPToggle = Tabs.Esp:Toggle({
     Title = "Gun ESP",
+        Flag = "GunNameESPToggle",
     Value = false,
     Callback = function(state)
         featureStates.GunESP.names = state
@@ -4083,6 +4137,7 @@ GunNameESPToggle = Tabs.Esp:Toggle({
 
 GunBoxESPToggle = Tabs.Esp:Toggle({
     Title = "Gun Box ESP",
+        Flag = "GunBoxESPToggle",
     Value = false,
     Callback = function(state)
         featureStates.GunESP.boxes = state
@@ -4092,6 +4147,7 @@ GunBoxESPToggle = Tabs.Esp:Toggle({
 
 GunBoxTypeDropdown = Tabs.Esp:Dropdown({
     Title = "Gun Box Type",
+        Flag = "GunBoxTypeDropdown",
     Values = {"2D", "3D"},
     Value = "3D",
     Callback = function(value)
@@ -4101,6 +4157,7 @@ GunBoxTypeDropdown = Tabs.Esp:Dropdown({
 
 GunTracerToggle = Tabs.Esp:Toggle({
     Title = "Gun Tracer",
+        Flag = "GunTracerToggle",
     Value = false,
     Callback = function(state)
         featureStates.GunESP.tracers = state
@@ -4110,6 +4167,7 @@ GunTracerToggle = Tabs.Esp:Toggle({
 
 GunDistanceESPToggle = Tabs.Esp:Toggle({
     Title = "Gun Distance ESP",
+        Flag = "GunDistanceESPToggle",
     Value = false,
     Callback = function(state)
         featureStates.GunESP.distance = state
@@ -4119,6 +4177,7 @@ GunDistanceESPToggle = Tabs.Esp:Toggle({
 
 GunHighlightsToggle = Tabs.Esp:Toggle({
     Title = "Gun Highlights",
+        Flag = "GunHighlightsToggle",
     Value = false,
     Callback = function(state)
         featureStates.GunHighlights = state
@@ -4130,6 +4189,7 @@ Tabs.Esp:Section({ Title = "Coin ESP" })
 
 CoinNameESPToggle = Tabs.Esp:Toggle({
     Title = "Coin ESP",
+        Flag = "CoinNameESPToggle",
     Value = false,
     Callback = function(state)
         featureStates.CoinESP.names = state
@@ -4139,6 +4199,7 @@ CoinNameESPToggle = Tabs.Esp:Toggle({
 
 CoinBoxESPToggle = Tabs.Esp:Toggle({
     Title = "Coin Box ESP",
+        Flag = "CoinBoxESPToggle",
     Value = false,
     Callback = function(state)
         featureStates.CoinESP.boxes = state
@@ -4148,6 +4209,7 @@ CoinBoxESPToggle = Tabs.Esp:Toggle({
 
 CoinBoxTypeDropdown = Tabs.Esp:Dropdown({
     Title = "Coin Box Type",
+        Flag = "CoinBoxTypeDropdown",
     Values = {"2D", "3D"},
     Value = "3D",
     Callback = function(value)
@@ -4157,6 +4219,7 @@ CoinBoxTypeDropdown = Tabs.Esp:Dropdown({
 
 CoinTracerToggle = Tabs.Esp:Toggle({
     Title = "Coin Tracer",
+        Flag = "CoinTracerToggle",
     Value = false,
     Callback = function(state)
         featureStates.CoinESP.tracers = state
@@ -4166,6 +4229,7 @@ CoinTracerToggle = Tabs.Esp:Toggle({
 
 CoinDistanceESPToggle = Tabs.Esp:Toggle({
     Title = "Coin Distance ESP",
+        Flag = "CoinDistanceESPToggle",
     Value = false,
     Callback = function(state)
         featureStates.CoinESP.distance = state
@@ -4175,6 +4239,7 @@ CoinDistanceESPToggle = Tabs.Esp:Toggle({
 
 CoinHighlightsToggle = Tabs.Esp:Toggle({
     Title = "Coin Highlights",
+        Flag = "CoinHighlightsToggle",
     Value = false,
     Callback = function(state)
         featureStates.CoinHighlights = state
@@ -4200,6 +4265,7 @@ end
 
 TeleportPlayerDropdown = Tabs.Teleport:Dropdown({
     Title = "Select Player",
+        Flag = "TeleportPlayerDropdown",
     Values = GetPlayerList(),
     Value = "Select a player",
     Callback = function(value)
@@ -4487,6 +4553,7 @@ end
 
 AntiAFKToggle = Tabs.Misc:Toggle({
     Title = "Anti AFK",
+        Flag = "AntiAFKToggle",
     Value = featureStates.AntiAFK,
     Callback = function(state)
         featureStates.AntiAFK = state
@@ -4718,6 +4785,7 @@ end
 
 ExpFarmToggle = Tabs.Misc:Toggle({
     Title = "Exp Farm",
+        Flag = "ExpFarmToggle",
     Value = false,
     Callback = function(state)
         ExpFarm = state
@@ -5250,6 +5318,7 @@ end
 
 TouchFlingToggle = Tabs.Utility:Toggle({
     Title = "Touch Fling",
+        Flag = "TouchFlingToggle",
     Value = false,
     Callback = function(state)
         hiddenfling = state
@@ -5869,6 +5938,7 @@ end
 local flingInputValue = ""
 FlingInput = Tabs.Utility:Input({
     Title = "Fling Target",
+        Flag = "FlingInput",
     Placeholder = "nickname, all, nonfriends, murder, sheriff",
     Callback = function(value)
         flingInputValue = value
@@ -5878,6 +5948,7 @@ FlingInput = Tabs.Utility:Input({
 
 FlingModeDropdown = Tabs.Utility:Dropdown({
     Title = "Fling Mode",
+        Flag = "FlingModeDropdown",
     Values = {"SkidFling", "Shhhlol", "Yeet"},
     Value = "SkidFling",
     Callback = function(value)
@@ -5893,6 +5964,7 @@ FlingModeDropdown = Tabs.Utility:Dropdown({
 
 FlingToggle = Tabs.Utility:Toggle({
     Title = "Fling Players",
+        Flag = "FlingToggle",
     Value = false,
     Callback = function(state)
         flingActive = state
@@ -6143,6 +6215,7 @@ end
 
 InfinitePositionToggle = Tabs.Utility:Toggle({
     Title = "Infinite Position Lock",
+        Flag = "InfinitePositionToggle",
     Desc = "Lock your position in place",
     Value = false,
     Callback = function(state)
@@ -6162,6 +6235,7 @@ InfinitePositionToggle = Tabs.Utility:Toggle({
 })
 TimeChangerInput = Tabs.Utility:Input({
     Title = "Set Time (HH:MM)",
+        Flag = "TimeChangerInput",
     Placeholder = "12:00",
     Callback = function(value)
         value = value:gsub("^%s*(.-)%s*$", "%1")
@@ -6330,6 +6404,7 @@ end
 
 LagSwitchToggle = Tabs.Utility:Toggle({
     Title = "Lag Switch",
+        Flag = "LagSwitchToggle",
     Icon = "zap",
     Value = false,
     Callback = function(state)
@@ -6351,6 +6426,7 @@ LagSwitchToggle = Tabs.Utility:Toggle({
 
 LagDurationInput = Tabs.Utility:Input({
     Title = "Lag Duration (seconds)",
+        Flag = "LagDurationInput",
     Placeholder = "0.5",
     Value = tostring(getgenv().lagDuration),
     NumbersOnly = true,
@@ -6374,6 +6450,7 @@ end)
 checkLagState()
 GravityToggle = Tabs.Utility:Toggle({
     Title = "Custom Gravity",
+        Flag = "GravityToggle",
     Value = false,
     Callback = function(state)
         featureStates.CustomGravity = state
@@ -6387,6 +6464,7 @@ GravityToggle = Tabs.Utility:Toggle({
 
 GravityInput = Tabs.Utility:Input({
     Title = "Gravity Value",
+        Flag = "GravityInput",
     Placeholder = tostring(originalGameGravity),
     Value = tostring(featureStates.GravityValue),
     Callback = function(text)
@@ -6403,6 +6481,7 @@ getgenv().gravityGuiVisible = false
 
 GravityGUIToggle = Tabs.Utility:Toggle({
     Title = "Gravity toggle shortcuts",
+        Flag = "GravityGUIToggle",
     Desc = "Toggle gui or keybind for quick enable gravity",
     Icon = "toggle-right",
     Value = false,
@@ -6432,6 +6511,7 @@ featureStates.NoRenderColor = Color3.fromRGB(0, 0, 0)
 
 NoRenderToggle = Tabs.Utility:Toggle({
     Title = "No Render",
+        Flag = "NoRenderToggle",
     Desc = "Disable 3D rendering for performance",
     Value = false,
     Callback = function(state)
@@ -6463,6 +6543,7 @@ NoRenderToggle = Tabs.Utility:Toggle({
 
 NoRenderColorPicker = Tabs.Utility:Colorpicker({
     Title = "No Render Color",
+        Flag = "NoRenderColorPicker",
     Desc = "Choose background color when No Render is enabled",
     Default = Color3.fromRGB(0, 0, 0),
     Transparency = 0,
@@ -6619,6 +6700,7 @@ end
 
 AntiFlingToggle = Tabs.Utility:Toggle({
     Title = "Disable Player Collisions",
+        Flag = "AntiFlingToggle",
     Value = false,
     Callback = function(state)
         antiFlingEnabled = state
@@ -6753,253 +6835,417 @@ Tabs.Utility:Button({
 loadstring(game:HttpGet('https://pastebin.com/raw/3Rnd9rHf'))()
     end
 })
-Tabs.Settings:Section({ Title = "Configuration", TextSize = 20 })
+Tabs.Settings:Section({ Title = "Config Manager", TextSize = 20 })
 Tabs.Settings:Divider()
 
-ConfigNameInput = Tabs.Settings:Input({
-    Title = "Config Name",
-    Placeholder = "Enter config name",
-    Callback = function(value)
-        configFileName = value
-    end
-})
+-- Services
+local ConfigManager = Window.ConfigManager
+local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
 
-Tabs.Settings:Button({
-    Title = "Save Configuration",
-    Desc = "Save current settings to file",
-    Icon = "save",
-    Callback = function()
-        success, error = pcall(function()
-            if not isfolder("mm2") then
-                makefolder("mm2")
-            end
-            
-            fileName = configFileName and configFileName ~= "" and configFileName or "MM2"
-            
-            configData = {
-                Theme = WindUI:GetCurrentTheme(),
-                Transparency = WindUI.TransparencyValue,
-                FeatureStates = featureStates
-            }
-            
-            writefile("mm2/" .. fileName .. ".json", HttpService:JSONEncode(configData))
-        end)
-        
-        if success then
-            UpdateConfigList()
-        end
-    end
-})
+local CurrentConfigName = "default"
+local AutoLoadConfig = "default"
+local AutoLoadEnabled = false
+local AutoSaveEnabled = false
+local ConfigListDropdown = nil
+local AutoSaveConnection = nil
 
-ConfigDropdown = Tabs.Settings:Dropdown({
-    Title = "Load Configuration",
-    Values = {"Select a config"},
-    Value = "Select a config",
-    Callback = function(value)
-        if value ~= "Select a config" then
-            success, error = pcall(function()
-                if isfile("mm2/" .. value .. ".json") then
-                    configData = HttpService:JSONDecode(readfile("mm2/" .. value .. ".json"))
-                    
-                    if configData.Theme then
-                        WindUI:SetTheme(configData.Theme)
-                    end
-                    if configData.Transparency then
-                        WindUI.TransparencyValue = configData.Transparency
-                    end
-                    if configData.FeatureStates then
-                        for key, val in pairs(configData.FeatureStates) do
-                            featureStates[key] = val
-                        end
-                        if InfiniteJumpToggle then
-                            InfiniteJumpToggle:Set(featureStates.InfiniteJump)
-                        end
-                        if SpeedToggle then
-                            SpeedToggle:Set(featureStates.SpeedHack)
-                            if featureStates.SpeedHack and humanoid then
-                                humanoid.WalkSpeed = featureStates.SpeedValue
-                            elseif humanoid then
-                                humanoid.WalkSpeed = 16
-                            end
-                        end
-                        if SpeedSlider then
-                            SpeedSlider:Set(featureStates.SpeedValue)
-                        end
-                        if NoclipToggle then
-                            NoclipToggle:Set(featureStates.Noclip)
-                            if featureStates.Noclip then
-                                noclip()
-                            else
-                                clip()
-                            end
-                        end
-                        if FlyToggle then
-                            FlyToggle:Set(featureStates.Fly)
-                            if featureStates.Fly then
-                                startFlying()
-                                flyConnection = RunService.Heartbeat:Connect(updateFly)
-                            else
-                                stopFlying()
-                                if flyConnection then
-                                    flyConnection:Disconnect()
-                                    flyConnection = nil
-                                end
-                            end
-                        end
-                        if FlySpeedSlider then
-                            FlySpeedSlider:Set(featureStates.FlySpeed)
-                        end
-                        if TPWALKToggle then
-                            TPWALKToggle:Set(featureStates.TPWALK)
-                            if featureStates.TPWALK then
-                                startTpwalk()
-                            else
-                                stopTpwalk()
-                            end
-                        end
-                        if TPWALKSlider then
-                            TPWALKSlider:Set(featureStates.TpwalkValue)
-                        end
-                        if JumpBoostToggle then
-                            JumpBoostToggle:Set(featureStates.JumpBoost)
-                            if featureStates.JumpBoost then
-                                startJumpBoost()
-                            else
-                                stopJumpBoost()
-                            end
-                        end
-                        if JumpBoostSlider then
-                            JumpBoostSlider:Set(featureStates.JumpPower)
-                        end
-                        if AntiAFKToggle then
-                            AntiAFKToggle:Set(featureStates.AntiAFK)
-                            if featureStates.AntiAFK then
-                                startAntiAFK()
-                            else
-                                stopAntiAFK()
-                            end
-                        end
-                        if InnocentNameESPToggle then
-                            InnocentNameESPToggle:Set(featureStates.InnocentESP.names)
-                        end
-                        if InnocentBoxESPToggle then
-                            InnocentBoxESPToggle:Set(featureStates.InnocentESP.boxes)
-                        end
-                        if InnocentTracerToggle then
-                            InnocentTracerToggle:Set(featureStates.InnocentESP.tracers)
-                        end
-                        if InnocentDistanceESPToggle then
-                            InnocentDistanceESPToggle:Set(featureStates.InnocentESP.distance)
-                        end
-                        if InnocentBoxTypeDropdown then
-                            InnocentBoxTypeDropdown:Set(featureStates.InnocentESP.boxType)
-                        end
-                        if MurderNameESPToggle then
-                            MurderNameESPToggle:Set(featureStates.MurderESP.names)
-                        end
-                        if MurderBoxESPToggle then
-                            MurderBoxESPToggle:Set(featureStates.MurderESP.boxes)
-                        end
-                        if MurderTracerToggle then
-                            MurderTracerToggle:Set(featureStates.MurderESP.tracers)
-                        end
-                        if MurderDistanceESPToggle then
-                            MurderDistanceESPToggle:Set(featureStates.MurderESP.distance)
-                        end
-                        if MurderBoxTypeDropdown then
-                            MurderBoxTypeDropdown:Set(featureStates.MurderESP.boxType)
-                        end
-                        if HeroSheriffNameESPToggle then
-                            HeroSheriffNameESPToggle:Set(featureStates.HeroSheriffESP.names)
-                        end
-                        if HeroSheriffBoxESPToggle then
-                            HeroSheriffBoxESPToggle:Set(featureStates.HeroSheriffESP.boxes)
-                        end
-                        if HeroSheriffTracerToggle then
-                            HeroSheriffTracerToggle:Set(featureStates.HeroSheriffESP.tracers)
-                        end
-                        if HeroSheriffDistanceESPToggle then
-                            HeroSheriffDistanceESPToggle:Set(featureStates.HeroSheriffESP.distance)
-                        end
-                        if HeroSheriffBoxTypeDropdown then
-                            HeroSheriffBoxTypeDropdown:Set(featureStates.HeroSheriffESP.boxType)
-                        end
-                        if InnocentHighlightsToggle then
-                            InnocentHighlightsToggle:Set(featureStates.InnocentHighlights)
-                        end
-                        if MurderHighlightsToggle then
-                            MurderHighlightsToggle:Set(featureStates.MurderHighlights)
-                        end
-                        if SheriffHeroHighlightsToggle then
-                            SheriffHeroHighlightsToggle:Set(featureStates.SheriffHeroHighlights)
-                        end
-                        managePlayerESPConnection()
-                        manageHighlightsConnection()
-                        if featureStates.Fly then
-                            startFlying()
-                            flyConnection = RunService.Heartbeat:Connect(updateFly)
-                        else
-                            stopFlying()
-                            if flyConnection then
-                                flyConnection:Disconnect()
-                                flyConnection = nil
-                            end
-                        end
-                        if featureStates.TPWALK then
-                            startTpwalk()
-                        else
-                            stopTpwalk()
-                        end
-                        if featureStates.JumpBoost then
-                            startJumpBoost()
-                        else
-                            stopJumpBoost()
-                        end
-                        if featureStates.AntiAFK then
-                            startAntiAFK()
-                        else
-                            stopAntiAFK()
-                        end
-                    end
-                end
-            end)
-        end
+local function FileExists(path)
+    if isfile then
+        return pcall(readfile, path)
     end
-})
-
-Tabs.Settings:Button({
-    Title = "Delete Config",
-    Desc = "Delete selected configuration",
-    Icon = "trash-2",
-    Callback = function()
-        selectedConfig = ConfigDropdown.Value
-        if selectedConfig ~= "Select a config" then
-            success, error = pcall(function()
-                if isfile("mm2/" .. selectedConfig .. ".json") then
-                    delfile("mm2/" .. selectedConfig .. ".json")
-                    UpdateConfigList()
-                end
-            end)
-        end
-    end
-})
-
-function UpdateConfigList()
-    configList = {"Select a config"}
-    if isfolder("mm2") then
-        files = listfiles("mm2")
-        for i, file in ipairs(files) do
-            if file:sub(-5) == ".json" then
-                fileName = file:match(".*/(.*)%.json")
-                if fileName then
-                    table.insert(configList, fileName)
-                end
-            end
-        end
-    end
-    ConfigDropdown:Refresh(configList, "Select a config")
+    return false
 end
 
+local function WriteFile(path, content)
+    if writefile then
+        return pcall(writefile, path, content)
+    end
+    return false
+end
+
+local function ReadFile(path)
+    if readfile then
+        local success, content = pcall(readfile, path)
+        if success then
+            return content
+        end
+    end
+    return ""
+end
+
+local function loadAutoLoadSettings()
+    local autoLoadFile = "Darahub/AutoLoad/Game/Murder-Mystery-2(Normal-Mode)/AutoLoad.json"
+    
+    if FileExists(autoLoadFile) then
+        local content = ReadFile(autoLoadFile)
+        
+        if content ~= "" then
+            local success, data = pcall(function()
+                return HttpService:JSONDecode(content)
+            end)
+            
+            if success and data then
+                AutoLoadConfig = data.configName or "default"
+                AutoLoadEnabled = data.enabled or false
+                return true
+            end
+        end
+    end
+    
+    AutoLoadConfig = "default"
+    AutoLoadEnabled = false
+    return false
+end
+
+local function saveAutoLoadSettings()
+    local autoLoadFile = "Darahub/AutoLoad/Game/Murder-Mystery-2(Normal-Mode)/AutoLoad.json"
+    
+    local success = WriteFile(autoLoadFile, "")
+    if not success then
+        if makefolder then
+            pcall(function() makefolder("Darahub") end)
+            pcall(function() makefolder("Darahub/AutoLoad") end)
+            pcall(function() makefolder("Darahub/AutoLoad/Game") end)
+            pcall(function() makefolder("Darahub/AutoLoad/Game/Murder-Mystery-2(Normal-Mode)") end)
+        end
+    end
+    
+    local data = {
+        enabled = AutoLoadEnabled,
+        configName = AutoLoadConfig
+    }
+    
+    local success, json = pcall(function()
+        return HttpService:JSONEncode(data)
+    end)
+    
+    if success then
+        WriteFile(autoLoadFile, json)
+    end
+end
+
+loadAutoLoadSettings()
+
+local ConfigNameInput = Tabs.Settings:Input({
+    Title = "Config Name",
+        Flag = "ConfigNameInput",
+    Flag = "ConfigNameInput",
+    Desc = "Name for your config file",
+    Icon = "file-cog",
+    Placeholder = "default",
+    Value = CurrentConfigName,
+    Callback = function(value)
+        if value ~= "" then
+            CurrentConfigName = value
+        end
+    end
+})
+
+Tabs.Settings:Space()
+
+local AutoLoadToggle = Tabs.Settings:Toggle({
+    Title = "Auto Load",
+        Flag = "AutoLoadToggle",
+    Flag = "AutoLoadToggle",
+    Desc = "Automatically load this config when script starts",
+    Value = AutoLoadEnabled,
+    Callback = function(state)
+        AutoLoadEnabled = state
+        if state then
+            AutoLoadConfig = CurrentConfigName
+            WindUI:Notify({
+                Title = "Auto-Load",
+                Content = "Config '" .. CurrentConfigName .. "' will load automatically on startup",
+                Duration = 3
+            })
+        end
+        saveAutoLoadSettings()
+    end
+})
+
+local AutoSaveToggle = Tabs.Settings:Toggle({
+    Title = "Auto Save",
+        Flag = "AutoSaveToggle",
+    Flag = "AutoSaveToggle",
+    Desc = "Automatically save changes to config every second",
+    Value = AutoSaveEnabled,
+    Callback = function(state)
+        AutoSaveEnabled = state
+        
+        -- Stop existing auto-save loop if it exists
+        if AutoSaveConnection then
+            AutoSaveConnection:Disconnect()
+            AutoSaveConnection = nil
+        end
+        
+        if state then
+            WindUI:Notify({
+                Title = "Auto-Save",
+                Content = "Config will save automatically every second",
+                Duration = 2
+            })
+            
+            -- Start auto-save loop
+            AutoSaveConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                if AutoSaveEnabled and CurrentConfigName ~= "" then
+                    task.spawn(function()
+                        Window.CurrentConfig = ConfigManager:Config(CurrentConfigName)
+                        Window.CurrentConfig:Save()
+                    end)
+                end
+                task.wait(1) -- Save every second
+            end)
+        else
+            WindUI:Notify({
+                Title = "Auto-Save",
+                Content = "Auto-save disabled",
+                Duration = 2
+            })
+        end
+    end
+})
+
+Tabs.Settings:Space()
+
+local function refreshConfigList()
+    local allConfigs = ConfigManager:AllConfigs() or {}
+    
+    -- Ensure "default" config exists
+    if not table.find(allConfigs, "default") then
+        -- Create default config if it doesn't exist
+        local defaultConfig = ConfigManager:Config("default")
+        if defaultConfig and defaultConfig.Save then
+            defaultConfig:Save()
+        end
+        table.insert(allConfigs, 1, "default")
+    end
+    
+    table.sort(allConfigs, function(a, b)
+        return a:lower() < b:lower()
+    end)
+    
+    local defaultValue = table.find(allConfigs, CurrentConfigName) and CurrentConfigName or "default"
+    
+    if ConfigListDropdown and ConfigListDropdown.Refresh then
+        ConfigListDropdown:Refresh(allConfigs, defaultValue)
+    end
+end
+
+ConfigListDropdown = Tabs.Settings:Dropdown({
+    Title = "Existing Configs",
+        Flag = "ConfigListDropdown",
+    Flag = "ConfigListDropdown",
+    Desc = "Select from saved configs",
+    Values = {"default"},
+    Value = "default",
+    Callback = function(value)
+        CurrentConfigName = value
+        ConfigNameInput:Set(value)
+        
+        if AutoLoadEnabled then
+            AutoLoadConfig = value
+            saveAutoLoadSettings()
+        end
+        
+        local config = ConfigManager:GetConfig(value)
+        if config then
+            WindUI:Notify({
+                Title = "Config Selected",
+                Content = "Config '" .. value .. "' selected",
+                Duration = 2
+            })
+        end
+    end
+})
+
+Tabs.Settings:Space()
+
+local SaveConfigButton = Tabs.Settings:Button({
+    Title = "Save Config",
+    Desc = "Save current settings to config",
+    Icon = "save",
+    Callback = function()
+        if CurrentConfigName == "" then
+            WindUI:Notify({
+                Title = "Error",
+                Content = "Please enter a config name",
+                Duration = 3
+            })
+            return
+        end
+        
+        Window.CurrentConfig = ConfigManager:Config(CurrentConfigName)
+        
+        local success = Window.CurrentConfig:Save()
+        if success then
+            WindUI:Notify({
+                Title = "Config Saved",
+                Content = "Config '" .. CurrentConfigName .. "' saved successfully",
+                Duration = 3
+            })
+            
+            if AutoLoadEnabled then
+                AutoLoadConfig = CurrentConfigName
+                saveAutoLoadSettings()
+            end
+            
+            task.wait(0.5)
+            refreshConfigList()
+        else
+            WindUI:Notify({
+                Title = "Error",
+                Content = "Failed to save config",
+                Duration = 3
+            })
+        end
+    end
+})
+
+Tabs.Settings:Space()
+
+local LoadConfigButton = Tabs.Settings:Button({
+    Title = "Load Config",
+    Desc = "Load settings from selected config",
+    Icon = "folder-open",
+    Callback = function()
+        if CurrentConfigName == "" then
+            WindUI:Notify({
+                Title = "Error",
+                Content = "Please enter a config name",
+                Duration = 3
+            })
+            return
+        end
+        
+        Window.CurrentConfig = ConfigManager:CreateConfig(CurrentConfigName)
+        
+        local success = Window.CurrentConfig:Load()
+        if success then
+            WindUI:Notify({
+                Title = "Config Loaded",
+                Content = "Config '" .. CurrentConfigName .. "' loaded successfully",
+                Duration = 3
+            })
+            
+            if AutoLoadEnabled then
+                AutoLoadConfig = CurrentConfigName
+                saveAutoLoadSettings()
+            end
+        else
+            WindUI:Notify({
+                Title = "Error",
+                Content = "Config '" .. CurrentConfigName .. "' not found or empty",
+                Duration = 3
+            })
+        end
+    end
+})
+
+Tabs.Settings:Space()
+
+local DeleteConfigButton = Tabs.Settings:Button({
+    Title = "Delete Config",
+    Desc = "Delete selected config",
+    Icon = "trash-2",
+    Color = Color3.fromHex("#ff4830"),
+    Callback = function()
+        if CurrentConfigName == "default" then
+            WindUI:Notify({
+                Title = "Error",
+                Content = "Cannot delete default config",
+                Duration = 3
+            })
+            return
+        end
+        
+        local success = ConfigManager:DeleteConfig(CurrentConfigName)
+        if success then
+            WindUI:Notify({
+                Title = "Config Deleted",
+                Content = "Config '" .. CurrentConfigName .. "' deleted",
+                Duration = 3
+            })
+            
+            CurrentConfigName = "default"
+            ConfigNameInput:Set("default")
+            
+            if AutoLoadEnabled then
+                AutoLoadConfig = "default"
+                saveAutoLoadSettings()
+            end
+            
+            task.wait(0.5)
+            refreshConfigList()
+        else
+            WindUI:Notify({
+                Title = "Error",
+                Content = "Failed to delete config or config doesn't exist",
+                Duration = 3
+            })
+        end
+    end
+})
+
+Tabs.Settings:Space()
+
+local RefreshConfigButton = Tabs.Settings:Button({
+    Title = "Refresh Config List",
+    Desc = "Update the list of available configs",
+    Icon = "refresh-cw",
+    Callback = function()
+        refreshConfigList()
+        WindUI:Notify({
+            Title = "Config List Refreshed",
+            Content = "Config list updated",
+            Duration = 2
+        })
+    end
+})
+
+task.spawn(function()
+    task.wait(0.5) 
+    refreshConfigList()
+    
+    -- Automatically set "default" config in the input box
+    ConfigNameInput:Set("default")
+    
+    if AutoLoadEnabled then
+        CurrentConfigName = AutoLoadConfig
+        ConfigNameInput:Set(CurrentConfigName)
+        
+        task.wait(1)
+        Window.CurrentConfig = ConfigManager:Config(CurrentConfigName)
+        
+        if Window.CurrentConfig:Load() then
+            WindUI:Notify({
+                Title = "Auto-Loaded",
+                Content = "Config '" .. CurrentConfigName .. "' loaded automatically",
+                Duration = 3
+            })
+        end
+    end
+end)
+
+-- Start auto-save loop if enabled on startup
+if AutoSaveEnabled then
+    task.spawn(function()
+        task.wait(1)
+        
+        if AutoSaveEnabled then
+            -- Start auto-save loop
+            AutoSaveConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                if AutoSaveEnabled and CurrentConfigName ~= "" then
+                    task.spawn(function()
+                        Window.CurrentConfig = ConfigManager:Config(CurrentConfigName)
+                        Window.CurrentConfig:Save()
+                    end)
+                end
+                task.wait(1) -- Save every second
+            end)
+        end
+    end)
+end
 Tabs.Settings:Dropdown({
     Title = "Select Theme",
     Values = {"Dark", "Light", "Blue", "Red", "Green", "Purple"},
@@ -7026,27 +7272,7 @@ Tabs.Settings:Slider({
             Window:SetToggleKey(Enum.KeyCode[RightControl])
         end
     })
-Tabs.Settings:Keybind({ Flag = "StartRecord", Title = "Start Recording", Value = "", Callback = StartRecord })
-Tabs.Settings:Keybind({ Flag = "StopRecord",  Title = "Stop Recording",  Value = "", Callback = StopRecord })
-Tabs.Settings:Keybind({ Flag = "PlayTAS",     Title = "Play TAS",        Value = "", Callback = PlayTAS })
-UpdateConfigList()
-
-lastConfigUpdate = 0
-configUpdateCooldown = 5
-
-RunService.Heartbeat:Connect(function()
-    currentTime = tick()
-    if currentTime - lastConfigUpdate >= configUpdateCooldown then
-        UpdateConfigList()
-        lastConfigUpdate = currentTime
-    end
-end)
-
-ConfigNameInput.Callback = function(value)
-    configFileName = value
-    UpdateConfigList()
-end
-do
+    do
      InviteCode = "ny6pJgnR6c"
      DiscordAPI = "https://discord.com/api/v10/invites/" .. InviteCode .. "?with_counts=true&with_expiration=true"
 
@@ -7065,6 +7291,7 @@ do
         })
          DiscordServerParagraph = Tabs.Info:Paragraph({
             Title = tostring(Response.guild.name),
+        Flag = "DiscordServerParagraph",
             Desc = tostring(Response.guild.description),
             Image = "https://cdn.discordapp.com/icons/" .. Response.guild.id .. "/" .. Response.guild.icon .. ".png?size=1024",
             -- Thumbnail = "https://cdn.discordapp.com/banners/1300692552005189632/35981388401406a4b7dffd6f447a64c4.png?size=512",
