@@ -1,3 +1,97 @@
+
+-- Load main script (only one)
+local PlaceScripts = {
+    [10324346056] = { 
+        name = "Big Team", 
+        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/DaraHub-Evade.lua" 
+    },
+    [9872472334] = { 
+        name = "Evade", 
+        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/DaraHub-Evade.lua" 
+    },
+    [96537472072550] = { 
+        name = "Legacy Evade", 
+        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/Evade%20Legacy/DaraHub-Evade-Legacy.lua" 
+    },
+    [10662542523] = { 
+        name = "Casual", 
+        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/DaraHub-Evade.lua" 
+    },
+    [10324347967] = { 
+        name = "Social Space", 
+        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/DaraHub-Evade.lua" 
+    },
+    [121271605799901] = { 
+        name = "Player Nextbots", 
+        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/DaraHub-Evade.lua" 
+    },
+    [10808838353] = { 
+        name = "VC Only", 
+        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/DaraHub-Evade.lua" 
+    },
+    [11353528705] = { 
+        name = "Pro", 
+        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/DaraHub-Evade.lua" 
+    },
+    [99214917572799] = { 
+        name = "Custom Servers", 
+        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/DaraHub-Evade.lua" 
+    },
+    [142823291] = { 
+        name = "Murder Mystery 2", 
+        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/MM2/DaraHub-MM2.lua" 
+    },
+    [126884695634066] = { 
+        name = "Grow-a-Garden-[NEW-PLAYERS]", 
+        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/Grow%20A%20Garden/DaraHub-Grow-A-Garden.lua" 
+    },
+    [124977557560410] = { 
+        name = "Grow-a-Garden", 
+        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/Grow%20A%20Garden/DaraHub-Grow-A-Garden.lua" 
+    }
+}
+
+local UniversalScript = {
+    name = "Universal Script",
+    url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/Universal/Darahub-Universal.lua"
+}
+
+local currentGameId = game.PlaceId
+local selectedScript = PlaceScripts[currentGameId]
+
+-- Function to safely load scripts
+local function loadScript(url, scriptName)
+    local success, result = pcall(function()
+        local scriptContent = game:HttpGet(url, true)
+        if scriptContent then
+            return loadstring(scriptContent)()
+        end
+        return false
+    end)
+    
+    if not success then
+        warn("Failed to load " .. scriptName .. ": " .. tostring(result))
+    end
+    
+    return success
+end
+
+-- Load appropriate script
+if selectedScript then
+    loadScript(selectedScript.url, selectedScript.name)
+else
+    loadScript(UniversalScript.url, UniversalScript.name)
+end
+
+-- Setup teleport queue
+local queueonteleport = (syn and syn.queue_on_teleport) or queue_on_teleport
+
+if queueonteleport then
+    queueonteleport([[
+        wait(1)
+        loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/main-loader.lua'))()
+    ]])
+end
 -- Check if popup should be shown based on saved preference
 local DataHubPath = "DaraHub/"
 local settingFileName = "disable_popup.txt"
@@ -516,97 +610,3 @@ game:GetService("UserInputService").InputChanged:Connect(function(input)
         update(input)
     end
 end)
-
--- Load main script (only one)
-local PlaceScripts = {
-    [10324346056] = { 
-        name = "Big Team", 
-        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/DaraHub-Evade.lua" 
-    },
-    [9872472334] = { 
-        name = "Evade", 
-        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/DaraHub-Evade.lua" 
-    },
-    [96537472072550] = { 
-        name = "Legacy Evade", 
-        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/Evade%20Legacy/DaraHub-Evade-Legacy.lua" 
-    },
-    [10662542523] = { 
-        name = "Casual", 
-        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/DaraHub-Evade.lua" 
-    },
-    [10324347967] = { 
-        name = "Social Space", 
-        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/DaraHub-Evade.lua" 
-    },
-    [121271605799901] = { 
-        name = "Player Nextbots", 
-        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/DaraHub-Evade.lua" 
-    },
-    [10808838353] = { 
-        name = "VC Only", 
-        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/DaraHub-Evade.lua" 
-    },
-    [11353528705] = { 
-        name = "Pro", 
-        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/DaraHub-Evade.lua" 
-    },
-    [99214917572799] = { 
-        name = "Custom Servers", 
-        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/DaraHub-Evade.lua" 
-    },
-    [142823291] = { 
-        name = "Murder Mystery 2", 
-        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/MM2/DaraHub-MM2.lua" 
-    },
-    [126884695634066] = { 
-        name = "Grow-a-Garden-[NEW-PLAYERS]", 
-        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/Grow%20A%20Garden/DaraHub-Grow-A-Garden.lua" 
-    },
-    [124977557560410] = { 
-        name = "Grow-a-Garden", 
-        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/Grow%20A%20Garden/DaraHub-Grow-A-Garden.lua" 
-    }
-}
-
-local UniversalScript = {
-    name = "Universal Script",
-    url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/Universal/Darahub-Universal.lua"
-}
-
-local currentGameId = game.PlaceId
-local selectedScript = PlaceScripts[currentGameId]
-
--- Function to safely load scripts
-local function loadScript(url, scriptName)
-    local success, result = pcall(function()
-        local scriptContent = game:HttpGet(url, true)
-        if scriptContent then
-            return loadstring(scriptContent)()
-        end
-        return false
-    end)
-    
-    if not success then
-        warn("Failed to load " .. scriptName .. ": " .. tostring(result))
-    end
-    
-    return success
-end
-
--- Load appropriate script
-if selectedScript then
-    loadScript(selectedScript.url, selectedScript.name)
-else
-    loadScript(UniversalScript.url, UniversalScript.name)
-end
-
--- Setup teleport queue
-local queueonteleport = (syn and syn.queue_on_teleport) or queue_on_teleport
-
-if queueonteleport then
-    queueonteleport([[
-        wait(1)
-        loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/main-loader.lua'))()
-    ]])
-end
