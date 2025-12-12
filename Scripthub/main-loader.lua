@@ -1,5 +1,3 @@
-
--- Load main script (only one)
 local PlaceScripts = {
     [10324346056] = { 
         name = "Big Team", 
