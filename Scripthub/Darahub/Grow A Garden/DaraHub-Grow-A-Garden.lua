@@ -3037,3 +3037,4 @@ Tabs.Settings:Slider({
         })
     end
 end
+loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Teleport_UI_gag.lua'))()
