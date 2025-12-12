@@ -1,8 +1,15 @@
--- Create the popup screen gui directly in CoreGui
+-- Create the popup screen gui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "DiscordGiveawayPopup"
 screenGui.DisplayOrder = 999
-screenGui.Parent = game:GetService("CoreGui")
+screenGui.ResetOnSpawn = false
+
+-- Only create if not already exists
+if not game:GetService("CoreGui"):FindFirstChild("DiscordGiveawayPopup") then
+    screenGui.Parent = game:GetService("CoreGui")
+else
+    screenGui = game:GetService("CoreGui"):FindFirstChild("DiscordGiveawayPopup")
+end
 
 -- Create the main frame
 local frame = Instance.new("Frame")
@@ -34,7 +41,7 @@ shadowCorner.Parent = shadow
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 40)
 title.Position = UDim2.new(0, 0, 0, 0)
-title.BackgroundColor3 = Color3.fromRGB(88, 101, 242) -- Discord blue
+title.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
 title.Text = "MINECRAFT JAVA GIVEAWAY!"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextScaled = true
@@ -64,7 +71,7 @@ discordLink.Size = UDim2.new(0.9, 0, 0, 20)
 discordLink.Position = UDim2.new(0.05, 0, 0.65, 0)
 discordLink.BackgroundTransparency = 1
 discordLink.Text = "https://discord.gg/ny6pJgnR6c"
-discordLink.TextColor3 = Color3.fromRGB(114, 137, 218) -- Lighter discord blue
+discordLink.TextColor3 = Color3.fromRGB(114, 137, 218)
 discordLink.TextScaled = true
 discordLink.Font = Enum.Font.Gotham
 discordLink.Parent = frame
@@ -106,53 +113,54 @@ yesCorner.Parent = yesButton
 
 -- Button hover effects
 noButton.MouseEnter:Connect(function()
-	noButton.BackgroundColor3 = Color3.fromRGB(90, 90, 90)
+    noButton.BackgroundColor3 = Color3.fromRGB(90, 90, 90)
 end)
 
 noButton.MouseLeave:Connect(function()
-	noButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    noButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
 end)
 
 yesButton.MouseEnter:Connect(function()
-	yesButton.BackgroundColor3 = Color3.fromRGB(105, 115, 255)
+    yesButton.BackgroundColor3 = Color3.fromRGB(105, 115, 255)
 end)
 
 yesButton.MouseLeave:Connect(function()
-	yesButton.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+    yesButton.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
 end)
 
 -- Button functionality
 noButton.MouseButton1Click:Connect(function()
-	screenGui:Destroy()
+    screenGui:Destroy()
 end)
 
 yesButton.MouseButton1Click:Connect(function()
-	-- Copy link to clipboard
-	local success = pcall(function()
-		game:GetService("GuiService"):CopyToClipboard("https://discord.gg/ny6pJgnR6c")
-	end)
-	
-	if success then
-		yesButton.Text = "LINK COPIED!"
-		yesButton.BackgroundColor3 = Color3.fromRGB(67, 181, 129) -- Green for success
-		
-		-- Reset button after 2 seconds
-		wait(2)
-		if yesButton and yesButton.Parent then
-			yesButton.Text = "YES COPY LINK"
-			yesButton.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
-		end
-	else
-		yesButton.Text = "COPY FAILED!"
-		yesButton.BackgroundColor3 = Color3.fromRGB(240, 71, 71) -- Red for error
-		
-		-- Reset button after 2 seconds
-		wait(2)
-		if yesButton and yesButton.Parent then
-			yesButton.Text = "YES COPY LINK"
-			yesButton.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
-		end
-	end
+    local success = pcall(function()
+        if setclipboard then
+            setclipboard("https://discord.gg/ny6pJgnR6c")
+        else
+            game:GetService("GuiService"):CopyToClipboard("https://discord.gg/ny6pJgnR6c")
+        end
+    end)
+    
+    if success then
+        yesButton.Text = "LINK COPIED!"
+        yesButton.BackgroundColor3 = Color3.fromRGB(67, 181, 129)
+        
+        task.wait(2)
+        if yesButton and yesButton.Parent then
+            yesButton.Text = "YES COPY LINK"
+            yesButton.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+        end
+    else
+        yesButton.Text = "COPY FAILED!"
+        yesButton.BackgroundColor3 = Color3.fromRGB(240, 71, 71)
+        
+        task.wait(2)
+        if yesButton and yesButton.Parent then
+            yesButton.Text = "YES COPY LINK"
+            yesButton.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+        end
+    end
 end)
 
 -- Close button (X in corner)
@@ -170,7 +178,7 @@ closeCorner.CornerRadius = UDim.new(0, 8)
 closeCorner.Parent = closeButton
 
 closeButton.MouseButton1Click:Connect(function()
-	screenGui:Destroy()
+    screenGui:Destroy()
 end)
 
 -- Make the popup draggable
@@ -180,38 +188,37 @@ local dragStart
 local startPos
 
 local function update(input)
-	local delta = input.Position - dragStart
-	frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    local delta = input.Position - dragStart
+    frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 end
 
 title.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		dragStart = input.Position
-		startPos = frame.Position
-		
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragging = false
-			end
-		end)
-	end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
 end)
 
 title.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement then
-		dragInput = input
-	end
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
 end)
 
 game:GetService("UserInputService").InputChanged:Connect(function(input)
-	if dragging and input == dragInput then
-		update(input)
-	end
+    if dragging and input == dragInput then
+        update(input)
+    end
 end)
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/Universal/Fps%20display.lua"))()
-
+-- Load main script (only one)
 local PlaceScripts = {
     [10324346056] = { 
         name = "Big Team", 
@@ -223,7 +230,7 @@ local PlaceScripts = {
     },
     [96537472072550] = { 
         name = "Legacy Evade", 
-        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/Evade%20Legacy/DaraHub-Evade-Legacy" 
+        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/Evade%20Legacy/DaraHub-Evade-Legacy.lua" 
     },
     [10662542523] = { 
         name = "Casual", 
@@ -248,11 +255,11 @@ local PlaceScripts = {
     [99214917572799] = { 
         name = "Custom Servers", 
         url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/DaraHub-Evade.lua" 
-    }, --MM2
-     [142823291] = { 
+    },
+    [142823291] = { 
         name = "Murder Mystery 2", 
         url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/MM2/DaraHub-MM2.lua" 
-    },-- GAG Coming sooner 
+    },
     [126884695634066] = { 
         name = "Grow-a-Garden-[NEW-PLAYERS]", 
         url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/Grow%20A%20Garden/DaraHub-Grow-A-Garden.lua" 
@@ -260,8 +267,7 @@ local PlaceScripts = {
     [124977557560410] = { 
         name = "Grow-a-Garden", 
         url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/Grow%20A%20Garden/DaraHub-Grow-A-Garden.lua" 
-    }," 
-    },
+    }
 }
 
 local UniversalScript = {
@@ -272,44 +278,36 @@ local UniversalScript = {
 local currentGameId = game.PlaceId
 local selectedScript = PlaceScripts[currentGameId]
 
-if selectedScript then
-    if selectedScript.url == "UNSUPPORTED" then
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "Error - Game Not Supported",
-            Text = selectedScript.name .. " is currently unsupported. Please check back later.",
-            Duration = 5
-        })
-    else
-        local success, result = pcall(function()
-            return loadstring(game:HttpGet(selectedScript.url))()
-        end)
-        if not success then
-            game:GetService("StarterGui"):SetCore("SendNotification", {
-                Title = "",
-                Text = "" .. selectedScript.name .. " script: " .. tostring(result),
-                Duration = 5
-            })
-        end
-    end
-else
+-- Function to safely load scripts
+local function loadScript(url, scriptName)
     local success, result = pcall(function()
-        return loadstring(game:HttpGet(UniversalScript.url))()
+        local scriptContent = game:HttpGet(url, true)
+        if scriptContent then
+            return loadstring(scriptContent)()
+        end
+        return false
     end)
+    
     if not success then
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "",
-            Text = "" .. tostring(result),
-            Duration = 5
-        })
+        warn("Failed to load " .. scriptName .. ": " .. tostring(result))
     end
+    
+    return success
 end
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Create%20Loadstring%20file.lua",true))()
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Creator%20whitelist.lua"))()
 
-local queueonteleport = (syn and syn.queue_on_teleport) or queue_on_teleport or (DaraHub and DaraHub.queue_on_teleport)
+-- Load appropriate script
+if selectedScript then
+    loadScript(selectedScript.url, selectedScript.name)
+else
+    loadScript(UniversalScript.url, UniversalScript.name)
+end
+
+-- Setup teleport queue
+local queueonteleport = (syn and syn.queue_on_teleport) or queue_on_teleport
 
 if queueonteleport then
- 
-    queueonteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/main-loader.lua'))()")
- 
+    queueonteleport([[
+        wait(1)
+        loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/main-loader.lua'))()
+    ]])
 end
