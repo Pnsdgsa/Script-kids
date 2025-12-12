@@ -1,3 +1,302 @@
+-- Check if popup should be shown based on saved preference
+local DataHubPath = "DaraHub/"
+local settingFileName = "disable_popup.txt"
+local fullPath = DataHubPath .. settingFileName
+
+-- Function to read file
+local function readFile(path)
+	local success, result = pcall(function()
+		local file = readfile(path)
+		return file
+	end)
+	return success and result or nil
+end
+
+-- Function to write file
+local function writeFile(path, content)
+	local success, errorMsg = pcall(function()
+		writefile(path, content)
+	end)
+	return success
+end
+
+-- Check if DaraHub folder exists, create if not
+local function ensureFolderExists()
+	local folderPath = DataHubPath:gsub("/", "")
+	local success, _ = pcall(function()
+		if not isfolder(folderPath) then
+			makefolder(folderPath)
+		end
+	end)
+	return success
+end
+
+-- Check if popup should be shown
+local function shouldShowPopup()
+	-- First ensure folder exists
+	if not ensureFolderExists() then
+		return true -- Show popup if can't create folder
+	end
+	
+	-- Try to read the setting file
+	local content = readFile(fullPath)
+	
+	-- If file doesn't exist or contains "false", show popup
+	if content == nil then
+		return true
+	end
+	
+	-- Check if file contains "true" (case-insensitive)
+	local disablePopup = content:lower():gsub("%s+", "") == "true"
+	
+	return not disablePopup
+end
+
+-- If should not show popup, exit script
+if not shouldShowPopup() then
+	return
+end
+
+-- Create the popup screen gui directly in CoreGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ExecutorWarningPopup"
+screenGui.DisplayOrder = 999
+screenGui.Parent = game:GetService("CoreGui")
+
+-- Create the main frame
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 450, 0, 250)
+frame.Position = UDim2.new(0.5, -225, 0.5, -125)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
+
+-- Add corner rounding
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = frame
+
+-- Add shadow effect
+local shadow = Instance.new("Frame")
+shadow.Size = UDim2.new(1, 15, 1, 15)
+shadow.Position = UDim2.new(0, -7.5, 0, -7.5)
+shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+shadow.BackgroundTransparency = 0.8
+shadow.ZIndex = -1
+shadow.Parent = frame
+
+local shadowCorner = Instance.new("UICorner")
+shadowCorner.CornerRadius = UDim.new(0, 12)
+shadowCorner.Parent = shadow
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 45)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundColor3 = Color3.fromRGB(220, 60, 60) -- Warning red
+title.Text = "EXECUTOR WARNING"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextScaled = true
+title.Font = Enum.Font.GothamBold
+title.Parent = frame
+
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 12)
+titleCorner.Parent = title
+
+-- Warning icon
+local warningIcon = Instance.new("ImageLabel")
+warningIcon.Size = UDim2.new(0, 40, 0, 40)
+warningIcon.Position = UDim2.new(0.5, -20, 0.1, 0)
+warningIcon.BackgroundTransparency = 1
+warningIcon.Image = "rbxassetid://6031075938" -- Warning icon
+warningIcon.ImageColor3 = Color3.fromRGB(255, 200, 50)
+warningIcon.Parent = frame
+
+-- Message text
+local message = Instance.new("TextLabel")
+message.Size = UDim2.new(0.9, 0, 0, 100)
+message.Position = UDim2.new(0.05, 0, 0.25, 0)
+message.BackgroundTransparency = 1
+message.Text = "if you see gui go invisible update your executor it's might help to fix this issues"
+message.TextColor3 = Color3.fromRGB(255, 255, 255)
+message.TextWrapped = true
+message.TextScaled = false
+message.TextSize = 18
+message.Font = Enum.Font.Gotham
+message.TextYAlignment = Enum.TextYAlignment.Top
+message.Parent = frame
+
+-- Checkbox container
+local checkboxContainer = Instance.new("Frame")
+checkboxContainer.Size = UDim2.new(0.9, 0, 0, 25)
+checkboxContainer.Position = UDim2.new(0.05, 0, 0.65, 0)
+checkboxContainer.BackgroundTransparency = 1
+checkboxContainer.Parent = frame
+
+-- Checkbox frame
+local checkboxFrame = Instance.new("Frame")
+checkboxFrame.Size = UDim2.new(0, 25, 0, 25)
+checkboxFrame.Position = UDim2.new(0, 0, 0, 0)
+checkboxFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+checkboxFrame.Parent = checkboxContainer
+
+local checkboxCorner = Instance.new("UICorner")
+checkboxCorner.CornerRadius = UDim.new(0, 4)
+checkboxCorner.Parent = checkboxFrame
+
+-- Checkbox button
+local checkboxButton = Instance.new("TextButton")
+checkboxButton.Size = UDim2.new(1, 0, 1, 0)
+checkboxButton.Position = UDim2.new(0, 0, 0, 0)
+checkboxButton.BackgroundTransparency = 1
+checkboxButton.Text = ""
+checkboxButton.Parent = checkboxFrame
+
+-- Checkmark (hidden by default)
+local checkmark = Instance.new("ImageLabel")
+checkmark.Size = UDim2.new(0.8, 0, 0.8, 0)
+checkmark.Position = UDim2.new(0.1, 0, 0.1, 0)
+checkmark.BackgroundTransparency = 1
+checkmark.Image = "rbxassetid://6031302931" -- Checkmark icon
+checkmark.ImageColor3 = Color3.fromRGB(0, 200, 80)
+checkmark.Visible = false
+checkmark.Parent = checkboxFrame
+
+-- Checkbox label
+local checkboxLabel = Instance.new("TextLabel")
+checkboxLabel.Size = UDim2.new(1, -30, 1, 0)
+checkboxLabel.Position = UDim2.new(0, 30, 0, 0)
+checkboxLabel.BackgroundTransparency = 1
+checkboxLabel.Text = "Never show this pop up again"
+checkboxLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+checkboxLabel.TextXAlignment = Enum.TextXAlignment.Left
+checkboxLabel.Font = Enum.Font.Gotham
+checkboxLabel.Parent = checkboxContainer
+
+-- OK Button
+local okButton = Instance.new("TextButton")
+okButton.Size = UDim2.new(0.5, 0, 0, 40)
+okButton.Position = UDim2.new(0.25, 0, 0.85, 0)
+okButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+okButton.Text = "OK"
+okButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+okButton.Font = Enum.Font.GothamBold
+okButton.TextSize = 18
+okButton.Parent = frame
+
+local okCorner = Instance.new("UICorner")
+okCorner.CornerRadius = UDim.new(0, 8)
+okCorner.Parent = okButton
+
+-- Button hover effects
+local isChecked = false
+
+checkboxButton.MouseButton1Click:Connect(function()
+	isChecked = not isChecked
+	checkmark.Visible = isChecked
+	
+	-- Animate checkbox
+	checkboxFrame.BackgroundColor3 = isChecked and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(60, 60, 60)
+end)
+
+checkboxButton.MouseEnter:Connect(function()
+	checkboxFrame.BackgroundColor3 = isChecked and Color3.fromRGB(90, 90, 90) or Color3.fromRGB(70, 70, 70)
+end)
+
+checkboxButton.MouseLeave:Connect(function()
+	checkboxFrame.BackgroundColor3 = isChecked and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(60, 60, 60)
+end)
+
+okButton.MouseEnter:Connect(function()
+	okButton.BackgroundColor3 = Color3.fromRGB(0, 140, 255)
+end)
+
+okButton.MouseLeave:Connect(function()
+	okButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+end)
+
+-- OK Button functionality
+okButton.MouseButton1Click:Connect(function()
+	-- Save the setting if checkbox is checked
+	if isChecked then
+		-- Ensure folder exists
+		ensureFolderExists()
+		
+		-- Write the setting to file
+		local success = writeFile(fullPath, "true")
+		
+		if not success then
+			-- If failed to write, show warning but still close
+			warn("Failed to save preference to file.")
+		end
+	end
+	
+	-- Close the popup
+	screenGui:Destroy()
+end)
+
+-- Close button (X in corner)
+local closeButton = Instance.new("TextButton")
+closeButton.Size = UDim2.new(0, 30, 0, 30)
+closeButton.Position = UDim2.new(1, -30, 0, 0)
+closeButton.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+closeButton.Text = "X"
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeButton.Font = Enum.Font.GothamBold
+closeButton.Parent = frame
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 8)
+closeCorner.Parent = closeButton
+
+closeButton.MouseButton1Click:Connect(function()
+	screenGui:Destroy()
+end)
+
+-- Make the popup draggable
+local dragging = false
+local dragInput
+local dragStart
+local startPos
+
+local function update(input)
+	local delta = input.Position - dragStart
+	frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+title.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = frame.Position
+		
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+title.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement then
+		dragInput = input
+	end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+	if dragging and input == dragInput then
+		update(input)
+	end
+end)
+
+-- Add a subtle animation when popup appears
+frame.Position = UDim2.new(0.5, -225, 0.4, -125) -- Start slightly higher
+local tweenService = game:GetService("TweenService")
+local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+local tween = tweenService:Create(frame, tweenInfo, {Position = UDim2.new(0.5, -225, 0.5, -125)})
+tween:Play()
 -- Create the popup screen gui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "DiscordGiveawayPopup"
