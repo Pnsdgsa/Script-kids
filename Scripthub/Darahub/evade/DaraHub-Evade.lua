@@ -2010,8 +2010,8 @@ AutoServerHopIntervalInput = Tabs.Main:Input({
         end
     end
 })
-   Tabs.Main:Section({ Title = "Misc", TextSize = 20 })
-   Tabs.Main:Divider()
+Tabs.Main:Section({ Title = "Misc", TextSize = 20 })
+Tabs.Main:Divider()
 
 ResetWhenTakeDamageToggle = Tabs.Main:Toggle({
     Title = "Reset when take damage",
