@@ -497,6 +497,73 @@ Tabs.Main:Button({
     end
 })
 
+AutoServerHopToggle = Tabs.Main:Toggle({
+    Title = "Auto Server Hop",
+    Flag = "AutoServerHopToggle",
+    Desc = "Note: If you use this for auto farm be sure enable auto load/save config",
+    Value = false,
+    Callback = function(state)
+        if state then
+            if AutoServerHopInterval < 20 then
+                WindUI:Notify({
+                    Title = "Auto Server Hop",
+                    Content = "Interval must be at least 20 seconds!",
+                    Duration = 3
+                })
+                if AutoServerHopToggle and AutoServerHopToggle.Set then
+                    AutoServerHopToggle:Set(false)
+                end
+                return
+            end
+            startAutoServerHop()
+        else
+            stopAutoServerHop()
+        end
+    end
+})
+
+AutoServerHopTypeDropdown = Tabs.Main:Dropdown({
+    Title = "Server Hop Type",
+    Flag = "AutoServerHopTypeDropdown",
+    Desc = "Choose between small or random server hopping",
+    Values = {"Random", "Small"},
+    Value = "Random",
+    Callback = function(value)
+        AutoServerHopType = value
+        if AutoServerHopEnabled then
+            stopAutoServerHop()
+            startAutoServerHop()
+        end
+    end
+})
+
+AutoServerHopIntervalInput = Tabs.Main:Input({
+    Title = "Hop Interval (seconds)",
+    Flag = "AutoServerHopIntervalInput",
+    Desc = "Minimum 20 seconds",
+    Placeholder = "30",
+    NumbersOnly = true,
+    Value = "30",
+    Callback = function(value)
+        local num = tonumber(value)
+        if num and num >= 20 then
+            AutoServerHopInterval = num
+            if AutoServerHopEnabled then
+                stopAutoServerHop()
+                startAutoServerHop()
+            end
+        else
+            WindUI:Notify({
+                Title = "Auto Server Hop",
+                Content = "Interval must be at least 20 seconds!",
+                Duration = 3
+            })
+            AutoServerHopIntervalInput:Set("30")
+            AutoServerHopInterval = 30
+        end
+    end
+})
+
 Tabs.Player:Section({ Title = "Player", TextSize = 40 })
 Tabs.Player:Divider()
 
