@@ -60,7 +60,7 @@ if featureStates.DisableCameraShake == nil then
 end
 Window:SetIconSize(48)
 Window:Tag({
-    Title = "V1.3.8",
+    Title = "V1.3.9",
     Color = Color3.fromHex("#30ff6a")
 })
 -- my name is retep and I em evil >:)
@@ -209,11 +209,12 @@ local success, result = pcall(function()
         })
     }
 end)
-
+--[[
 Window:Tag({
 Title = "Beta",
 Color = Color3.fromHex("#315dff")
 })
+]]
 
 Window:CreateTopbarButton("theme-switcher", "moon", function()
     WindUI:SetTheme(WindUI:GetCurrentTheme() == "Dark" and "Light" or "Dark")
@@ -1519,13 +1520,45 @@ slideFrictionValue = -8
 movementTables = {}
 infiniteSlideHeartbeat = nil
 infiniteSlideCharacterConn = nil
-lastState = nil
+currentState = nil
+cachedPlayerModel = nil
+cachedGameFolder = nil
+isCurrentlySliding = false
+originalFriction = nil
+slideFrictionApplied = false
 
 requiredKeys = {
     "Friction","AirStrafeAcceleration","JumpHeight","RunDeaccel",
     "JumpSpeedMultiplier","JumpCap","SprintCap","WalkSpeedMultiplier",
     "BhopEnabled","Speed","AirAcceleration","RunAccel","SprintAcceleration"
 }
+
+function cacheGameObjects()
+    if not cachedGameFolder then
+        cachedGameFolder = workspace:FindFirstChild("Game")
+    end
+    return cachedGameFolder
+end
+
+function updatePlayerModel()
+    if not cacheGameObjects() then 
+        cachedPlayerModel = nil
+        return false 
+    end
+    
+    local playersFolder = cachedGameFolder:FindFirstChild("Players")
+    if not playersFolder then 
+        cachedPlayerModel = nil
+        return false 
+    end
+    
+    local newModel = playersFolder:FindFirstChild(player.Name)
+    if newModel ~= cachedPlayerModel then
+        cachedPlayerModel = newModel
+    end
+    
+    return cachedPlayerModel ~= nil
+end
 
 function hasRequiredFields(tbl)
     if typeof(tbl) ~= "table" then return false end
@@ -1537,84 +1570,109 @@ end
 
 function findMovementTables()
     movementTables = {}
-    for _, obj in ipairs(getgc(true)) do
+    local gc = getgc(true)
+    
+    for _, obj in ipairs(gc) do
         if hasRequiredFields(obj) then
             table.insert(movementTables, obj)
+            if originalFriction == nil and obj.Friction ~= nil then
+                originalFriction = obj.Friction
+            end
         end
     end
+    
     return #movementTables > 0
 end
 
-function setSlideFriction(value)
-    if not infiniteSlideEnabled then return end
+function storeOriginalFriction()
+    if originalFriction ~= nil then return end
     
-    appliedCount = 0
     for _, tbl in ipairs(movementTables) do
-        pcall(function()
-            if tbl.Friction ~= value then
-                tbl.Friction = value
-                appliedCount += 1
-            end
-        end)
-    end
-    if appliedCount == 0 then
-        for _, obj in ipairs(getgc(true)) do
-            if hasRequiredFields(obj) then
-                pcall(function()
-                    if obj.Friction ~= value then
-                        obj.Friction = value
-                    end
-                end)
-            end
+        if tbl and typeof(tbl) == "table" and tbl.Friction ~= nil then
+            originalFriction = tbl.Friction
+            return
         end
     end
 end
 
-function updatePlayerModel()
-    gameFolder = workspace:FindFirstChild("Game")
-    if not gameFolder then return false end
+function applySlideFriction(value)
+    if #movementTables == 0 then return end
     
-    playersFolder = gameFolder:FindFirstChild("Players")
-    if not playersFolder then return false end
+    for _, tbl in ipairs(movementTables) do
+        if tbl and typeof(tbl) == "table" and tbl.Friction ~= nil then
+            tbl.Friction = value
+        end
+    end
+    slideFrictionApplied = true
+end
+
+function restoreOriginalFriction()
+    if #movementTables == 0 or originalFriction == nil then return end
     
-    playerModel = playersFolder:FindFirstChild(player.Name)
-    return playerModel
+    for _, tbl in ipairs(movementTables) do
+        if tbl and typeof(tbl) == "table" and tbl.Friction ~= nil then
+            tbl.Friction = originalFriction
+        end
+    end
+    slideFrictionApplied = false
+end
+
+function isPlayerSliding()
+    if not cachedPlayerModel then return false end
+    
+    local state = cachedPlayerModel:GetAttribute("State")
+    return state == "Slide" or state == "EmotingSlide"
 end
 
 function infiniteSlideHeartbeatFunc()
     if not infiniteSlideEnabled then return end
     
-    playerModel = updatePlayerModel()
-    if not playerModel then return end
+    if not cachedPlayerModel or os.clock() % 1.0 < 0.016 then
+        if not updatePlayerModel() then return end
+    end
     
-    state = playerModel:GetAttribute("State")
+    local wasSliding = isCurrentlySliding
+    isCurrentlySliding = isPlayerSliding()
     
-    if state == lastState then return end
-    
-    if state == "Slide" then
-        pcall(function()
-            playerModel:SetAttribute("State", "EmotingSlide")
-        end)
-        setSlideFriction(slideFrictionValue)
-        lastState = "EmotingSlide"
-    elseif state == "EmotingSlide" then
-        setSlideFriction(slideFrictionValue)
-        lastState = "EmotingSlide"
-    else
-        if lastState == "EmotingSlide" or lastState == "Slide" then
-            setSlideFriction(5)
+    if isCurrentlySliding ~= wasSliding then
+        if isCurrentlySliding then
+            storeOriginalFriction()
+            applySlideFriction(slideFrictionValue)
+            pcall(function()
+                if cachedPlayerModel:GetAttribute("State") == "Slide" then
+                    cachedPlayerModel:SetAttribute("State", "EmotingSlide")
+                end
+            end)
+        else
+            if originalFriction then
+                restoreOriginalFriction()
+            else
+                applySlideFriction(5)
+            end
         end
-        lastState = state
+    elseif isCurrentlySliding then
+        if not slideFrictionApplied then
+            applySlideFriction(slideFrictionValue)
+        end
+        
+        pcall(function()
+            if cachedPlayerModel:GetAttribute("State") ~= "EmotingSlide" then
+                cachedPlayerModel:SetAttribute("State", "EmotingSlide")
+            end
+        end)
     end
 end
 
 function onCharacterAddedSlide(character)
     if not infiniteSlideEnabled then return end
     
-    lastState = nil
+    cachedPlayerModel = nil
+    cachedGameFolder = nil
+    isCurrentlySliding = false
+    slideFrictionApplied = false
     
-    for i = 1, 5 do
-        task.wait(0.5)
+    for i = 1, 10 do
+        task.wait(i * 0.1)
         if updatePlayerModel() then
             break
         end
@@ -1622,20 +1680,51 @@ function onCharacterAddedSlide(character)
     
     task.wait(0.5)
     findMovementTables()
+    
+    if originalFriction then
+        restoreOriginalFriction()
+    end
+end
+
+function cleanupInfiniteSlide()
+    if infiniteSlideHeartbeat then
+        infiniteSlideHeartbeat:Disconnect()
+        infiniteSlideHeartbeat = nil
+    end
+    
+    if infiniteSlideCharacterConn then
+        infiniteSlideCharacterConn:Disconnect()
+        infiniteSlideCharacterConn = nil
+    end
+    
+    if originalFriction then
+        restoreOriginalFriction()
+    else
+        applySlideFriction(5)
+    end
+    
+    movementTables = {}
+    cachedPlayerModel = nil
+    cachedGameFolder = nil
+    currentState = nil
+    isCurrentlySliding = false
+    slideFrictionApplied = false
+    originalFriction = nil
 end
 
 function setInfiniteSlide(enabled)
-    lastState = nil
+    if infiniteSlideEnabled == enabled then return end
     
     infiniteSlideEnabled = enabled
 
     if enabled then
-        findMovementTables()
-        updatePlayerModel()
+        cacheGameObjects()
         
         if not infiniteSlideCharacterConn then
             infiniteSlideCharacterConn = player.CharacterAdded:Connect(onCharacterAddedSlide)
         end
+        
+        findMovementTables()
         
         if player.Character then
             task.spawn(function()
@@ -1643,24 +1732,20 @@ function setInfiniteSlide(enabled)
             end)
         end
         
-        if infiniteSlideHeartbeat then infiniteSlideHeartbeat:Disconnect() end
+        if infiniteSlideHeartbeat then 
+            infiniteSlideHeartbeat:Disconnect() 
+        end
         infiniteSlideHeartbeat = RunService.Heartbeat:Connect(infiniteSlideHeartbeatFunc)
-        
     else
-        if infiniteSlideHeartbeat then
-            infiniteSlideHeartbeat:Disconnect()
-            infiniteSlideHeartbeat = nil
-        end
-        
-        if infiniteSlideCharacterConn then
-            infiniteSlideCharacterConn:Disconnect()
-            infiniteSlideCharacterConn = nil
-        end
-        
-        setSlideFriction(5)
-        movementTables = {}
+        cleanupInfiniteSlide()
     end
 end
+
+game:GetService("Players").PlayerRemoving:Connect(function(leavingPlayer)
+    if leavingPlayer == player then
+        cleanupInfiniteSlide()
+    end
+end)
 RunService.RenderStepped:Connect(updateFly)
 local function setupGui()
 local function getServers()
