@@ -11,7 +11,7 @@ local PlaceScripts = {
     },
     [96537472072550] = { 
         name = "Legacy Evade", 
-        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/Evade%20Legacy/DaraHub-Evade-Legacy" 
+        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/Evade%20Legacy/DaraHub-Evade-Legacy.lua" 
     },
     [10662542523] = { 
         name = "Casual", 
@@ -36,11 +36,11 @@ local PlaceScripts = {
     [99214917572799] = { 
         name = "Custom Servers", 
         url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/DaraHub-Evade.lua" 
-    }, --MM2
-     [142823291] = { 
+    },
+    [142823291] = { 
         name = "Murder Mystery 2", 
         url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/MM2/DaraHub-MM2.lua" 
-    },-- GAG Coming sooner 
+    },
     [126884695634066] = { 
         name = "Grow-a-Garden-[NEW-PLAYERS]", 
         url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/Grow%20A%20Garden/DaraHub-Grow-A-Garden.lua" 
@@ -48,8 +48,7 @@ local PlaceScripts = {
     [124977557560410] = { 
         name = "Grow-a-Garden", 
         url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/Grow%20A%20Garden/DaraHub-Grow-A-Garden.lua" 
-    }," 
-    },
+    }
 }
 
 local UniversalScript = {
@@ -72,9 +71,10 @@ if selectedScript then
             return loadstring(game:HttpGet(selectedScript.url))()
         end)
         if not success then
+            warn("Failed to load " .. selectedScript.name .. " script: " .. tostring(result))
             game:GetService("StarterGui"):SetCore("SendNotification", {
-                Title = "",
-                Text = "" .. selectedScript.name .. " script: " .. tostring(result),
+                Title = "Script Error",
+                Text = "Failed to load " .. selectedScript.name .. " script",
                 Duration = 5
             })
         end
@@ -84,20 +84,19 @@ else
         return loadstring(game:HttpGet(UniversalScript.url))()
     end)
     if not success then
+        warn("Failed to load Universal script: " .. tostring(result))
         game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "",
-            Text = "" .. tostring(result),
+            Title = "Script Error",
+            Text = "Failed to load Universal script",
             Duration = 5
         })
     end
 end
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Create%20Loadstring%20file.lua",true))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Create%20Loadstring%20file.lua"))(loadstringoadstring
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Creator%20whitelist.lua"))()
 
-local queueonteleport = (syn and syn.queue_on_teleport) or queue_on_teleport or (DaraHub and DaraHub.queue_on_teleport)
+local queueonteleport = (syn and syn.queue_on_teleport) or queue_on_teleport or (fluxus and fluxus.queue_on_teleport)
 
 if queueonteleport then
- 
     queueonteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/main-loader.lua'))()")
- 
-end
+persistence
