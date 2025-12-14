@@ -3289,133 +3289,6 @@ easyTrimpInputConnection = UserInputService.InputBegan:Connect(function(input, g
         end
     end
 end)
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Debris = game:GetService("Debris")
-
-local player = Players.LocalPlayer
-local remoteEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Character"):WaitForChild("PassCharacterInfo")
-
-local BOUNCE_HEIGHT = 0
-local BOUNCE_EPSILON = 0.1
-local BOUNCE_ENABLED = false
-local touchConnections = {}
-
-local function setupBounceOnTouch(character)
-    if not BOUNCE_ENABLED then return end
-    
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    
-    if touchConnections[character] then
-        touchConnections[character]:Disconnect()
-        touchConnections[character] = nil
-    end
-    
-    local touchConnection
-    touchConnection = humanoidRootPart.Touched:Connect(function(hit)
-        local playerBottom = humanoidRootPart.Position.Y - humanoidRootPart.Size.Y / 2
-        local playerTop = humanoidRootPart.Position.Y + humanoidRootPart.Size.Y / 2
-        local hitBottom = hit.Position.Y - hit.Size.Y / 2
-        local hitTop = hit.Position.Y + hit.Size.Y / 2
-        
-        if hitTop <= playerBottom + BOUNCE_EPSILON then
-            return
-        elseif hitBottom >= playerTop - BOUNCE_EPSILON then
-            return
-        end
-        
-        remoteEvent:FireServer({}, {2})
-        
-        if BOUNCE_HEIGHT > 0 then
-            local bodyVel = Instance.new("BodyVelocity")
-            bodyVel.MaxForce = Vector3.new(0, math.huge, 0)
-            bodyVel.Velocity = Vector3.new(0, BOUNCE_HEIGHT, 0)
-            bodyVel.Parent = humanoidRootPart
-            Debris:AddItem(bodyVel, 0.2)
-        end
-    end)
-    
-    touchConnections[character] = touchConnection
-    
-    character.AncestryChanged:Connect(function()
-        if not character.Parent then
-            if touchConnections[character] then
-                touchConnections[character]:Disconnect()
-                touchConnections[character] = nil
-            end
-        end
-    end)
-end
-
-local function disableBounce()
-    for character, connection in pairs(touchConnections) do
-        if connection then
-            connection:Disconnect()
-            touchConnections[character] = nil
-        end
-    end
-end
-
-if player.Character then
-    setupBounceOnTouch(player.Character)
-end
-
-player.CharacterAdded:Connect(setupBounceOnTouch)
-
-if Tabs and Tabs.Player then
-    
-    local BounceToggle
-    local BounceHeightInput
-    local EpsilonInput
-    
-    BounceToggle = Tabs.Player:Toggle({
-        Title = "Enable Bounce",
-        Flag = "BounceToggle",
-        Value = false,
-        Callback = function(state)
-            BOUNCE_ENABLED = state
-            if state then
-                if player.Character then
-                    setupBounceOnTouch(player.Character)
-                end
-            else
-                disableBounce()
-            end
-            BounceHeightInput:Set({ Enabled = state })
-            EpsilonInput:Set({ Enabled = state })
-        end
-    })
-
-    BounceHeightInput = Tabs.Player:Input({
-        Title = "Bounce Height",
-        Flag = "BounceHeightInput",
-        Placeholder = "0",
-        Value = tostring(BOUNCE_HEIGHT),
-        Numeric = true,
-        Enabled = false,
-        Callback = function(value)
-            local num = tonumber(value)
-            if num then
-                BOUNCE_HEIGHT = math.max(0, num)
-            end
-        end
-    })
-
-    EpsilonInput = Tabs.Player:Input({
-        Title = "Touch Detection Epsilon",
-        Flag = "EpsilonInput",
-        Placeholder = "0.1",
-        Value = tostring(BOUNCE_EPSILON),
-        Numeric = true,
-        Enabled = false,
-        Callback = function(value)
-            local num = tonumber(value)
-            if num then
-                BOUNCE_EPSILON = math.max(0, num)
-            end
-        end
-    })
-end
     InfiniteJumpToggle = Tabs.Player:Toggle({
         Title = "Infinite Jump",
         Flag = "InfiniteJumpToggle",
@@ -3445,6 +3318,16 @@ end
             else
                 stopFlying()
             end
+        end
+    })
+    
+    local FlySpeedSlider = Tabs.Player:Slider({
+        Title = "Fly Speed",
+        Flag = "FlySpeedSlider",
+        Value = { Min = 1, Max = 200, Default = 5, Step = 1 },
+                Desc = "Adjust fly speed",
+        Callback = function(value)
+            featureStates.FlySpeed = value
         end
     })
     InfiniteSlideToggle = Tabs.Player:Toggle({
@@ -3520,15 +3403,6 @@ local function onCharacterAdded(newCharacter)
     end
 end
 
-    local FlySpeedSlider = Tabs.Player:Slider({
-        Title = "Fly Speed",
-        Flag = "FlySpeedSlider",
-        Value = { Min = 1, Max = 200, Default = 5, Step = 1 },
-                Desc = "Adjust fly speed",
-        Callback = function(value)
-            featureStates.FlySpeed = value
-        end
-    })
 NoclipToggle = Tabs.Player:Toggle({
     Title = "Noclip",
     Flag = "NoclipToggle",
