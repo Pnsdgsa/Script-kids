@@ -2278,7 +2278,8 @@ AntiAFKToggle = Tabs.Misc:Toggle({
     end
 })
 -- Add this to your Misc tab
-Tabs.Misc:Section({ Title = "Seed Autobuy", TextSize = 20 })
+Tabs.Misc:Section({ Title = "Auto Buy", TextSize = 40 })
+Tabs.Misc:Section({ Title = "Seed Shop", TextSize = 20 })
 Tabs.Misc:Divider()
 
 local seedShopDataModule = game:GetService("ReplicatedStorage"):WaitForChild("Data"):WaitForChild("SeedShopData")
@@ -2440,6 +2441,808 @@ local autoBuyAllToggle = Tabs.Misc:Toggle({
             if autoBuyAllTask then
                 task.cancel(autoBuyAllTask)
                 autoBuyAllTask = nil
+            end
+        end
+    end
+})
+-- Add this to your Misc tab
+Tabs.Misc:Section({ Title = "Daily Seed Shop", TextSize = 20 })
+Tabs.Misc:Divider()
+
+local dailySeedShopDataModule = game:GetService("ReplicatedStorage"):WaitForChild("Data"):WaitForChild("DailySeedShopData")
+local seedDataModule = game:GetService("ReplicatedStorage"):WaitForChild("Data"):WaitForChild("SeedData")
+local BuyDailySeedShopStock = game:GetService("ReplicatedStorage").GameEvents.BuyDailySeedShopStock
+
+-- Variables
+local dailyAutoBuyEnabled = false
+local dailyAutoBuyTask = nil
+local dailySelectedSeeds = {}
+local dailyBuyAllEnabled = false
+local dailyBuyAllTask = nil
+
+-- Load daily seed data
+local function loadDailySeedData()
+    local success, dailyData = pcall(require, dailySeedShopDataModule)
+    local success2, seedData = pcall(require, seedDataModule)
+    
+    if success and success2 then
+        return dailyData, seedData
+    end
+    return nil, nil
+end
+
+-- Get available daily seeds
+local function getDailySeeds()
+    local dailyData, seedData = loadDailySeedData()
+    if not dailyData or not seedData then return {} end
+    
+    local dailySeeds = {}
+    
+    for seedName, shopInfo in pairs(dailyData) do
+        local seedInfo = seedData[seedName]
+        if seedInfo then
+            table.insert(dailySeeds, {
+                Title = seedInfo.SeedName or seedName,
+                Icon = seedInfo.FruitIcon or seedInfo.Asset or "",
+                Desc = string.format("$%s | Stock: %d", 
+                    shopInfo.Price or 0, 
+                    shopInfo.MaxStock or 1),
+                Value = seedName,
+                Data = {
+                    Name = seedName,
+                    DisplayName = seedInfo.SeedName or seedName,
+                    Price = shopInfo.Price or 0,
+                    MaxStock = shopInfo.MaxStock or 1
+                }
+            })
+        end
+    end
+    
+    table.sort(dailySeeds, function(a, b)
+        return a.Data.Price < b.Data.Price
+    end)
+    
+    return dailySeeds
+end
+
+-- Create daily seed dropdown
+local dailySeedDropdown = Tabs.Misc:Dropdown({
+    Title = "Select Daily Seed",
+    Desc = "Choose daily seeds to auto buy",
+    Values = {
+        {
+            Title = "Loading daily seeds...",
+            Icon = "loader",
+            Desc = "Please wait"
+        }
+    },
+    Value = {},
+    Multi = true,
+    AllowNone = true,
+    Callback = function(options) 
+        dailySelectedSeeds = {}
+        for _, option in ipairs(options) do
+            if option.Data and option.Data.Name then
+                table.insert(dailySelectedSeeds, option.Data.Name)
+            end
+        end
+    end
+})
+
+-- Load daily seeds data
+task.spawn(function()
+    local dailySeeds = getDailySeeds()
+    if #dailySeeds > 0 then
+        dailySeedDropdown:Refresh(dailySeeds, {})
+    else
+        dailySeedDropdown:Refresh({
+            {
+                Title = "No Daily Seeds",
+                Icon = "x-circle",
+                Desc = "Daily shop data not found"
+            }
+        })
+    end
+end)
+
+-- Auto Buy Daily Seed toggle
+local autoBuyDailyToggle = Tabs.Misc:Toggle({
+    Title = "Auto Buy Daily Seed",
+    Value = false,
+    Callback = function(state)
+        dailyAutoBuyEnabled = state
+        
+        if state then
+            dailyAutoBuyTask = task.spawn(function()
+                while dailyAutoBuyEnabled do
+                    if #dailySelectedSeeds > 0 then
+                        for _, seedName in ipairs(dailySelectedSeeds) do
+                            BuyDailySeedShopStock:FireServer(seedName)
+                            task.wait(0.01)
+                        end
+                        
+                        for i = 1, 5 do
+                            if not dailyAutoBuyEnabled then break end
+                            
+                            for _, seedName in ipairs(dailySelectedSeeds) do
+                                BuyDailySeedShopStock:FireServer(seedName)
+                            end
+                            task.wait(0.05)
+                        end
+                    else
+                        task.wait(0.5)
+                    end
+                    
+                    task.wait(0.1)
+                end
+            end)
+        else
+            if dailyAutoBuyTask then
+                task.cancel(dailyAutoBuyTask)
+                dailyAutoBuyTask = nil
+            end
+        end
+    end
+})
+
+-- Auto Buy All Daily Seed toggle (standalone)
+local autoBuyAllDailyToggle = Tabs.Misc:Toggle({
+    Title = "Auto Buy All Daily Seed",
+    Value = false,
+    Callback = function(state)
+        dailyBuyAllEnabled = state
+        
+        if state then
+            dailyBuyAllTask = task.spawn(function()
+                while dailyBuyAllEnabled do
+                    local dailyData, _ = loadDailySeedData()
+                    if dailyData then
+                        for seedName, _ in pairs(dailyData) do
+                            BuyDailySeedShopStock:FireServer(seedName)
+                            task.wait(0.01)
+                        end
+                        
+                        for i = 1, 8 do
+                            if not dailyBuyAllEnabled then break end
+                            
+                            for seedName, _ in pairs(dailyData) do
+                                BuyDailySeedShopStock:FireServer(seedName)
+                            end
+                            task.wait(0.04)
+                        end
+                    else
+                        task.wait(0.5)
+                    end
+                    
+                    task.wait(0.15)
+                end
+            end)
+        else
+            if dailyBuyAllTask then
+                task.cancel(dailyBuyAllTask)
+                dailyBuyAllTask = nil
+            end
+        end
+    end
+})
+-- Add this to your Misc tab
+Tabs.Misc:Section({ Title = "Pet Egg Autobuy", TextSize = 20 })
+Tabs.Misc:Divider()
+
+local petEggDataModule = game:GetService("ReplicatedStorage"):WaitForChild("Data"):WaitForChild("PetEggData")
+local petEggsModule = game:GetService("ReplicatedStorage"):WaitForChild("Data"):WaitForChild("PetRegistry"):WaitForChild("PetEggs")
+local BuyPetEgg = game:GetService("ReplicatedStorage").GameEvents.BuyPetEgg
+
+-- Variables for autobuy
+local eggAutoBuyEnabled = false
+local eggAutoBuyTask = nil
+local selectedEggs = {}
+local eggAutoBuyAllEnabled = false
+local eggAutoBuyAllTask = nil
+
+-- Load egg data
+local function loadEggData()
+    local success, eggData = pcall(require, petEggDataModule)
+    local success2, eggsInfo = pcall(require, petEggsModule)
+    
+    if success and success2 then
+        return eggData, eggsInfo
+    end
+    return nil, nil
+end
+
+-- Create egg dropdown
+local eggDropdown = Tabs.Misc:Dropdown({
+    Title = "Select Egg",
+    Desc = "Choose eggs to auto buy",
+    Values = {
+        {
+            Title = "Loading eggs...",
+            Icon = "loader",
+            Desc = "Please wait"
+        }
+    },
+    Value = {},
+    Multi = true,
+    AllowNone = true,
+    Callback = function(options) 
+        selectedEggs = {}
+        for _, option in ipairs(options) do
+            if option.Data and option.Data.Name then
+                table.insert(selectedEggs, option.Data.Name)
+            end
+        end
+    end
+})
+
+-- Load egg data in background
+task.spawn(function()
+    local eggData, eggsInfo = loadEggData()
+    
+    if eggData and eggsInfo then
+        local dropdownItems = {}
+        
+        for eggName, eggInfo in pairs(eggData) do
+            local eggDetails = eggsInfo[eggName]
+            if eggDetails then
+                table.insert(dropdownItems, {
+                    Title = eggInfo.EggName or eggName,
+                    Icon = eggDetails.Icon or "",
+                    Desc = string.format("$%s | %s", 
+                        eggInfo.Price or 0, 
+                        eggInfo.EggRarity or "Unknown"),
+                    Value = eggName,
+                    Data = {
+                        Name = eggName,
+                        DisplayName = eggInfo.EggName or eggName,
+                        Price = eggInfo.Price or 0,
+                        Rarity = eggInfo.EggRarity or "Unknown"
+                    }
+                })
+            end
+        end
+        
+        -- Sort by price (cheapest first)
+        table.sort(dropdownItems, function(a, b)
+            return a.Data.Price < b.Data.Price
+        end)
+        
+        eggDropdown:Refresh(dropdownItems, {})
+    else
+        eggDropdown:Refresh({
+            {
+                Title = "Failed to load",
+                Icon = "x-circle",
+                Desc = "Egg data modules not found"
+            }
+        })
+    end
+end)
+
+-- Auto Buy Egg toggle
+local autoBuyEggToggle = Tabs.Misc:Toggle({
+    Title = "Auto Buy Egg",
+    Value = false,
+    Callback = function(state)
+        eggAutoBuyEnabled = state
+        
+        if state then
+            eggAutoBuyTask = task.spawn(function()
+                while eggAutoBuyEnabled do
+                    if #selectedEggs > 0 then
+                        for _, eggName in ipairs(selectedEggs) do
+                            BuyPetEgg:FireServer(eggName)
+                            task.wait(0.01)
+                        end
+                        
+                        for i = 1, 5 do
+                            if not eggAutoBuyEnabled then break end
+                            
+                            for _, eggName in ipairs(selectedEggs) do
+                                BuyPetEgg:FireServer(eggName)
+                            end
+                            task.wait(0.05)
+                        end
+                    else
+                        task.wait(0.5)
+                    end
+                    
+                    task.wait(0.1)
+                end
+            end)
+        else
+            if eggAutoBuyTask then
+                task.cancel(eggAutoBuyTask)
+                eggAutoBuyTask = nil
+            end
+        end
+    end
+})
+
+-- Separate Auto Buy All Egg toggle
+local autoBuyAllEggToggle = Tabs.Misc:Toggle({
+    Title = "Auto Buy All Egg",
+    Value = false,
+    Callback = function(state)
+        eggAutoBuyAllEnabled = state
+        
+        if state then
+            eggAutoBuyAllTask = task.spawn(function()
+                while eggAutoBuyAllEnabled do
+                    local eggData, _ = loadEggData()
+                    if eggData then
+                        for eggName, _ in pairs(eggData) do
+                            BuyPetEgg:FireServer(eggName)
+                            task.wait(0.01)
+                        end
+                        
+                        for i = 1, 8 do
+                            if not eggAutoBuyAllEnabled then break end
+                            
+                            for eggName, _ in pairs(eggData) do
+                                BuyPetEgg:FireServer(eggName)
+                            end
+                            task.wait(0.04)
+                        end
+                    else
+                        task.wait(0.5)
+                    end
+                    
+                    task.wait(0.15)
+                end
+            end)
+        else
+            if eggAutoBuyAllTask then
+                task.cancel(eggAutoBuyAllTask)
+                eggAutoBuyAllTask = nil
+            end
+        end
+    end
+})
+-- Add this to your Misc tab
+Tabs.Misc:Section({ Title = "Gear Shop Autobuy", TextSize = 20 })
+Tabs.Misc:Divider()
+
+local gearShopDataModule = game:GetService("ReplicatedStorage"):WaitForChild("Data"):WaitForChild("GearShopData")
+local gearDataModule = game:GetService("ReplicatedStorage"):WaitForChild("Data"):WaitForChild("GearData")
+local BuyGearStock = game:GetService("ReplicatedStorage").GameEvents.BuyGearStock
+
+-- Variables for autobuy
+local gearAutoBuyEnabled = false
+local gearAutoBuyTask = nil
+local selectedGears = {}
+local gearAutoBuyAllEnabled = false
+local gearAutoBuyAllTask = nil
+
+-- Load gear data
+local function loadGearData()
+    local success, gearShopData = pcall(require, gearShopDataModule)
+    local success2, gearInfo = pcall(require, gearDataModule)
+    
+    if success and success2 then
+        return gearShopData, gearInfo
+    end
+    return nil, nil
+end
+
+-- Create gear dropdown
+local gearDropdown = Tabs.Misc:Dropdown({
+    Title = "Select Gear",
+    Desc = "Choose gear to auto buy",
+    Values = {
+        {
+            Title = "Loading gear...",
+            Icon = "loader",
+            Desc = "Please wait"
+        }
+    },
+    Value = {},
+    Multi = true,
+    AllowNone = true,
+    Callback = function(options) 
+        selectedGears = {}
+        for _, option in ipairs(options) do
+            if option.Data and option.Data.Name then
+                table.insert(selectedGears, option.Data.Name)
+            end
+        end
+    end
+})
+
+-- Load gear data in background
+task.spawn(function()
+    local gearShopData, gearInfo = loadGearData()
+    
+    if gearShopData and gearInfo and gearShopData.Gear then
+        local dropdownItems = {}
+        
+        for gearName, shopInfo in pairs(gearShopData.Gear) do
+            local gearDetails = gearInfo[gearName]
+            if gearDetails and (shopInfo.DisplayInShop ~= false) then
+                table.insert(dropdownItems, {
+                    Title = gearDetails.GearName or gearName,
+                    Icon = gearDetails.Asset or "",
+                    Desc = string.format("$%s | %s", 
+                        shopInfo.Price or 0, 
+                        gearDetails.GearRarity or "Unknown"),
+                    Value = gearName,
+                    Data = {
+                        Name = gearName,
+                        DisplayName = gearDetails.GearName or gearName,
+                        Price = shopInfo.Price or 0,
+                        Rarity = gearDetails.GearRarity or "Unknown"
+                    }
+                })
+            end
+        end
+        
+        -- Sort by price (cheapest first)
+        table.sort(dropdownItems, function(a, b)
+            return a.Data.Price < b.Data.Price
+        end)
+        
+        gearDropdown:Refresh(dropdownItems, {})
+    else
+        gearDropdown:Refresh({
+            {
+                Title = "Failed to load",
+                Icon = "x-circle",
+                Desc = "Gear data modules not found"
+            }
+        })
+    end
+end)
+
+-- Auto Buy Gear toggle
+local autoBuyGearToggle = Tabs.Misc:Toggle({
+    Title = "Auto Buy Gear",
+    Value = false,
+    Callback = function(state)
+        gearAutoBuyEnabled = state
+        
+        if state then
+            gearAutoBuyTask = task.spawn(function()
+                while gearAutoBuyEnabled do
+                    if #selectedGears > 0 then
+                        for _, gearName in ipairs(selectedGears) do
+                            BuyGearStock:FireServer(gearName)
+                            task.wait(0.01)
+                        end
+                        
+                        for i = 1, 5 do
+                            if not gearAutoBuyEnabled then break end
+                            
+                            for _, gearName in ipairs(selectedGears) do
+                                BuyGearStock:FireServer(gearName)
+                            end
+                            task.wait(0.05)
+                        end
+                    else
+                        task.wait(0.5)
+                    end
+                    
+                    task.wait(0.1)
+                end
+            end)
+        else
+            if gearAutoBuyTask then
+                task.cancel(gearAutoBuyTask)
+                gearAutoBuyTask = nil
+            end
+        end
+    end
+})
+
+-- Separate Auto Buy All Gear toggle
+local autoBuyAllGearToggle = Tabs.Misc:Toggle({
+    Title = "Auto Buy All Gear",
+    Value = false,
+    Callback = function(state)
+        gearAutoBuyAllEnabled = state
+        
+        if state then
+            gearAutoBuyAllTask = task.spawn(function()
+                while gearAutoBuyAllEnabled do
+                    local gearShopData, _ = loadGearData()
+                    if gearShopData and gearShopData.Gear then
+                        for gearName, shopInfo in pairs(gearShopData.Gear) do
+                            if shopInfo.DisplayInShop ~= false then
+                                BuyGearStock:FireServer(gearName)
+                                task.wait(0.01)
+                            end
+                        end
+                        
+                        for i = 1, 8 do
+                            if not gearAutoBuyAllEnabled then break end
+                            
+                            for gearName, shopInfo in pairs(gearShopData.Gear) do
+                                if shopInfo.DisplayInShop ~= false then
+                                    BuyGearStock:FireServer(gearName)
+                                end
+                            end
+                            task.wait(0.04)
+                        end
+                    else
+                        task.wait(0.5)
+                    end
+                    
+                    task.wait(0.15)
+                end
+            end)
+        else
+            if gearAutoBuyAllTask then
+                task.cancel(gearAutoBuyAllTask)
+                gearAutoBuyAllTask = nil
+            end
+        end
+    end
+})
+-- Add this to your Misc tab
+Tabs.Misc:Section({ Title = "Cosmetic Autobuy", TextSize = 20 })
+Tabs.Misc:Divider()
+
+local crateShopModule = game:GetService("ReplicatedStorage"):WaitForChild("Data"):WaitForChild("CosmeticCrateShopData")
+local itemShopModule = game:GetService("ReplicatedStorage"):WaitForChild("Data"):WaitForChild("CosmeticItemShopData")
+local cosmeticRegistryModule = game:GetService("ReplicatedStorage"):WaitForChild("Data"):WaitForChild("CosmeticRegistry"):WaitForChild("CosmeticList")
+
+local BuyCosmeticCrate = game:GetService("ReplicatedStorage").GameEvents.BuyCosmeticCrate
+local BuyCosmeticItem = game:GetService("ReplicatedStorage").GameEvents.BuyCosmeticItem
+local BuyCosmeticShopFence = game:GetService("ReplicatedStorage").GameEvents.BuyCosmeticShopFence
+
+-- Variables for autobuy
+local cosmeticAutoBuyEnabled = false
+local cosmeticAutoBuyTask = nil
+local selectedCosmetics = {}
+local cosmeticAutoBuyAllEnabled = false
+local cosmeticAutoBuyAllTask = nil
+
+-- Load cosmetic data
+local function loadCosmeticData()
+    local success, crateData = pcall(require, crateShopModule)
+    local success2, itemData = pcall(require, itemShopModule)
+    local success3, registryData = pcall(require, cosmeticRegistryModule)
+    
+    if success and success2 and success3 then
+        return crateData, itemData, registryData
+    end
+    return nil, nil, nil
+end
+
+-- Create cosmetic dropdown with combined items
+local cosmeticDropdown = Tabs.Misc:Dropdown({
+    Title = "Select Cosmetic",
+    Desc = "Choose cosmetics to auto buy",
+    Values = {
+        {
+            Title = "Loading cosmetics...",
+            Icon = "loader",
+            Desc = "Please wait"
+        }
+    },
+    Value = {},
+    Multi = true,
+    AllowNone = true,
+    Callback = function(options) 
+        selectedCosmetics = {}
+        for _, option in ipairs(options) do
+            if option.Data and option.Data.Name and option.Data.Type then
+                table.insert(selectedCosmetics, {
+                    Name = option.Data.Name,
+                    Type = option.Data.Type,
+                    DisplayName = option.Data.DisplayName
+                })
+            end
+        end
+    end
+})
+
+-- Load cosmetic data in background
+task.spawn(function()
+    local crateData, itemData, registryData = loadCosmeticData()
+    
+    if crateData and itemData and registryData then
+        local dropdownItems = {}
+        
+        -- Add crates
+        for crateName, crateInfo in pairs(crateData) do
+            local regInfo = registryData[crateInfo.CrateName or crateName]
+            table.insert(dropdownItems, {
+                Title = crateInfo.CrateName or crateName,
+                Icon = regInfo and regInfo.Icon or "",
+                Desc = string.format("Crate | $%s | %s", 
+                    crateInfo.Price or 0, 
+                    crateInfo.CrateRarity or "Unknown"),
+                Value = crateName,
+                Data = {
+                    Name = crateName,
+                    DisplayName = crateInfo.CrateName or crateName,
+                    Price = crateInfo.Price or 0,
+                    Rarity = crateInfo.CrateRarity or "Unknown",
+                    Type = "CRATE"
+                }
+            })
+        end
+        
+        -- Add items
+        for itemName, itemInfo in pairs(itemData) do
+            local regInfo = registryData[itemInfo.CosmeticName or itemName]
+            table.insert(dropdownItems, {
+                Title = itemInfo.CosmeticName or itemName,
+                Icon = regInfo and regInfo.Icon or "",
+                Desc = string.format("Item | $%s", 
+                    itemInfo.Price or 0),
+                Value = itemName,
+                Data = {
+                    Name = itemName,
+                    DisplayName = itemInfo.CosmeticName or itemName,
+                    Price = itemInfo.Price or 0,
+                    Type = "ITEM"
+                }
+            })
+        end
+        
+        -- Add fences (hardcoded based on remote)
+        local fences = {
+            {Name = "FLOWER", DisplayName = "Flower Fence", Type = "FENCE", Price = 0},
+            {Name = "WOOD", DisplayName = "Wood Fence", Type = "FENCE", Price = 0},
+            {Name = "STONE", DisplayName = "Stone Fence", Type = "FENCE", Price = 0},
+        }
+        
+        for _, fence in ipairs(fences) do
+            table.insert(dropdownItems, {
+                Title = fence.DisplayName,
+                Icon = "grid", -- Default icon
+                Desc = "Fence",
+                Value = fence.Name,
+                Data = {
+                    Name = fence.Name,
+                    DisplayName = fence.DisplayName,
+                    Price = fence.Price,
+                    Type = "FENCE"
+                }
+            })
+        end
+        
+        -- Sort by type then name
+        table.sort(dropdownItems, function(a, b)
+            if a.Data.Type == b.Data.Type then
+                return a.Title < b.Title
+            end
+            return a.Data.Type < b.Data.Type
+        end)
+        
+        cosmeticDropdown:Refresh(dropdownItems, {})
+    else
+        cosmeticDropdown:Refresh({
+            {
+                Title = "Failed to load",
+                Icon = "x-circle",
+                Desc = "Cosmetic data not found"
+            }
+        })
+    end
+end)
+
+-- Auto Buy Cosmetic toggle
+local autoBuyCosmeticToggle = Tabs.Misc:Toggle({
+    Title = "Auto Buy Cosmetic",
+    Value = false,
+    Callback = function(state)
+        cosmeticAutoBuyEnabled = state
+        
+        if state then
+            cosmeticAutoBuyTask = task.spawn(function()
+                while cosmeticAutoBuyEnabled do
+                    if #selectedCosmetics > 0 then
+                        for _, cosmetic in ipairs(selectedCosmetics) do
+                            if cosmetic.Type == "CRATE" then
+                                BuyCosmeticCrate:FireServer(cosmetic.Name, "Cosmetics")
+                            elseif cosmetic.Type == "ITEM" then
+                                BuyCosmeticItem:FireServer(cosmetic.Name, "Cosmetics")
+                            elseif cosmetic.Type == "FENCE" then
+                                BuyCosmeticShopFence:FireServer(cosmetic.Name, "Fences")
+                            end
+                            task.wait(0.01)
+                        end
+                        
+                        for i = 1, 5 do
+                            if not cosmeticAutoBuyEnabled then break end
+                            
+                            for _, cosmetic in ipairs(selectedCosmetics) do
+                                if cosmetic.Type == "CRATE" then
+                                    BuyCosmeticCrate:FireServer(cosmetic.Name, "Cosmetics")
+                                elseif cosmetic.Type == "ITEM" then
+                                    BuyCosmeticItem:FireServer(cosmetic.Name, "Cosmetics")
+                                elseif cosmetic.Type == "FENCE" then
+                                    BuyCosmeticShopFence:FireServer(cosmetic.Name, "Fences")
+                                end
+                            end
+                            task.wait(0.05)
+                        end
+                    else
+                        task.wait(0.5)
+                    end
+                    
+                    task.wait(0.1)
+                end
+            end)
+        else
+            if cosmeticAutoBuyTask then
+                task.cancel(cosmeticAutoBuyTask)
+                cosmeticAutoBuyTask = nil
+            end
+        end
+    end
+})
+
+-- Separate Auto Buy All Cosmetic toggle
+local autoBuyAllCosmeticToggle = Tabs.Misc:Toggle({
+    Title = "Auto Buy All Cosmetic",
+    Value = false,
+    Callback = function(state)
+        cosmeticAutoBuyAllEnabled = state
+        
+        if state then
+            cosmeticAutoBuyAllTask = task.spawn(function()
+                while cosmeticAutoBuyAllEnabled do
+                    local crateData, itemData, _ = loadCosmeticData()
+                    
+                    -- Buy all crates
+                    if crateData then
+                        for crateName, _ in pairs(crateData) do
+                            BuyCosmeticCrate:FireServer(crateName, "Cosmetics")
+                            task.wait(0.01)
+                        end
+                    end
+                    
+                    -- Buy all items
+                    if itemData then
+                        for itemName, _ in pairs(itemData) do
+                            BuyCosmeticItem:FireServer(itemName, "Cosmetics")
+                            task.wait(0.01)
+                        end
+                    end
+                    
+                    -- Buy all fences
+                    local fences = {"FLOWER", "WOOD", "STONE"}
+                    for _, fenceName in ipairs(fences) do
+                        BuyCosmeticShopFence:FireServer(fenceName, "Fences")
+                        task.wait(0.01)
+                    end
+                    
+                    -- Fast spam loop
+                    for i = 1, 8 do
+                        if not cosmeticAutoBuyAllEnabled then break end
+                        
+                        -- Spam crates
+                        if crateData then
+                            for crateName, _ in pairs(crateData) do
+                                BuyCosmeticCrate:FireServer(crateName, "Cosmetics")
+                            end
+                        end
+                        
+                        -- Spam items
+                        if itemData then
+                            for itemName, _ in pairs(itemData) do
+                                BuyCosmeticItem:FireServer(itemName, "Cosmetics")
+                            end
+                        end
+                        
+                        -- Spam fences
+                        for _, fenceName in ipairs(fences) do
+                            BuyCosmeticShopFence:FireServer(fenceName, "Fences")
+                        end
+                        
+                        task.wait(0.04)
+                    end
+                    
+                    task.wait(0.15)
+                end
+            end)
+        else
+            if cosmeticAutoBuyAllTask then
+                task.cancel(cosmeticAutoBuyAllTask)
+                cosmeticAutoBuyAllTask = nil
             end
         end
     end
