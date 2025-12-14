@@ -834,18 +834,6 @@ JumpBoostSlider = Tabs.Player:Slider({
         end
     end
 })
-
-task.spawn(function()
-    if not player.Character then
-        player.CharacterAdded:Wait()
-    end
-    ScanForGunDrops()
-    if GunSystem.AutoGrabEnabled then
-        coroutine.wrap(AutoGrabGun)()
-    end
-    monitorGunEvents()
-    resetGunNotifications()
-end)
 Tabs.Visuals:Section({ Title = "Visual", TextSize = 20 })
     Tabs.Visuals:Divider()
     local cameraStretchConnection
@@ -2286,6 +2274,173 @@ AntiAFKToggle = Tabs.Misc:Toggle({
             startAntiAFK()
         else
             stopAntiAFK()
+        end
+    end
+})
+-- Add this to your Misc tab
+Tabs.Misc:Section({ Title = "Seed Autobuy", TextSize = 20 })
+Tabs.Misc:Divider()
+
+local seedShopDataModule = game:GetService("ReplicatedStorage"):WaitForChild("Data"):WaitForChild("SeedShopData")
+local seedDataModule = game:GetService("ReplicatedStorage"):WaitForChild("Data"):WaitForChild("SeedData")
+local BuySeedStock = game:GetService("ReplicatedStorage").GameEvents.BuySeedStock
+
+-- Variables for autobuy
+local autoBuyEnabled = false
+local autoBuyTask = nil
+local selectedSeeds = {}
+local autoBuyAllEnabled = false
+local autoBuyAllTask = nil
+
+-- Create dropdown
+local seedDropdown = Tabs.Misc:Dropdown({
+    Title = "Select Auto Seed",
+    Desc = "Choose seeds to auto buy",
+    Values = {
+        {
+            Title = "Loading seeds...",
+            Icon = "loader",
+            Desc = "Please wait"
+        }
+    },
+    Value = {},
+    Multi = true,
+    AllowNone = true,
+    Callback = function(options) 
+        selectedSeeds = {}
+        for _, option in ipairs(options) do
+            if option.Data and option.Data.Name then
+                table.insert(selectedSeeds, option.Data.Name)
+            end
+        end
+    end
+})
+
+-- Load data in background
+task.spawn(function()
+    local success, seedShopData = pcall(require, seedShopDataModule)
+    local success2, seedData = pcall(require, seedDataModule)
+    
+    if success and success2 then
+        local dropdownItems = {}
+        
+        for seedName, shopInfo in pairs(seedShopData) do
+            local seedInfo = seedData[seedName]
+            if seedInfo and shopInfo.DisplayInShop ~= false then
+                table.insert(dropdownItems, {
+                    Title = seedInfo.SeedName or seedName,
+                    Icon = seedInfo.FruitIcon or seedInfo.Asset or "",
+                    Desc = string.format("$%s | %s", 
+                        shopInfo.Price or 0, 
+                        seedInfo.SeedRarity or "Unknown"),
+                    Value = seedName,
+                    Data = {
+                        Name = seedName,
+                        DisplayName = seedInfo.SeedName or seedName,
+                        Price = shopInfo.Price or 0,
+                        Rarity = seedInfo.SeedRarity or "Unknown"
+                    }
+                })
+            end
+        end
+        
+        table.sort(dropdownItems, function(a, b)
+            return a.Data.Price < b.Data.Price
+        end)
+        
+        seedDropdown:Refresh(dropdownItems, {})
+    else
+        seedDropdown:Refresh({
+            {
+                Title = "Failed to load",
+                Icon = "x-circle",
+                Desc = "Seed data modules not found"
+            }
+        })
+    end
+end)
+
+-- Auto Buy Seed toggle
+local autoBuyToggle = Tabs.Misc:Toggle({
+    Title = "Auto Buy Seed",
+    Value = false,
+    Callback = function(state)
+        autoBuyEnabled = state
+        
+        if state then
+            autoBuyTask = task.spawn(function()
+                while autoBuyEnabled do
+                    if #selectedSeeds > 0 then
+                        for _, seedName in ipairs(selectedSeeds) do
+                            BuySeedStock:FireServer("Shop", seedName)
+                            task.wait(0.01)
+                        end
+                        
+                        for i = 1, 5 do
+                            if not autoBuyEnabled then break end
+                            
+                            for _, seedName in ipairs(selectedSeeds) do
+                                BuySeedStock:FireServer("Shop", seedName)
+                            end
+                            task.wait(0.05)
+                        end
+                    else
+                        task.wait(0.5)
+                    end
+                    
+                    task.wait(0.1)
+                end
+            end)
+        else
+            if autoBuyTask then
+                task.cancel(autoBuyTask)
+                autoBuyTask = nil
+            end
+        end
+    end
+})
+
+-- Separate Auto Buy All Seed toggle with different function
+local autoBuyAllToggle = Tabs.Misc:Toggle({
+    Title = "Auto Buy All Seed",
+    Value = false,
+    Callback = function(state)
+        autoBuyAllEnabled = state
+        
+        if state then
+            autoBuyAllTask = task.spawn(function()
+                while autoBuyAllEnabled do
+                    local success, seedShopData = pcall(require, seedShopDataModule)
+                    if success then
+                        for seedName, shopInfo in pairs(seedShopData) do
+                            if shopInfo.DisplayInShop ~= false then
+                                BuySeedStock:FireServer("Shop", seedName)
+                                task.wait(0.01)
+                            end
+                        end
+                        
+                        for i = 1, 10 do
+                            if not autoBuyAllEnabled then break end
+                            
+                            for seedName, shopInfo in pairs(seedShopData) do
+                                if shopInfo.DisplayInShop ~= false then
+                                    BuySeedStock:FireServer("Shop", seedName)
+                                end
+                            end
+                            task.wait(0.03)
+                        end
+                    else
+                        task.wait(0.5)
+                    end
+                    
+                    task.wait(0.2)
+                end
+            end)
+        else
+            if autoBuyAllTask then
+                task.cancel(autoBuyAllTask)
+                autoBuyAllTask = nil
+            end
         end
     end
 })
