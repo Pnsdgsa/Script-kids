@@ -26,7 +26,7 @@ local function CreateTimerGUI()
     MainInterface.ResetOnSpawn = false
     MainInterface.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     MainInterface.Enabled = true
-
+    MainInterface.ZIndex = 1
     TimerContainer.Name = "TimerContainer"
     TimerContainer.Parent = MainInterface
     TimerContainer.AnchorPoint = Vector2.new(0.5, 0)
