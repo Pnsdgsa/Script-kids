@@ -3099,11 +3099,113 @@ end)
             featureStates.FlySpeed = value
         end
     })
-    InfiniteSlideToggle = Tabs.Player:Toggle({
+CachedTables = {}
+PlrModel = nil
+SlideFrictionValue = -8
+HeartbeatConnection = nil
+Enabled = false
+
+RefreshCachedTables = function()
+    CachedTables = {}
+    for _, obj in ipairs(getgc(true)) do
+        local success, result = pcall(function()
+            if type(obj) == "table" and rawget(obj, "Friction") and rawget(obj, "Speed") then
+                return obj
+            end
+        end)
+        if success and result then
+            table.insert(CachedTables, result)
+        end
+    end
+end
+
+UpdatePlayerModel = function()
+    local GameFolder = workspace:FindFirstChild("Game")
+    local PlayersFolder = GameFolder and GameFolder:FindFirstChild("Players")
+    if PlayersFolder then
+        PlrModel = PlayersFolder:FindFirstChild(game.Players.LocalPlayer.Name)
+    else
+        PlrModel = nil
+    end
+end
+
+SetFriction = function(value)
+    if #CachedTables == 0 then
+        RefreshCachedTables()
+    end
+    
+    for _, t in ipairs(CachedTables) do
+        pcall(function()
+            t.Friction = value
+        end)
+    end
+end
+
+OnHeartbeat = function()
+    if not PlrModel then
+        SetFriction(5)
+        return
+    end
+
+    local success, currentState = pcall(function()
+        return PlrModel:GetAttribute("State")
+    end)
+
+    if success and currentState then
+        if currentState == "Slide" then
+            pcall(function()
+                PlrModel:SetAttribute("State", "EmotingSlide")
+            end)
+        elseif currentState == "EmotingSlide" then
+            SetFriction(SlideFrictionValue)
+        else
+            SetFriction(5)
+        end
+    else
+        SetFriction(5)
+    end
+end
+
+StartInfiniteSlide = function()
+    Enabled = true
+    RefreshCachedTables()
+    UpdatePlayerModel()
+    
+    if HeartbeatConnection then
+        HeartbeatConnection:Disconnect()
+    end
+    
+    HeartbeatConnection = game:GetService("RunService").Heartbeat:Connect(OnHeartbeat)
+    
+    game.Players.LocalPlayer.CharacterAdded:Connect(function()
+        wait(1)
+        RefreshCachedTables()
+        UpdatePlayerModel()
+    end)
+end
+
+StopInfiniteSlide = function()
+    Enabled = false
+    SetFriction(5)
+    
+    if HeartbeatConnection then
+        HeartbeatConnection:Disconnect()
+        HeartbeatConnection = nil
+    end
+end
+
+InfiniteSlideToggle = Tabs.Player:Toggle({
     Title = "Infinite Slide",
     Flag = "InfiniteSlideToggle",
     Value = false,
-    Locked = true,
+    Callback = function(state)
+        if state then
+            SlideFrictionValue = tonumber(SlideFrictionInput.Value) or -8
+            StartInfiniteSlide()
+        else
+            StopInfiniteSlide()
+        end
+    end
 })
 
 SlideFrictionInput = Tabs.Player:Input({
@@ -3112,8 +3214,16 @@ SlideFrictionInput = Tabs.Player:Input({
     Desc = "Negative Only And faster slide",
     Placeholder = "-8",
     NumbersOnly = true,
-    Locked = true,
-    Value = "-8"
+    Value = "-8",
+    Callback = function(value)
+        local num = tonumber(value)
+        if num and num < 0 then
+            SlideFrictionValue = num
+            if Enabled then
+                SetFriction(SlideFrictionValue)
+            end
+        end
+    end
 })
 local noclipConnections = {}
 local noclipEnabled = false
