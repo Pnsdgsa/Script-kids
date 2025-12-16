@@ -3,6 +3,7 @@ if getgenv().DaraHubExecuted then
 end
 getgenv().DaraHubExecuted = true
 -- Load WindUI
+ loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/More-Loadstrings.lua'))() then
 local WindUI
 
 do
@@ -1862,6 +1863,14 @@ AutoServerHopIntervalInput = Tabs.Main:Input({
             AutoServerHopIntervalInput:Set("30")
             AutoServerHopInterval = 30
         end
+    end
+})
+Tabs.Main:Button({
+    Title = "Force Send Finish Load",
+    Desc = "Try this if you stuck on Loading screen, if doesn't work try rejoin",
+    Icon = "minimize",
+    Callback = function()
+game:GetService("ReplicatedStorage").Events.Data.FinishLoad:FireServer()
     end
 })
 Tabs.Main:Section({ Title = "Misc", TextSize = 20 })
@@ -11996,8 +12005,7 @@ if player.Character then
     setupDownedListener(player.Character)
 end
 
---[[the part of loadstring prevent error]]
-loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/More-Loadstrings.lua'))()
+
 local function monitorAnyDamage()
     local function setupCharacter(character)
         local humanoid = character:WaitForChild("Humanoid")
