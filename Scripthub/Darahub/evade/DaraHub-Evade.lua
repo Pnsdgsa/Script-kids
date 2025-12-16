@@ -3,7 +3,7 @@ if getgenv().DaraHubExecuted then
 end
 getgenv().DaraHubExecuted = true
 -- Load WindUI
- loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/More-Loadstrings.lua'))() then
+ loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/More-Loadstrings.lua'))
 local WindUI
 
 do
