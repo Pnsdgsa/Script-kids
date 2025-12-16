@@ -2785,12 +2785,226 @@ local function stopAntiFling()
     end
 end
 
-Tabs.Utility:Button({
-    Title = "invisible button (I'm lazy to making it lol)",
-    Callback = function()
-loadstring(game:HttpGet('https://pastebin.com/raw/3Rnd9rHf'))()
+if _G.a then
+    local v1, v2, v3 = pairs(_G.a)
+    while true do
+        local v4
+        v3, v4 = v1(v2, v3)
+        if v3 == nil then
+            break
+        end
+        v4:Disconnect()
+    end
+    _G.a = nil
+end
+
+repeat
+    task.wait()
+until game.Players.LocalPlayer
+
+vu5 = game.Players.LocalPlayer
+vu6 = nil
+vu7 = nil
+vu8 = nil
+vu9 = false
+vu10 = {}
+
+function vu16()
+    vu6 = vu5.Character or vu5.CharacterAdded:Wait()
+    vu7 = vu6:WaitForChild("Humanoid")
+    vu8 = vu6:WaitForChild("HumanoidRootPart")
+    vu10 = {}
+    v11 = vu6
+    v12, v13, v14 = pairs(v11:GetDescendants())
+    while true do
+        v15 = nil
+        v14, v15 = v12(v13, v14)
+        if v14 == nil then
+            break
+        end
+        if v15:IsA("BasePart") and v15.Transparency == 0 then
+            vu10[#vu10 + 1] = v15
+        end
+    end
+end
+
+function vu30()
+    invisibleGui = Instance.new("ScreenGui")
+    invisibleGui.Name = "InvisibleGui"
+    invisibleGui.IgnoreGuiInset = true
+    invisibleGui.ResetOnSpawn = false
+    invisibleGui.Enabled = false
+    invisibleGui.Parent = game:GetService("CoreGui")
+
+    frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 120, 0, 120)
+    frame.Position = UDim2.new(0.5, -30, 0.12, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    frame.BackgroundTransparency = 0.35
+    frame.BorderSizePixel = 0
+    frame.Active = true
+    frame.Draggable = true
+    frame.Parent = invisibleGui
+
+    corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = frame
+
+    stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(150, 150, 150)
+    stroke.Thickness = 2
+    stroke.Parent = frame
+
+    label = Instance.new("TextLabel")
+    label.Text = "INVISIBLE"
+    label.Size = UDim2.new(0.9, 0, 0.5, 0)
+    label.Position = UDim2.new(0.05, 0, 0, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Font = Enum.Font.Roboto
+    label.TextSize = 16
+    label.TextXAlignment = Enum.TextXAlignment.Center
+    label.TextYAlignment = Enum.TextYAlignment.Center
+    label.TextScaled = true
+    label.Parent = frame
+
+    invisibleButton = Instance.new("TextButton")
+    invisibleButton.Name = "InvisibleButton"
+    invisibleButton.Text = "OFF"
+    invisibleButton.Size = UDim2.new(0.9, 0, 0.5, 0)
+    invisibleButton.Position = UDim2.new(0.05, 0, 0.5, 0)
+    invisibleButton.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+    invisibleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    invisibleButton.Font = Enum.Font.Roboto
+    invisibleButton.TextSize = 14
+    invisibleButton.TextXAlignment = Enum.TextXAlignment.Center
+    invisibleButton.TextYAlignment = Enum.TextYAlignment.Center
+    invisibleButton.TextScaled = true
+    invisibleButton.Parent = frame
+
+    buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 4)
+    buttonCorner.Parent = invisibleButton
+
+    invisibleButton.MouseButton1Click:Connect(function()
+        vu9 = not vu9
+        if vu9 then
+            invisibleButton.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+            invisibleButton.Text = "ON"
+        else
+            invisibleButton.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+            invisibleButton.Text = "OFF"
+        end
+        
+        v26, v27, v28 = pairs(vu10)
+        while true do
+            v29 = nil
+            v28, v29 = v26(v27, v28)
+            if v28 == nil then
+                break
+            end
+            v29.Transparency = v29.Transparency == 0 and 0.5 or 0
+        end
+    end)
+end
+
+vu16()
+vu30()
+
+v31 = {
+    nil,
+    nil
+}
+v32 = vu5
+
+v31[1] = vu5:GetMouse().KeyDown:Connect(function(p33)
+    if p33 == "i" then
+        vu9 = not vu9
+        
+        gui = game:GetService("CoreGui"):FindFirstChild("InvisibleGui")
+        if gui then
+            button = gui:FindFirstChild("InvisibleButton", true)
+            if button then
+                if vu9 then
+                    button.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+                    button.Text = "ON"
+                else
+                    button.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+                    button.Text = "OFF"
+                end
+            end
+        end
+        
+        v34, v35, v36 = pairs(vu10)
+        while true do
+            v37 = nil
+            v36, v37 = v34(v35, v36)
+            if v36 == nil then
+                break
+            end
+            v37.Transparency = v37.Transparency == 0 and 0.5 or 0
+        end
+    end
+end)
+
+v31[2] = game:GetService("RunService").Heartbeat:Connect(function()
+    if vu9 then
+        v38 = vu8.CFrame
+        v39 = vu7.CameraOffset
+        v40 = v38 * CFrame.new(0, -200000, 0)
+        v41 = vu7
+        v42 = vu8
+        v43 = v40:ToObjectSpace(CFrame.new(v38.Position)).Position
+        v42.CFrame = v40
+        v41.CameraOffset = v43
+        game:GetService("RunService").RenderStepped:Wait()
+        v44 = vu7
+        vu8.CFrame = v38
+        v44.CameraOffset = v39
+    end
+end)
+
+vu5.CharacterAdded:Connect(function()
+    vu9 = false
+    vu16()
+    
+    gui = game:GetService("CoreGui"):FindFirstChild("InvisibleGui")
+    if gui then
+        button = gui:FindFirstChild("InvisibleButton", true)
+        if button then
+            button.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+            button.Text = "OFF"
+        end
+    end
+end)
+
+_G.a = v31
+local invisibleGuiActive = false
+
+InvisibleGuiToggle = Tabs.Utility:Toggle({
+    Title = "Invisible GUI",
+    Flag = "InvisibleGuiToggle",
+    Value = false,
+    Callback = function(state)
+        if state then
+            invisibleGuiActive = true
+            
+            local invisibleGui = game:GetService("CoreGui"):FindFirstChild("InvisibleGui")
+            if invisibleGui then
+                invisibleGui.Enabled = true
+            else
+            end
+        else
+            invisibleGuiActive = false
+            
+            local invisibleGui = game:GetService("CoreGui"):FindFirstChild("InvisibleGui")
+            if invisibleGui then
+                invisibleGui.Enabled = false
+            end
+        end
     end
 })
+
 
 Tabs.Shop:Section({ Title = "Auto Buy", TextSize = 40 })
 Tabs.Shop:Section({ Title = "Seed Shop", TextSize = 20 })
@@ -4152,6 +4366,55 @@ Tabs.Settings:Slider({
             Window:SetToggleKey(Enum.KeyCode[RightControl])
         end
     })
+    Tabs.Settings:Keybind({
+    Title = "Invisible Toggle",
+    Desc = "Keybind to toggle invisible mode",
+    Value = "I",
+    Callback = function(v)
+        vu9 = not vu9
+        
+        gui = game:GetService("CoreGui"):FindFirstChild("InvisibleGui")
+        if gui then
+            button = gui:FindFirstChild("InvisibleButton", true)
+            if button then
+                if vu9 then
+                    button.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+                    button.Text = "ON"
+                else
+                    button.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+                    button.Text = "OFF"
+                end
+            end
+        end
+        
+        v34, v35, v36 = pairs(vu10)
+        while true do
+            v37 = nil
+            v36, v37 = v34(v35, v36)
+            if v36 == nil then
+                break
+            end
+            v37.Transparency = v37.Transparency == 0 and 0.5 or 0
+        end
+    end
+})
+Tabs.Utility:Slider({
+    Title = "Invisible GUI Scale",
+    Desc = "Adjust GUI scale",
+    Step = 0.01,
+    Value = { Min = 0.5, Max = 2, Default = 1 },
+    Callback = function(v)
+        gui = game:GetService("CoreGui"):FindFirstChild("InvisibleGui")
+        if gui then
+            if not gui:FindFirstChild("GuiScale") then
+                local uIScale = Instance.new("UIScale")
+                uIScale.Name = "GuiScale"
+                uIScale.Parent = gui
+            end
+            gui:FindFirstChild("GuiScale").Scale = v
+        end
+    end
+})
     do
      InviteCode = "ny6pJgnR6c"
      DiscordAPI = "https://discord.com/api/v10/invites/" .. InviteCode .. "?with_counts=true&with_expiration=true"
