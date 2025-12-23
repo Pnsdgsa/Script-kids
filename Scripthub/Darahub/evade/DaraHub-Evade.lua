@@ -2,53 +2,6 @@ if getgenv().DaraHubExecuted then
     return
 end
 getgenv().DaraHubExecuted = true
-
-player = game.Players.LocalPlayer
-guiService = game:GetService("GuiService")
-starterGui = game:GetService("StarterGui")
-
-playerGui = player:WaitForChild("PlayerGui")
-if playerGui:FindFirstChild("CustomTopGui") then
-    return
-end
-
-starterGui:SetCore("TopbarEnabled", false)
-
-screenGui = Instance.new("ScreenGui")
-screenGui.Name = "CustomTopGui"
-screenGui.IgnoreGuiInset = false
-screenGui.ScreenInsets = Enum.ScreenInsets.TopbarSafeInsets
-screenGui.DisplayOrder = 100
-screenGui.ResetOnSpawn = false
-screenGui.Parent = playerGui
-
-frame = Instance.new("Frame")
-frame.Parent = screenGui
-frame.BackgroundTransparency = 1
-frame.BorderSizePixel = 0
-frame.Position = UDim2.new(0, 0, 0, 0)
-frame.Size = UDim2.new(1, 0, 1, -2)
-
-scrollingFrame = Instance.new("ScrollingFrame")
-scrollingFrame.Name = "Right"
-scrollingFrame.Parent = frame
-scrollingFrame.BackgroundTransparency = 1
-scrollingFrame.BorderSizePixel = 0
-scrollingFrame.Position = UDim2.new(0, 12, 0, 0)
-scrollingFrame.Size = UDim2.new(1, -24, 1, 0)
-scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-scrollingFrame.AutomaticCanvasSize = Enum.AutomaticSize.X
-scrollingFrame.ScrollBarThickness = 0
-scrollingFrame.ScrollingDirection = Enum.ScrollingDirection.X
-scrollingFrame.ScrollingEnabled = false
-
-uiListLayout = Instance.new("UIListLayout")
-uiListLayout.Parent = scrollingFrame
-uiListLayout.Padding = UDim.new(0, 12)
-uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-uiListLayout.FillDirection = Enum.FillDirection.Horizontal
-uiListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
-uiListLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
 -- Load WindUI
 coroutine.resume(coroutine.create(function()
     pcall(loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/More-Loadstrings.lua')))
@@ -113,152 +66,6 @@ Window:Tag({
     Title = "V1.3.9",
     Color = Color3.fromHex("#30ff6a")
 })
--- my name is retep and I em evil >:)
-local function safeResolve(value)
-    if not Localization or not Localization.Enabled then
-        return value
-    end
-    
-    if type(value) == "string" and value:sub(1, #Localization.Prefix) == Localization.Prefix then
-        local key = value:sub(#Localization.Prefix + 1)
-        local lang = Localization.Translations and Localization.Translations[Localization.DefaultLanguage]
-        if lang and lang[key] then
-            return lang[key]
-        end
-    end
-    
-    return value
-end
-
-local originalCreateWindow = WindUI.CreateWindow
-WindUI.CreateWindow = function(self, config)
-    if config and Localization then
-        for key, value in pairs(config) do
-            if type(value) == "string" then
-                config[key] = safeResolve(value)
-            end
-        end
-    end
-    
-    return originalCreateWindow(self, config)
-end
-
-local function resolveWindowProperties(window)
-    if not window then return end
-    
-    if window.Title and type(window.Title) == "string" then
-        window.Title = safeResolve(window.Title)
-    end
-    if window.Author and type(window.Author) == "string" then
-        window.Author = safeResolve(window.Author)
-    end
-end
-
-resolveWindowProperties(Window)
-
-print("Window Title:", Window.Title)
-print("Window Author:", Window.Author)
-
-local HttpService = game:GetService("HttpService")
-local Players = game:GetService("Players")
-local MarketplaceService = game:GetService("MarketplaceService")
-
-local localPlayer = Players.LocalPlayer
-if not localPlayer then
-    warn("Local player not found!")
-    return
-end
-
-local OSTime = os.time()
-local Time = os.date("!*t", OSTime)
-
-local placeId = game.PlaceId
-local jobId = game.JobId
-local placeName = MarketplaceService:GetProductInfo(placeId).Name or "Unknown Game"
-
-local placeUrl = string.format("https://www.roblox.com/games/%d/", placeId)
-local serverJoinUrl = string.format("https://www.roblox.com/games/start?placeId=%d&jobId=%s", placeId, jobId)
-local playerProfileUrl = string.format("https://www.roblox.com/users/%d/profile", localPlayer.UserId)
-
-local WebhookUrl = "https://discord.com/api/webhooks/1447029437454352474/u8s1IvuZKKCiHDA-_X4hqZY8XL4_FEPXYQrDZUoIskLDSYnjenKlfU3VxzXsemtujEXF"
-
-local windowTitle = Window and Window.Title or "Unknown Window"
-local windowAuthor = Window and Window.Author or "Unknown Author"
-
-local Embed = {
-    title = "⚡ Script Executed",
-    description = string.format("**%s** (`%d`) used an execution script", localPlayer.Name, localPlayer.UserId),
-    color = 16753920,
-    author = {
-        name = localPlayer.Name,
-        url = playerProfileUrl,
-        icon_url = string.format("https://www.roblox.com/headshot-thumbnail/image?userId=%d&width=420&height=420&format=png", localPlayer.UserId)
-    },
-    fields = {
-        {
-            name = "📝 Details",
-            value = string.format("**Player:** [%s](%s)\n**Game:** [%s](%s)\n**Time:** <t:%d:R>", 
-                localPlayer.Name, playerProfileUrl, placeName, placeUrl, OSTime),
-            inline = true
-        },
-        {
-            name = "🔗 Join Information",
-            value = string.format("**Server ID:** `%s`\n**Place ID:** `%d`\n[Direct Join Link](%s)", 
-                jobId, placeId, serverJoinUrl),
-            inline = true
-        },
-        {
-            name = "📊 Account Age",
-            value = string.format("**Created:** <t:%d:D>\n**Account Age:** %d days", 
-                localPlayer.AccountAge, localPlayer.AccountAge),
-            inline = true
-        },
-        {
-            name = "💻 Script Info",
-            value = string.format("**Window Title:** %s\n**Author:** %s", 
-                windowTitle, windowAuthor),
-            inline = true
-        }
-    },
-    timestamp = string.format("%d-%d-%dT%02d:%02d:%02dZ", Time.year, Time.month, Time.day, Time.hour, Time.min, Time.sec),
-    footer = {
-        text = string.format("Execution Log | Place: %s", placeName),
-        icon_url = "https://cdn.discordapp.com/embed/avatars/4.png"
-    },
-    thumbnail = {
-        url = string.format("https://www.roblox.com/asset-thumbnail/image?assetId=%d&width=420&height=420&format=png", placeId)
-    }
-}
-
-local success, result = pcall(function()
-    local requestFunc = syn and syn.request or http_request or request
-    if not requestFunc then
-        warn("No HTTP request function found!")
-        return
-    end
-    
-    return requestFunc {
-        Url = WebhookUrl,
-        Method = "POST",
-        Headers = {
-            ["Content-Type"] = "application/json"
-        },
-        Body = HttpService:JSONEncode({
-            embeds = { Embed },
-            content = string.format("⚠️ **%s** just executed a script!\n\n📋 **Player Info:**\n• Username: %s\n• User ID: %d\n• Display Name: %s\n• Account Age: %d days\n\n🎮 **Game Info:**\n• Game: %s\n• Place ID: %d\n\n💻 **Script Info:**\n• Window Title: %s\n• Author: %s\n\n🔗 **Join their server:**\n%s", 
-                localPlayer.Name, 
-                localPlayer.Name, 
-                localPlayer.UserId, 
-                localPlayer.DisplayName, 
-                localPlayer.AccountAge, 
-                placeName, 
-                placeId,
-                windowTitle,
-                windowAuthor,
-                serverJoinUrl)
-        })
-    }
-end)
 --[[
 Window:Tag({
 Title = "Beta",
@@ -1912,14 +1719,6 @@ AutoServerHopIntervalInput = Tabs.Main:Input({
             AutoServerHopIntervalInput:Set("30")
             AutoServerHopInterval = 30
         end
-    end
-})
-Tabs.Main:Button({
-    Title = "Force Send Finish Load",
-    Desc = "Try this if you stuck on Loading screen, if doesn't work try rejoin",
-    Icon = "minimize",
-    Callback = function()
-game:GetService("ReplicatedStorage").Events.Data.FinishLoad:FireServer()
     end
 })
 Tabs.Main:Section({ Title = "Misc", TextSize = 20 })
@@ -9057,7 +8856,7 @@ AutoTicketFarmToggle = Tabs.Auto:Toggle({
     Callback = function(state)
         getgenv().ticketfarm = state
         local AutoTicketFarmConnection
-        local yOffset = 15
+        local yOffset = 999
         local currentTicket = nil
         local ticketProcessedTime = 0
 
