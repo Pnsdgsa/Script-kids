@@ -108,7 +108,7 @@ if featureStates.DisableCameraShake == nil then
 end
 Window:SetIconSize(48)
 Window:Tag({
-    Title = "V1.3.9",
+    Title = "V1.4",
     Color = Color3.fromHex("#30ff6a")
 })
 --[[
@@ -1699,7 +1699,7 @@ function startAutoServerHop()
         end
     end)
 end
-
+Tabs.Main:Space()
 AutoServerHopToggle = Tabs.Main:Toggle({
     Title = "Auto Server Hop",
     Flag = "AutoServerHopToggle",
@@ -1787,6 +1787,8 @@ ResetDamageTypeDropdown = Tabs.Main:Dropdown({
         featureStates.ResetDamageType = value
     end
 })
+Tabs.Main:Space()
+
    Tabs.Main:Button({
     Title = "Show/Hide Reload button",
     Desc = "This button allow you to use front view mode without keyboard or any tool in vip server",
@@ -1810,6 +1812,8 @@ ResetDamageTypeDropdown = Tabs.Main:Dropdown({
         end
     end
 })
+Tabs.Main:Space()
+
        AntiAFKToggle = Tabs.Main:Toggle({
         Title = "Anti AFK",
         Flag = "AntiAFKToggle",
@@ -1943,6 +1947,7 @@ task.spawn(function()
         task.wait(0.1)
     end
 end)
+Tabs.Main:Space()
 
 
  AntiNextbotToggle = Tabs.Main:Toggle({
@@ -2368,6 +2373,7 @@ local function restartSystemOnEvents()
         end)
     end
 end
+Tabs.Main:Space()
 
 AntiNextbotSpawnToggle = Tabs.Main:Toggle({
     Title = "Anti Nextbot Spawn",
@@ -2960,6 +2966,8 @@ easyTrimpInputConnection = UserInputService.InputBegan:Connect(function(input, g
         end
     end
 end)
+Tabs.Player:Space()
+
     InfiniteJumpToggle = Tabs.Player:Toggle({
         Title = "Infinite Jump",
         Flag = "InfiniteJumpToggle",
@@ -2978,6 +2986,7 @@ end)
             featureStates.JumpMethod = value
         end
     })
+        Tabs.Player:Space()
     FlyToggle = Tabs.Player:Toggle({
         Title = "Fly",
         Flag = "FlyToggle",
@@ -2991,7 +3000,8 @@ end)
             end
         end
     })
-    
+
+
     local FlySpeedSlider = Tabs.Player:Slider({
         Title = "Fly Speed",
         Flag = "FlySpeedSlider",
@@ -3095,7 +3105,7 @@ StopInfiniteSlide = function()
         HeartbeatConnection = nil
     end
 end
-
+Tabs.Auto:Space()
 InfiniteSlideToggle = Tabs.Player:Toggle({
     Title = "Infinite Slide",
     Flag = "InfiniteSlideToggle",
@@ -3127,6 +3137,8 @@ SlideFrictionInput = Tabs.Player:Input({
         end
     end
 })
+Tabs.Player:Space()
+
 local noclipConnections = {}
 local noclipEnabled = false
 
@@ -3177,7 +3189,7 @@ end
 NoclipToggle = Tabs.Player:Toggle({
     Title = "Noclip",
     Flag = "NoclipToggle",
-    Desc = "Note: This feature Can make you fall to the void non-stop so be careful what you're doing when toggles this on",
+    Desc = "This is very buggy So don't use it",
     Icon = "ghost",
     Callback = function(state)
         noclipEnabled = state
@@ -3203,6 +3215,8 @@ NoclipToggle = Tabs.Player:Toggle({
         end
     end
 })
+Tabs.Player:Space()
+
     TPWALKToggle = Tabs.Player:Toggle({
         Title = "TP WALK",
         Flag = "TPWALKToggle",
@@ -3226,6 +3240,7 @@ NoclipToggle = Tabs.Player:Toggle({
             featureStates.TpwalkValue = value
         end
     })
+Tabs.Player:Space()
 
     JumpBoostToggle = Tabs.Player:Toggle({
         Title = "Jump Height",
@@ -3285,6 +3300,7 @@ SpeedInput = Tabs.Player:Input({
         max = 100008888
     })
 })
+Tabs.Player:Space()
 
 JumpCapInput = Tabs.Player:Input({
     Title = "Set Jump Cap",
@@ -3298,6 +3314,7 @@ JumpCapInput = Tabs.Player:Input({
         max = 5088888
     })
 })
+Tabs.Player:Space()
 
 StrafeInput = Tabs.Player:Input({
     Title = "Strafe Acceleration",
@@ -3522,6 +3539,1618 @@ ResetEmoteSpeedButton = Tabs.Player:Button({
     Callback = function()
         restoreOriginalEmoteSpeeds()
         resetMultiplierSpeed()
+    end
+})
+    -- Auto Tab
+    Tabs.Auto:Section({ Title = "Auto", TextSize = 40 })
+    
+     AutoJoin = Tabs.Auto:Toggle({
+    Title = "Auto Join",
+    Flag = "AutoJoin",
+    Value = false,
+    Callback = function(state)
+        getgenv().AutoJoinEnabled = state
+        
+        if state then
+            local Players = game:GetService("Players")
+            local ReplicatedStorage = game:GetService("ReplicatedStorage")
+            local LocalPlayer = Players.LocalPlayer
+
+            local statsFolder = workspace:WaitForChild("Game"):WaitForChild("Stats")
+            local hasRunThisRound = false
+            local isExecuting = false
+
+            local function isPlayerAlive()
+                local character = LocalPlayer.Character
+                if not character then return false end
+                
+                local humanoid = character:FindFirstChild("Humanoid")
+                if not humanoid then return false end
+                
+                return humanoid.Health > 0
+            end
+
+            local function executeScript()
+                if isExecuting then return end
+                
+                if isPlayerAlive() then
+                    return
+                end
+                
+                isExecuting = true
+                
+                local success = pcall(function()
+                    game:GetService("ReplicatedStorage").Events.Player.ChangePlayerMode:FireServer(true)
+                end)
+                
+                if success then
+                    hasRunThisRound = true
+                else
+                    hasRunThisRound = false
+                end
+                
+                isExecuting = false
+            end
+
+            local function checkTimerEnd()
+                local timerValue = statsFolder:GetAttribute("Timer")
+                local roundStarted = statsFolder:GetAttribute("RoundStarted")
+                
+                if timerValue == 0 and roundStarted == true then
+                    if not hasRunThisRound then
+                        executeScript()
+                    end
+                end
+                
+                if roundStarted == false then
+                    hasRunThisRound = false
+                end
+            end
+
+            local function onPlayerDied()
+                if not hasRunThisRound then
+                    executeScript()
+                end
+            end
+
+            local function onGetLives()
+                if not hasRunThisRound then
+                    executeScript()
+                end
+            end
+
+            getgenv().AutoJoinConnections = {
+                timerConnection = statsFolder:GetAttributeChangedSignal("Timer"):Connect(checkTimerEnd),
+                heartbeatConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                    local timerValue = statsFolder:GetAttribute("Timer")
+                    local roundStarted = statsFolder:GetAttribute("RoundStarted")
+                    
+                    if timerValue == 0 and roundStarted == true and not hasRunThisRound then
+                        executeScript()
+                    end
+                end),
+                roundConnection = statsFolder:GetAttributeChangedSignal("RoundStarted"):Connect(function()
+                    local roundStarted = statsFolder:GetAttribute("RoundStarted")
+                    if roundStarted == false then
+                        hasRunThisRound = false
+                    end
+                end)
+            }
+
+            getgenv().AutoJoinConnections.characterAddedConnection = LocalPlayer.CharacterAdded:Connect(function(character)
+                local humanoid = character:WaitForChild("Humanoid")
+                
+                getgenv().AutoJoinConnections.humanoidDiedConnection = humanoid.Died:Connect(function()
+                    local downed = character:GetAttribute("Downed")
+                    if downed ~= true then
+                        onPlayerDied()
+                    end
+                end)
+            end)
+
+            if LocalPlayer.Character then
+                local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+                if humanoid then
+                    getgenv().AutoJoinConnections.humanoidDiedConnection = humanoid.Died:Connect(function()
+                        local downed = LocalPlayer.Character:GetAttribute("Downed")
+                        if downed ~= true then
+                            onPlayerDied()
+                        end
+                    end)
+                end
+            end
+
+            getgenv().AutoJoinConnections.getLivesConnection = ReplicatedStorage.Events.Data.GetLives.OnClientEvent:Connect(function()
+                onGetLives()
+            end)
+
+            task.spawn(function()
+                local success = pcall(function()
+                    ReplicatedStorage.Events.Data.GetLives:FireServer()
+                end)
+            end)
+
+        else
+            if getgenv().AutoJoinConnections then
+                for name, connection in pairs(getgenv().AutoJoinConnections) do
+                    if connection then
+                        connection:Disconnect()
+                    end
+                end
+                getgenv().AutoJoinConnections = nil
+            end
+        end
+    end
+})
+
+game:GetService("Players").LocalPlayer.PlayerScripts.Events.temporary_events.JumpReact:Fire()
+game:GetService("Players").LocalPlayer.PlayerScripts.Events.temporary_events.EndJump:Fire()
+
+getgenv().autoJumpType = "Bounce"
+getgenv().bhopMode = "Acceleration"
+getgenv().bhopAccelValue = -0.5
+getgenv().bhopHoldActive = false
+getgenv().autoJumpEnabled = false
+getgenv().jumpCooldown = 0.7
+featureStates = featureStates or {}
+featureStates.BhopGuiVisible = false
+featureStates.Bhop = false
+featureStates.BhopHold = false
+
+player = game:GetService("Players").LocalPlayer
+RunService = game:GetService("RunService")
+UserInputService = game:GetService("UserInputService")
+Players = game:GetService("Players")
+Tabs = Tabs or {Auto = {}}
+
+isMobile = isMobile or UserInputService.TouchEnabled
+
+bhopConnection = nil
+bhopLoaded = false
+bhopKeyConnection = nil
+characterConnection = nil
+frictionTables = {}
+
+Character = nil
+Humanoid = nil
+HumanoidRootPart = nil
+LastJump = 0
+
+GROUND_CHECK_DISTANCE = 3.5
+MAX_SLOPE_ANGLE = 45
+AIR_RANGE = 0.1
+
+findFrictionTables = function()
+    frictionTables = {}
+    for _, t in pairs(getgc(true)) do
+        if type(t) == "table" and rawget(t, "Friction") then
+            table.insert(frictionTables, {obj = t, original = t.Friction})
+        end
+    end
+end
+
+setFriction = function(value)
+    for _, e in ipairs(frictionTables) do
+        if e.obj and type(e.obj) == "table" and rawget(e.obj, "Friction") then
+            e.obj.Friction = value
+        end
+    end
+end
+
+resetBhopFriction = function()
+    for _, e in ipairs(frictionTables) do
+        if e.obj and type(e.obj) == "table" and rawget(e.obj, "Friction") then
+            e.obj.Friction = e.original
+        end
+    end
+    frictionTables = {}
+end
+
+applyBhopFriction = function()
+    if getgenv().bhopMode == "Acceleration" then
+        findFrictionTables()
+        if #frictionTables > 0 then
+            setFriction(getgenv().bhopAccelValue or -0.5)
+        end
+    else
+        resetBhopFriction()
+    end
+end
+
+IsOnGround = function()
+    if not Character or not HumanoidRootPart or not Humanoid then return false end
+
+    state = Humanoid:GetState()
+    if state == Enum.HumanoidStateType.Jumping or 
+       state == Enum.HumanoidStateType.Freefall or
+       state == Enum.HumanoidStateType.Swimming then
+        return false
+    end
+
+    raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    raycastParams.FilterDescendantsInstances = {Character}
+    raycastParams.IgnoreWater = true
+
+    rayOrigin = HumanoidRootPart.Position
+    rayDirection = Vector3.new(0, -GROUND_CHECK_DISTANCE, 0)
+    raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+
+    if not raycastResult then return false end
+
+    surfaceNormal = raycastResult.Normal
+    angle = math.deg(math.acos(surfaceNormal:Dot(Vector3.new(0, 1, 0))))
+
+    return angle <= MAX_SLOPE_ANGLE
+end
+
+updateBhop = function()
+    if not bhopLoaded then return end
+    
+    character = player.Character
+    humanoid = character and character:FindFirstChild("Humanoid")
+    if not character or not humanoid then
+        return
+    end
+
+    isBhopActive = getgenv().autoJumpEnabled or getgenv().bhopHoldActive
+
+    if isBhopActive then
+        now = tick()
+        if IsOnGround() and (now - LastJump) > getgenv().jumpCooldown then
+            if getgenv().autoJumpType == "Realistic" then
+                game:GetService("Players").LocalPlayer.PlayerScripts.Events.temporary_events.JumpReact:Fire()
+                task.wait(0.1)
+                game:GetService("Players").LocalPlayer.PlayerScripts.Events.temporary_events.EndJump:Fire()
+            else
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+            LastJump = now
+        end
+    end
+end
+
+loadBhop = function()
+    if bhopLoaded then return end
+    
+    bhopLoaded = true
+    
+    if bhopConnection then
+        bhopConnection:Disconnect()
+    end
+    bhopConnection = RunService.Heartbeat:Connect(updateBhop)
+    applyBhopFriction()
+end
+
+unloadBhop = function()
+    if not bhopLoaded then return end
+    
+    bhopLoaded = false
+    
+    if bhopConnection then
+        bhopConnection:Disconnect()
+        bhopConnection = nil
+    end
+    
+    getgenv().bhopHoldActive = false
+    resetBhopFriction()
+end
+
+checkBhopState = function()
+    shouldLoad = getgenv().autoJumpEnabled or getgenv().bhopHoldActive
+    
+    if shouldLoad then
+        loadBhop()
+    else
+        unloadBhop()
+    end
+end
+
+reapplyBhopOnRespawn = function()
+    if getgenv().autoJumpEnabled or getgenv().bhopHoldActive then
+        wait(0.5)
+        applyBhopFriction()
+        checkBhopState()
+    end
+end
+
+makeDraggable = function(frame)
+    frame.Active = true
+    frame.Draggable = true
+    
+    dragDetector = Instance.new("UIDragDetector")
+    dragDetector.Parent = frame
+    
+    originalBackground = frame.BackgroundColor3
+    originalTransparency = frame.BackgroundTransparency
+    
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            frame.BackgroundTransparency = originalTransparency - 0.1
+        end
+    end)
+    
+    frame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            frame.BackgroundTransparency = originalTransparency
+        end
+    end)
+end
+
+setupBhopKeybind = function()
+    if bhopKeyConnection then
+        bhopKeyConnection:Disconnect()
+    end
+    
+    bhopKeyConnection = UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+        if gameProcessedEvent then return end
+        if input.KeyCode == Enum.KeyCode.B and featureStates.BhopGuiVisible then
+            getgenv().autoJumpEnabled = not getgenv().autoJumpEnabled
+            featureStates.Bhop = getgenv().autoJumpEnabled
+            
+            if BhopToggle then
+                BhopToggle:Set(getgenv().autoJumpEnabled)
+            end
+            
+            if jumpToggleBtn then
+                jumpToggleBtn.Text = getgenv().autoJumpEnabled and "On" or "Off"
+                jumpToggleBtn.BackgroundColor3 = getgenv().autoJumpEnabled and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+            end
+            
+            checkBhopState()
+        end
+    end)
+end
+
+setupJumpButton = function()
+    success, err = pcall(function()
+        touchGui = player:WaitForChild("PlayerGui", 5):WaitForChild("TouchGui", 5)
+        if not touchGui then return end
+        touchControlFrame = touchGui:WaitForChild("TouchControlFrame", 5)
+        if not touchControlFrame then return end
+        jumpButton = touchControlFrame:WaitForChild("JumpButton", 5)
+        if not jumpButton then return end
+        
+        jumpButton.MouseButton1Down:Connect(function()
+            if featureStates.BhopHold then
+                getgenv().bhopHoldActive = true
+                checkBhopState()
+            end
+        end)
+        
+        jumpButton.MouseButton1Up:Connect(function()
+            getgenv().bhopHoldActive = false
+            checkBhopState()
+        end)
+    end)
+end
+
+createBhopGui = function(yOffset)
+    bhopGuiOld = player.PlayerGui:FindFirstChild("BhopGui")
+    if bhopGuiOld then bhopGuiOld:Destroy() end
+    
+    bhopGui = Instance.new("ScreenGui")
+    bhopGui.Name = "BhopGui"
+    bhopGui.IgnoreGuiInset = true
+    bhopGui.ResetOnSpawn = false
+    bhopGui.Enabled = isMobile and featureStates.BhopGuiVisible or false
+    bhopGui.Parent = player.PlayerGui
+
+    frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 60, 0, 60)
+    frame.Position = UDim2.new(0.5, -30, 0.12 + (yOffset or 0), 0)
+    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    frame.BackgroundTransparency = 0.35
+    frame.BorderSizePixel = 0
+    frame.Parent = bhopGui
+    
+    makeDraggable(frame)
+
+    corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = frame
+
+    stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(150, 150, 150)
+    stroke.Thickness = 2
+    stroke.Parent = frame
+
+    label = Instance.new("TextLabel")
+    label.Text = "Bhop"
+    label.Size = UDim2.new(0.9, 0, 0.5, 0)
+    label.Position = UDim2.new(0.05, 0, 0, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Font = Enum.Font.Roboto
+    label.TextSize = 16
+    label.TextXAlignment = Enum.TextXAlignment.Center
+    label.TextYAlignment = Enum.TextYAlignment.Center
+    label.TextScaled = true
+    label.Parent = frame
+
+    bhopGuiButton = Instance.new("TextButton")
+    bhopGuiButton.Name = "ToggleButton"
+    bhopGuiButton.Text = getgenv().autoJumpEnabled and "On" or "Off"
+    bhopGuiButton.Size = UDim2.new(0.9, 0, 0.5, 0)
+    bhopGuiButton.Position = UDim2.new(0.05, 0, 0.5, 0)
+    bhopGuiButton.BackgroundColor3 = getgenv().autoJumpEnabled and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+    bhopGuiButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    bhopGuiButton.Font = Enum.Font.Roboto
+    bhopGuiButton.TextSize = 14
+    bhopGuiButton.TextXAlignment = Enum.TextXAlignment.Center
+    bhopGuiButton.TextYAlignment = Enum.TextYAlignment.Center
+    bhopGuiButton.TextScaled = true
+    bhopGuiButton.Parent = frame
+
+    buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 4)
+    buttonCorner.Parent = bhopGuiButton
+
+    bhopGuiButton.MouseButton1Click:Connect(function()
+        getgenv().autoJumpEnabled = not getgenv().autoJumpEnabled
+        featureStates.Bhop = getgenv().autoJumpEnabled
+        bhopGuiButton.Text = getgenv().autoJumpEnabled and "On" or "Off"
+        bhopGuiButton.BackgroundColor3 = getgenv().autoJumpEnabled and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+        
+        if BhopToggle then
+            BhopToggle:Set(getgenv().autoJumpEnabled)
+        end
+        
+        checkBhopState()
+    end)
+
+    return bhopGui, bhopGuiButton
+end
+
+jumpGui, jumpToggleBtn = createBhopGui(0.12)
+
+setupJumpButton()
+setupBhopKeybind()
+
+RunService.Heartbeat:Connect(function()
+    if not Character or not Character:IsDescendantOf(workspace) then
+        Character = player.Character or player.CharacterAdded:Wait()
+        if Character then
+            Humanoid = Character:FindFirstChildOfClass("Humanoid")
+            HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+        else
+            Humanoid = nil
+            HumanoidRootPart = nil
+        end
+    end
+end)
+
+if characterConnection then
+    characterConnection:Disconnect()
+end
+characterConnection = player.CharacterAdded:Connect(function(character)
+    Character = character
+    Humanoid = character:WaitForChild("Humanoid")
+    HumanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    setupJumpButton()
+    reapplyBhopOnRespawn()
+end)
+
+    Tabs.Auto:Space()
+AutoJumpTypeDropdown = Tabs.Auto:Dropdown({
+    Title = "Auto Jump type",
+    Flag = "AutoJumpTypeDropdown",
+    Values = {"Bounce", "Realistic"},
+    Value = "Bounce",
+    Callback = function(value)
+        getgenv().autoJumpType = value
+    end
+})
+
+BhopToggle = Tabs.Auto:Toggle({
+    Title = "Bhop",
+    Flag = "BhopToggle",
+    Value = false,
+    Callback = function(state)
+        featureStates.Bhop = state
+        getgenv().autoJumpEnabled = state
+        
+        if jumpGui and jumpToggleBtn then
+            jumpToggleBtn.Text = state and "On" or "Off"
+            jumpToggleBtn.BackgroundColor3 = state and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+            jumpGui.Enabled = isMobile and featureStates.BhopGuiVisible or false
+        end
+        
+        checkBhopState()
+    end
+})
+
+BhopHoldToggle = Tabs.Auto:Toggle({
+    Title = "Bhop (Hold Space/Jump)",
+    Flag = "BhopHoldToggle",
+    Value = false,
+    Callback = function(state)
+        featureStates.BhopHold = state
+        if not state then
+            getgenv().bhopHoldActive = false
+            checkBhopState()
+        end
+    end
+})
+
+BhopShortcutToggle = Tabs.Auto:Toggle({
+    Title = "Bhop Shortcut",
+    Flag = "BhopShortcutToggle",
+    Desc = "Show Bhop GUI For quick Toggle or press B to Toggle Bhop (Auto jump)",
+    Value = false,
+    Callback = function(state)
+        featureStates.BhopGuiVisible = state
+        if jumpGui then
+            jumpGui.Enabled = isMobile and state or false
+        end
+        setupBhopKeybind()
+    end
+})
+
+BhopModeDropdown = Tabs.Auto:Dropdown({
+    Title = "Bhop Mode",
+    Flag = "BhopModeDropdown",
+    Values = {"Acceleration", "No Acceleration"},
+    Value = "Acceleration",
+    Callback = function(value)
+        getgenv().bhopMode = value
+        checkBhopState()
+    end
+})
+
+BhopAccelInput = Tabs.Auto:Input({
+    Title = "Bhop Acceleration (Negative Only)",
+    Flag = "BhopAccelInput",
+    Placeholder = "-0.5",
+    Numeric = true,
+    Callback = function(value)
+        if tostring(value):sub(1, 1) == "-" then
+            n = tonumber(value)
+            if n then
+                getgenv().bhopAccelValue = n
+                if getgenv().autoJumpEnabled or getgenv().bhopHoldActive then
+                    applyBhopFriction()
+                end
+            end
+        end
+    end
+})
+
+JumpCooldownInput = Tabs.Auto:Input({
+    Title = "Jump Cooldown (Seconds)",
+    Flag = "JumpCooldownInput",
+    Placeholder = "0.7",
+    Numeric = true,
+    Callback = function(value)
+        n = tonumber(value)
+        if n and n > 0 then
+            getgenv().jumpCooldown = n
+        end
+    end
+})
+
+UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+    if gameProcessedEvent then return end
+    if input.KeyCode == Enum.KeyCode.Space and featureStates.BhopHold then
+        getgenv().bhopHoldActive = true
+        checkBhopState()
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.Space then
+        getgenv().bhopHoldActive = false
+        checkBhopState()
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(leavingPlayer)
+    if leavingPlayer == player then
+        unloadBhop()
+        if jumpGui then
+            jumpGui:Destroy()
+        end
+        if bhopKeyConnection then
+            bhopKeyConnection:Disconnect()
+        end
+        if characterConnection then
+            characterConnection:Disconnect()
+        end
+    end
+end)
+
+checkBhopState()
+
+getgenv().crouchGuiVisible = false
+
+local previousCrouchState = false
+local spamDown = true
+local crouchConnection = nil
+local keybindConnection = nil
+local guiInstance = nil
+
+local function fireKeybind(down, key)
+    local ohTable = {
+        ["Down"] = down,
+        ["Key"] = key
+    }
+    local event = game:GetService("Players").LocalPlayer:WaitForChild("PlayerScripts"):WaitForChild("Events"):WaitForChild("temporary_events"):WaitForChild("UseKeybind")
+    event:Fire(ohTable)
+end
+
+local function makeDraggable(frame)
+    frame.Active = true
+    frame.Draggable = true
+    
+    local dragDetector = Instance.new("UIDragDetector")
+    dragDetector.Parent = frame
+    
+    local originalBackground = frame.BackgroundColor3
+    local originalTransparency = frame.BackgroundTransparency
+    
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            frame.BackgroundTransparency = originalTransparency - 0.1
+        end
+    end)
+    
+    frame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            frame.BackgroundTransparency = originalTransparency
+        end
+    end)
+end
+
+local function createCrouchGui(yOffset)
+    local crouchGuiOld = playerGui:FindFirstChild("CrouchGui")
+    if crouchGuiOld then crouchGuiOld:Destroy() end
+    
+    local crouchGui = Instance.new("ScreenGui")
+    crouchGui.Name = "CrouchGui"
+    crouchGui.IgnoreGuiInset = true
+    crouchGui.ResetOnSpawn = false
+    crouchGui.Enabled = getgenv().crouchGuiVisible
+    crouchGui.Parent = playerGui
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 50, 0, 50)
+    frame.Position = UDim2.new(0.5, -25, 0.12 + (yOffset or 0), 0)
+    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    frame.BackgroundTransparency = 0.35
+    frame.BorderSizePixel = 0
+    frame.Parent = crouchGui
+    makeDraggable(frame)
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = frame
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(150, 150, 150)
+    stroke.Thickness = 2
+    stroke.Parent = frame
+
+    local label = Instance.new("TextLabel")
+    label.Text = "Auto Crouch"
+    label.Size = UDim2.new(0.9, 0, 0.6, 0)
+    label.Position = UDim2.new(0.05, 0, 0, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Font = Enum.Font.Roboto
+    label.TextSize = 12
+    label.TextXAlignment = Enum.TextXAlignment.Center
+    label.TextYAlignment = Enum.TextYAlignment.Center
+    label.TextScaled = true
+    label.Parent = frame
+
+    local crouchGuiButton = Instance.new("TextButton")
+    crouchGuiButton.Name = "ToggleButton"
+    crouchGuiButton.Text = featureStates.AutoCrouch and "On" or "Off"
+    crouchGuiButton.Size = UDim2.new(0.9, 0, 0.4, 0)
+    crouchGuiButton.Position = UDim2.new(0.05, 0, 0.6, 0)
+    crouchGuiButton.BackgroundColor3 = featureStates.AutoCrouch and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+    crouchGuiButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    crouchGuiButton.Font = Enum.Font.Roboto
+    crouchGuiButton.TextSize = 12
+    crouchGuiButton.TextXAlignment = Enum.TextXAlignment.Center
+    crouchGuiButton.TextYAlignment = Enum.TextYAlignment.Center
+    crouchGuiButton.TextScaled = true
+    crouchGuiButton.Parent = frame
+
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 4)
+    buttonCorner.Parent = crouchGuiButton
+
+    crouchGuiButton.MouseButton1Click:Connect(function()
+        featureStates.AutoCrouch = not featureStates.AutoCrouch
+        crouchGuiButton.Text = featureStates.AutoCrouch and "On" or "Off"
+        crouchGuiButton.BackgroundColor3 = featureStates.AutoCrouch and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+    end)
+
+    guiInstance = crouchGui
+end
+
+local function setupAutoCrouchListeners()
+    if crouchConnection then crouchConnection:Disconnect() end
+    crouchConnection = RunService.Heartbeat:Connect(function()
+        if not featureStates.AutoCrouch then return end
+        local character = Players.LocalPlayer.Character
+        if not character or not character:FindFirstChild("Humanoid") then return end
+
+        local humanoid = character.Humanoid
+        local mode = featureStates.AutoCrouchMode
+
+        if mode == "Normal" then
+            fireKeybind(spamDown, "Crouch")
+            spamDown = not spamDown
+        else
+            local isAir = (humanoid.FloorMaterial == Enum.Material.Air) and (humanoid:GetState() ~= Enum.HumanoidStateType.Seated)
+            local shouldCrouch = (mode == "Air" and isAir) or (mode == "Ground" and not isAir)
+            if shouldCrouch ~= previousCrouchState then
+                fireKeybind(shouldCrouch, "Crouch")
+                previousCrouchState = shouldCrouch
+            end
+        end
+    end)
+
+    if keybindConnection then keybindConnection:Disconnect() end
+    keybindConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        if input.KeyCode == Enum.KeyCode.C and getgenv().crouchGuiVisible then
+            featureStates.AutoCrouch = not featureStates.AutoCrouch
+            local gui = playerGui:FindFirstChild("CrouchGui")
+            if gui then
+                local button = gui.Frame:FindFirstChild("ToggleButton")
+                if button then
+                    button.Text = featureStates.AutoCrouch and "On" or "Off"
+                    button.BackgroundColor3 = featureStates.AutoCrouch and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+                end
+            end
+        end
+    end)
+
+    Players.LocalPlayer.CharacterAdded:Connect(function(newChar)
+        previousCrouchState = false
+        spamDown = true
+    end)
+end
+
+setupAutoCrouchListeners()
+
+    Tabs.Auto:Space()
+AutoCrouchToggle = Tabs.Auto:Toggle({
+    Title = "Auto Crouch",
+    Flag = "AutoCrouchToggle",
+    Desc = "Press C to toggle if you on keyboard",
+    Value = false,
+    Callback = function(state)
+        getgenv().crouchGuiVisible = state
+        if state then
+            if not guiInstance then
+                createCrouchGui()
+            else
+                guiInstance.Enabled = true
+            end
+        else
+            if guiInstance then
+                guiInstance.Enabled = false
+            end
+        end
+    end
+})
+AutoCrouchModeDropdown = Tabs.Auto:Dropdown({
+    Title = "Auto Crouch Mode",
+    Flag = "AutoCrouchModeDropdown",
+    Values = {"Air", "Normal", "Ground"},
+    Value = "Air",
+    Callback = function(value)
+        featureStates.AutoCrouchMode = value
+    end
+})
+
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+local playerGui = LocalPlayer:WaitForChild("PlayerGui", 5)
+
+local function makeDraggable(frame)
+    local dragging = false
+    local dragStart = nil
+    local startPos = nil
+
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+        end
+    end)
+
+    frame.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+end
+
+local function makeDraggable(frame)
+    frame.Active = true
+    frame.Draggable = true
+    
+    local dragDetector = Instance.new("UIDragDetector")
+    dragDetector.Parent = frame
+    
+    local originalBackground = frame.BackgroundColor3
+    local originalTransparency = frame.BackgroundTransparency
+    
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            frame.BackgroundTransparency = originalTransparency - 0.1
+        end
+    end)
+    
+    frame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            frame.BackgroundTransparency = originalTransparency
+        end
+    end)
+end
+
+local function createAutoCarryGui(yOffset)
+    local autoCarryGuiOld = playerGui:FindFirstChild("AutoCarryGui")
+    if autoCarryGuiOld then
+        autoCarryGuiOld:Destroy()
+    end
+    
+    local autoCarryGui = Instance.new("ScreenGui")
+    autoCarryGui.Name = "AutoCarryGui"
+    autoCarryGui.IgnoreGuiInset = true
+    autoCarryGui.ResetOnSpawn = false
+    autoCarryGui.Enabled = getgenv().autoCarryGuiVisible
+    autoCarryGui.Parent = playerGui
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 60, 0, 60)
+    frame.Position = UDim2.new(0.5, -30, 0.12 + (yOffset or 0), 0)
+    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    frame.BackgroundTransparency = 0.35
+    frame.BorderSizePixel = 0
+    frame.Parent = autoCarryGui
+    makeDraggable(frame)
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = frame
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(150, 150, 150)
+    stroke.Thickness = 2
+    stroke.Parent = frame
+
+    local label = Instance.new("TextLabel")
+    label.Text = "Auto"
+    label.Size = UDim2.new(0.9, 0, 0.3, 0)
+    label.Position = UDim2.new(0.05, 0, 0.05, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Font = Enum.Font.Roboto
+    label.TextSize = 14
+    label.TextXAlignment = Enum.TextXAlignment.Center
+    label.TextYAlignment = Enum.TextYAlignment.Center
+    label.TextScaled = true
+    label.Parent = frame
+
+    local subLabel = Instance.new("TextLabel")
+    subLabel.Text = "Carry"
+    subLabel.Size = UDim2.new(0.9, 0, 0.3, 0)
+    subLabel.Position = UDim2.new(0.05, 0, 0.3, 0)
+    subLabel.BackgroundTransparency = 1
+    subLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    subLabel.Font = Enum.Font.Roboto
+    subLabel.TextSize = 14
+    subLabel.TextXAlignment = Enum.TextXAlignment.Center
+    subLabel.TextYAlignment = Enum.TextYAlignment.Center
+    subLabel.TextScaled = true
+    subLabel.Parent = frame
+
+    local autoCarryGuiButton = Instance.new("TextButton")
+    autoCarryGuiButton.Name = "ToggleButton"
+    autoCarryGuiButton.Text = featureStates.AutoCarry and "On" or "Off"
+    autoCarryGuiButton.Size = UDim2.new(0.9, 0, 0.35, 0)
+    autoCarryGuiButton.Position = UDim2.new(0.05, 0, 0.6, 0)
+    autoCarryGuiButton.BackgroundColor3 = featureStates.AutoCarry and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+    autoCarryGuiButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    autoCarryGuiButton.Font = Enum.Font.Roboto
+    autoCarryGuiButton.TextSize = 12
+    autoCarryGuiButton.TextXAlignment = Enum.TextXAlignment.Center
+    autoCarryGuiButton.TextYAlignment = Enum.TextYAlignment.Center
+    autoCarryGuiButton.TextScaled = true
+    autoCarryGuiButton.Parent = frame
+
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 4)
+    buttonCorner.Parent = autoCarryGuiButton
+
+    autoCarryGuiButton.MouseButton1Click:Connect(function()
+        featureStates.AutoCarry = not featureStates.AutoCarry
+        if featureStates.AutoCarry then
+            startAutoCarry()
+        else
+            stopAutoCarry()
+        end
+        autoCarryGuiButton.Text = featureStates.AutoCarry and "On" or "Off"
+        autoCarryGuiButton.BackgroundColor3 = featureStates.AutoCarry and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+    end)
+end
+
+local autoCarryInputConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.X and getgenv().autoCarryGuiVisible then
+        featureStates.AutoCarry = not featureStates.AutoCarry
+        if featureStates.AutoCarry then
+            startAutoCarry()
+        else
+            stopAutoCarry()
+        end
+        local autoCarryGui = playerGui:FindFirstChild("AutoCarryGui")
+        if autoCarryGui and autoCarryGui.Enabled then
+            local button = autoCarryGui.Frame:FindFirstChild("ToggleButton")
+            if button then
+                button.Text = featureStates.AutoCarry and "On" or "Off"
+                button.BackgroundColor3 = featureStates.AutoCarry and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
+            end
+        end
+        WindUI:Notify({
+            Title = "Auto Carry",
+            Content = "Auto Carry " .. (featureStates.AutoCarry and "enabled" or "disabled"),
+            Duration = 2
+        })
+    end
+end)
+
+local function toggleAutoCarryGUI(state)
+    getgenv().autoCarryGuiVisible = state
+    local autoCarryGui = playerGui:FindFirstChild("AutoCarryGui")
+    if autoCarryGui then
+        autoCarryGui.Enabled = state
+    end
+    if state then
+        WindUI:Notify({
+            Title = "Auto Carry GUI",
+            Content = "GUI is enabled. Press X to toggle auto carry.",
+            Duration = 3
+        })
+    else
+        WindUI:Notify({
+            Title = "Auto Carry GUI",
+            Content = "GUI and keybind disabled.",
+            Duration = 3
+        })
+    end
+end
+
+AutoCarryKeybindToggle = Tabs.Auto:Toggle({
+    Title = "Auto carry keybind/button",
+    Flag = "AutoCarryKeybindToggle",
+    Desc = "Toggle gui or keybind for quick enable auto carry",
+    Icon = "toggle-right",
+    Value = false,
+    Callback = function(state)
+        toggleAutoCarryGUI(state)
+    end
+})
+
+    Tabs.Auto:Space()
+createAutoCarryGui(0)
+FastReviveToggle = Tabs.Auto:Toggle({
+    Title = "Fast Revive",
+    Flag = "FastReviveToggle",
+    Value = false,
+    Callback = function(state)
+        featureStates.FastRevive = state
+        if state then
+            startAutoRevive()
+        else
+            stopAutoRevive()
+        end
+    end
+})
+
+FastReviveMethodDropdown = Tabs.Auto:Dropdown({
+    Title = "Fast Revive Method",
+    Flag = "FastReviveMethodDropdown",
+    Values = {"Auto", "Interact"},
+    Value = "Interact",
+    Callback = function(value)
+        featureStates.FastReviveMethod = value
+        
+        stopAutoRevive()
+        if featureStates.FastReviveMethod == "Interact" then
+            featureStates.interactHookActive = false
+        end
+        
+        if featureStates.FastRevive then
+            startAutoRevive()
+        end
+    end
+})
+
+    Tabs.Auto:Space()
+    AutoVoteDropdown = Tabs.Auto:Dropdown({
+        Title = "Auto Vote Map",
+        Flag = "AutoVoteDropdown",
+        Values = {"Map 1", "Map 2", "Map 3", "Map 4"},
+        Value = "Map 1",
+        Callback = function(value)
+            if value == "Map 1" then
+                featureStates.SelectedMap = 1
+            elseif value == "Map 2" then
+                featureStates.SelectedMap = 2
+            elseif value == "Map 3" then
+                featureStates.SelectedMap = 3
+            elseif value == "Map 4" then
+                featureStates.SelectedMap = 4
+            end
+        end
+    })
+
+    AutoVoteToggle = Tabs.Auto:Toggle({
+        Title = "Auto Vote",
+        Flag = "AutoVoteToggle",
+        Value = false,
+        Callback = function(state)
+            featureStates.AutoVote = state
+            if state then
+                startAutoVote()
+            else
+                stopAutoVote()
+            end
+        end
+    })
+
+
+    Tabs.Auto:Space()
+AutoVoteModeDropdown = Tabs.Auto:Dropdown({
+    Title = "Vote Mode",
+    Flag = "AutoVoteModeDropdown",
+    Values = {"Mode 1", "Mode 2", "Mode 3", "Mode 4"},
+    Value = "Mode 1",
+    Callback = function(value)
+        if value == "Mode 1" then
+            featureStates.SelectedVoteMode = 1
+        elseif value == "Mode 2" then
+            featureStates.SelectedVoteMode = 2
+        elseif value == "Mode 3" then
+            featureStates.SelectedVoteMode = 3
+        elseif value == "Mode 4" then
+            featureStates.SelectedVoteMode = 4
+        end
+    end
+})
+AutoVoteModeToggle = Tabs.Auto:Toggle({
+    Title = "Auto Vote Game Mode",
+        Flag = "AutoVoteModeToggle",
+    Value = false,
+    Callback = function(state)
+        if state then
+            local voteConnection
+            voteConnection = RunService.Heartbeat:Connect(function()
+                local voteEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Player"):WaitForChild("Vote")
+                if voteEvent then
+                    if featureStates.SelectedVoteMode == 1 then
+                        voteEvent:FireServer(1, true)
+                    elseif featureStates.SelectedVoteMode == 2 then
+                        voteEvent:FireServer(2, true)
+                    elseif featureStates.SelectedVoteMode == 3 then
+                        voteEvent:FireServer(3, true)
+                    elseif featureStates.SelectedVoteMode == 4 then
+                        voteEvent:FireServer(4, true)
+                    end
+                end
+            end)
+            
+            getgenv().AutoVoteModeConnection = voteConnection
+        else
+            if getgenv().AutoVoteModeConnection then
+                getgenv().AutoVoteModeConnection:Disconnect()
+                getgenv().AutoVoteModeConnection = nil
+            end
+        end
+    end
+})
+featureStates.SelfReviveMethod = "Spawnpoint"
+local lastSavedPosition = nil
+local respawnConnection = nil
+local AutoSelfReviveConnection = nil
+local hasRevived = false
+local isReviving = false
+
+    Tabs.Auto:Space()
+AutoSelfReviveToggle = Tabs.Auto:Toggle({
+    Title = "Auto Self Revive",
+    Flag = "AutoSelfReviveToggle",
+    Value = false,
+    Callback = function(state)
+        featureStates.AutoSelfRevive = state
+        if state then
+            if AutoSelfReviveConnection then
+                AutoSelfReviveConnection:Disconnect()
+            end
+            if respawnConnection then
+                respawnConnection:Disconnect()
+            end
+            
+            local character = player.Character
+            if character then
+                local humanoid = character:WaitForChild("Humanoid")
+                local hrp = character:WaitForChild("HumanoidRootPart")
+                
+                AutoSelfReviveConnection = character:GetAttributeChangedSignal("Downed"):Connect(function()
+                    local isDowned = character:GetAttribute("Downed")
+                    if isDowned and not isReviving then
+                        isReviving = true
+                        
+                        if featureStates.SelfReviveMethod == "Spawnpoint" then
+                            if not hasRevived then
+                                hasRevived = true
+                                pcall(function()
+                                    ReplicatedStorage.Events.Player.ChangePlayerMode:FireServer(true)
+                                end)
+                                task.delay(10, function()
+                                    hasRevived = false
+                                end)
+                                task.delay(1, function()
+                                    isReviving = false
+                                end)
+                            else
+                                isReviving = false
+                            end
+                        elseif featureStates.SelfReviveMethod == "Fake Revive" then
+                            if hrp then
+                                lastSavedPosition = hrp.Position
+                            end
+                            
+                            task.spawn(function()
+                                pcall(function()
+                                    ReplicatedStorage:WaitForChild("Events"):WaitForChild("Player"):WaitForChild("ChangePlayerMode"):FireServer(true)
+                                end)
+                                
+                                local newCharacter
+                                repeat
+                                    newCharacter = player.Character
+                                    task.wait()
+                                until newCharacter and newCharacter:FindFirstChild("HumanoidRootPart") and newCharacter ~= character
+                                
+                                if newCharacter then
+                                    local newHRP = newCharacter:FindFirstChild("HumanoidRootPart")
+                                    if lastSavedPosition and newHRP then
+                                        newHRP.CFrame = CFrame.new(lastSavedPosition)
+                                    end
+                                end
+                                
+                                isReviving = false
+                            end)
+                        end
+                    end
+                end)
+            end
+            
+            respawnConnection = player.CharacterAdded:Connect(function(newChar)
+                task.wait(0.5)
+                local newHumanoid = newChar:WaitForChild("Humanoid")
+                local newHRP = newChar:WaitForChild("HumanoidRootPart")
+                
+                if featureStates.AutoSelfRevive then
+                    AutoSelfReviveConnection = newChar:GetAttributeChangedSignal("Downed"):Connect(function()
+                        local isDowned = newChar:GetAttribute("Downed")
+                        if isDowned and not isReviving then
+                            isReviving = true
+                            
+                            if featureStates.SelfReviveMethod == "Spawnpoint" then
+                                if not hasRevived then
+                                    hasRevived = true
+                                    pcall(function()
+                                        ReplicatedStorage.Events.Player.ChangePlayerMode:FireServer(true)
+                                    end)
+                                    task.delay(10, function()
+                                        hasRevived = false
+                                    end)
+                                    task.delay(1, function()
+                                        isReviving = false
+                                    end)
+                                else
+                                    isReviving = false
+                                end
+                            elseif featureStates.SelfReviveMethod == "Fake Revive" then
+                                if newHRP then
+                                    lastSavedPosition = newHRP.Position
+                                end
+                                
+                                task.spawn(function()
+                                    pcall(function()
+                                        ReplicatedStorage:WaitForChild("Events"):WaitForChild("Player"):WaitForChild("ChangePlayerMode"):FireServer(true)
+                                    end)
+                                    
+                                    local freshCharacter
+                                    repeat
+                                        freshCharacter = player.Character
+                                        task.wait()
+                                    until freshCharacter and freshCharacter:FindFirstChild("HumanoidRootPart") and freshCharacter ~= newChar
+                                    
+                                    if freshCharacter then
+                                        local freshHRP = freshCharacter:FindFirstChild("HumanoidRootPart")
+                                        if lastSavedPosition and freshHRP then
+                                            freshHRP.CFrame = CFrame.new(lastSavedPosition)
+                                        end
+                                    end
+                                    
+                                    isReviving = false
+                                end)
+                            end
+                        end
+                    end)
+                end
+            end)
+        else
+            if AutoSelfReviveConnection then
+                AutoSelfReviveConnection:Disconnect()
+                AutoSelfReviveConnection = nil
+            end
+            if respawnConnection then
+                respawnConnection:Disconnect()
+                respawnConnection = nil
+            end
+            hasRevived = false
+            isReviving = false
+            lastSavedPosition = nil
+        end
+    end
+})
+
+SelfReviveMethodDropdown = Tabs.Auto:Dropdown({
+    Title = "Self Revive Method",
+    Flag = "SelfReviveMethodDropdown",
+    Values = {"Spawnpoint", "Fake Revive"},
+    Value = "Spawnpoint",
+    Callback = function(value)
+        featureStates.SelfReviveMethod = value
+    end
+})
+
+if player.Character and featureStates.AutoSelfRevive then
+    local char = player.Character
+    local humanoid = char:WaitForChild("Humanoid")
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    AutoSelfReviveConnection = char:GetAttributeChangedSignal("Downed"):Connect(function()
+    end)
+end
+
+local function manualRevive()
+    local character = player.Character
+    if not character then return end
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    local isDowned = character:GetAttribute("Downed")
+    if not isDowned then return end
+    
+    if featureStates.SelfReviveMethod == "Spawnpoint" then
+        if not hasRevived then
+            hasRevived = true
+            pcall(function()
+                ReplicatedStorage.Events.Player.ChangePlayerMode:FireServer(true)
+            end)
+            task.delay(10, function()
+                hasRevived = false
+            end)
+        end
+    elseif featureStates.SelfReviveMethod == "Fake Revive" then
+        if hrp then
+            lastSavedPosition = hrp.Position
+        end
+        task.spawn(function()
+            pcall(function()
+                ReplicatedStorage:WaitForChild("Events"):WaitForChild("Player"):WaitForChild("ChangePlayerMode"):FireServer(true)
+            end)
+            
+            local newCharacter
+            repeat
+                newCharacter = player.Character
+                task.wait()
+            until newCharacter and newCharacter:FindFirstChild("HumanoidRootPart") and newCharacter ~= character
+            
+            if newCharacter then
+                local newHRP = newCharacter:FindFirstChild("HumanoidRootPart")
+                if lastSavedPosition and newHRP then
+                    newHRP.CFrame = CFrame.new(lastSavedPosition)
+                end
+            end
+        end)
+    end
+end
+Tabs.Auto:Button({
+    Title = "Manual Revive",
+    Desc = "Manually revive yourself",
+    Icon = "heart",
+    Callback = function()
+        manualRevive()
+    end
+})
+
+    Tabs.Auto:Space()
+    AutoWhistleToggle = Tabs.Auto:Toggle({
+    Title = "Auto Whistle",
+    Flag = "AutoWhistleToggle",
+    Value = false,
+    Callback = function(state)
+        featureStates.AutoWhistle = state
+        if state then
+            startAutoWhistle()
+        else
+            stopAutoWhistle()
+        end
+    end
+})
+Tabs.Auto:Section({
+Title = "Auto Farm",
+})
+    Tabs.Auto:Space()
+    AutoWinToggle = Tabs.Auto:Toggle({
+        Title = "Auto Win",
+        Flag = "AutoWinToggle",
+        Value = false,
+        Callback = function(state)
+            featureStates.AutoWin = state
+            if state then
+                startAutoWin()
+                startAntiAFK()
+                AntiAFKToggle:Set(true)
+            else
+                stopAutoWin()
+            end
+        end
+    })
+    AutoMoneyFarmToggle = Tabs.Auto:Toggle({
+        Title = "Auto Money Farm",
+        Flag = "AutoMoneyFarmToggle",
+        Value = false,
+        Callback = function(state)
+        if farmsSuppressedByAntiNextbot and state then
+    WindUI:Notify({
+        Title = "Farm Blocked",
+        Content = "Cannot enable while Nextbot is too close. Wait or move away.",
+        Duration = 3
+    })
+    AutoMoneyFarmToggle:Set(false)
+    return
+end
+farmsSuppressedByAntiNextbot = false
+            featureStates.AutoMoneyFarm = state
+            getgenv().moneyfarm = state
+            if state then
+                startAutoMoneyFarm()
+                featureStates.FastRevive = true
+                featureStates.AutoSelfRevive = true
+                featureStates.FastReviveMethod = "Auto"
+                pcall(function()
+                    if FastReviveMethodDropdown and FastReviveMethodDropdown.Select then
+                        FastReviveMethodDropdown:Select("Auto")
+                    elseif FastReviveMethodDropdown and FastReviveMethodDropdown.Set then
+                        FastReviveMethodDropdown:Set("Value", "Auto")
+                    end
+                end)
+                FastReviveToggle:Set(true)
+                AutoSelfReviveToggle:Set(true)
+                startAutoRevive()
+                startAntiAFK()
+                AntiAFKToggle:Set(true)
+            else
+                stopAutoMoneyFarm()
+            end
+        end
+    })
+    featureStates.AutoTurkeyFarm = false
+
+local function startAutoTurkeyFarm()
+    local securityPart = workspace:FindFirstChild("SecurityPart")
+    if not securityPart then
+        return
+    end
+    
+    AutoTurkeyFarmConnection = RunService.Heartbeat:Connect(function()
+        if character and rootPart then
+            local targetFound = false
+            
+            local npcsFolder = workspace:FindFirstChild("NPCs")
+            if npcsFolder then
+                for _, npc in ipairs(npcsFolder:GetChildren()) do
+                    if npc:IsA("Model") and npc.Name == "Turkey" then
+                        local turkeyHrp = npc:FindFirstChild("HumanoidRootPart")
+                        if turkeyHrp then
+                            rootPart.CFrame = turkeyHrp.CFrame + Vector3.new(0, 3, 0)
+                            targetFound = true
+                            break
+                        end
+                    end
+                end
+            end
+            
+            local playersFolder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players")
+            if playersFolder and not targetFound then
+                for _, model in ipairs(playersFolder:GetChildren()) do
+                    if model:IsA("Model") then
+                        local modelHrp = model:FindFirstChild("HumanoidRootPart")
+                        if modelHrp then
+                            if model.Name == "Turkey" then
+                                rootPart.CFrame = modelHrp.CFrame + Vector3.new(0, 3, 0)
+                                targetFound = true
+                                break
+                            elseif featureStates.AutoCarry and model:GetAttribute("Downed") and not model:FindFirstChild("RagdollConstraints") then
+                                rootPart.CFrame = modelHrp.CFrame + Vector3.new(0, 3, 0)
+                                targetFound = true
+                                break
+                            end
+                        end
+                    end
+                end
+            end
+            
+            local ticketsFolder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Effects") and workspace.Game.Effects:FindFirstChild("Tickets")
+            if ticketsFolder and not targetFound and featureStates.AutoMoneyFarm then
+                for _, ticket in ipairs(ticketsFolder:GetChildren()) do
+                    local ticketHrp = ticket:FindFirstChild("HumanoidRootPart")
+                    if ticketHrp then
+                        rootPart.CFrame = ticketHrp.CFrame + Vector3.new(0, 3, 0)
+                        targetFound = true
+                        break
+                    end
+                end
+            end
+            
+            if not targetFound then
+                rootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
+            end
+        end
+    end)
+end
+
+local function stopAutoTurkeyFarm()
+    if AutoTurkeyFarmConnection then
+        AutoTurkeyFarmConnection:Disconnect()
+        AutoTurkeyFarmConnection = nil
+    end
+end
+
+AutoTurkeyFarmToggle = Tabs.Auto:Toggle({
+    Title = "Auto turkey farm",
+    Flag = "AutoTurkeyFarmToggle",
+    Value = false,
+    Callback = function(state)
+        featureStates.AutoTurkeyFarm = state
+        if state then
+            startAutoTurkeyFarm()
+            startAntiAFK()
+            AntiAFKToggle:Set(true)
+        else
+            stopAutoTurkeyFarm()
+        end
+    end
+})
+AutoTicketFarmToggle = Tabs.Auto:Toggle({
+    Title = "Auto ticket farm",
+    Flag = "AutoTicketFarmToggle",
+    Value = false,
+    Callback = function(state)
+        getgenv().ticketfarm = state
+        local AutoTicketFarmConnection
+        local yOffset = 999
+        local currentTicket = nil
+        local ticketProcessedTime = 0
+
+        if state then
+        startAntiAFK()
+        AntiAFKToggle:Set(true)
+            local securityPart = workspace:FindFirstChild("SecurityPart")
+            if not securityPart then
+                print("SecurityPart not found")
+                getgenv().ticketfarm = false
+                return
+            end
+
+            AutoTicketFarmConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                if not getgenv().ticketfarm then
+                    if AutoTicketFarmConnection then
+                        AutoTicketFarmConnection:Disconnect()
+                        AutoTicketFarmConnection = nil
+                    end
+                    return
+                end
+
+                local character = player.Character
+                local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
+                local tickets = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Effects") and workspace.Game.Effects:FindFirstChild("Tickets")
+                local playersInGame = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players")
+
+                if character and humanoidRootPart then
+                    if character:GetAttribute("Downed") then
+                        ReplicatedStorage.Events.Player.ChangePlayerMode:FireServer(true)
+                        humanoidRootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
+                        return
+                    end
+
+                    if getgenv().moneyfarm and playersInGame then
+                        local downedPlayerFound = false
+                        for _, v in pairs(playersInGame:GetChildren()) do
+                            if v:IsA("Model") and v:GetAttribute("Downed") then
+                                local downedRootPart = v:FindFirstChild("HumanoidRootPart")
+                                if downedRootPart then
+                                    humanoidRootPart.CFrame = downedRootPart.CFrame + Vector3.new(0, 3, 0)
+                                    ReplicatedStorage.Events.Character.Interact:FireServer("Revive", true, v)
+                                    downedPlayerFound = true
+                                    currentTicket = nil 
+                                    break
+                                end
+                            end
+                        end
+                        if downedPlayerFound then
+                            return
+                        end
+                    end
+
+                    if tickets then
+                        local activeTickets = tickets:GetChildren()
+                        if #activeTickets > 0 then
+                            if not currentTicket or not currentTicket.Parent then
+                                currentTicket = activeTickets[1]
+                                ticketProcessedTime = tick()
+                            end
+
+                            if currentTicket and currentTicket.Parent then
+                                local ticketPart = currentTicket:FindFirstChild("HumanoidRootPart")
+                                if ticketPart then
+                                    local targetPosition = ticketPart.Position + Vector3.new(0, yOffset, 0)
+                                    humanoidRootPart.CFrame = CFrame.new(targetPosition)
+                                    
+                                    if tick() - ticketProcessedTime > 0.1 then
+                                        humanoidRootPart.CFrame = ticketPart.CFrame
+                                    end
+                                else
+                                    currentTicket = nil
+                                end
+                            else
+                                humanoidRootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
+                                currentTicket = nil
+                            end
+                        else
+                            humanoidRootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
+                            currentTicket = nil
+                        end
+                    else
+                        humanoidRootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
+                        currentTicket = nil
+                    end
+                end
+            end)
+        else
+            if AutoTicketFarmConnection then
+                AutoTicketFarmConnection:Disconnect()
+                AutoTicketFarmConnection = nil
+            end
+            currentTicket = nil
+            local character = player.Character or player.CharacterAdded:Wait()
+            local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+            local securityPart = workspace:FindFirstChild("SecurityPart")
+            if humanoidRootPart and securityPart then
+                humanoidRootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
+            end
+        end
     end
 })
     -- Visuals Tab
@@ -3751,6 +5380,7 @@ function StableCamera:Destroy()
         self._conn = nil
     end
 end
+Tabs.Visuals:Space()
 
 DisableCameraShakeToggle = Tabs.Visuals:Toggle({
     Title = "Disable Camera Shake",
@@ -3780,6 +5410,7 @@ DisableCameraShakeToggle = Tabs.Visuals:Toggle({
 })
 
 local vignetteEnabled = false
+Tabs.Visuals:Space()
 
 Disablevignette = Tabs.Visuals:Toggle({
     Title = "Disable Vignette",
@@ -3823,6 +5454,7 @@ game.Players.LocalPlayer.CharacterAdded:Connect(function()
         end
     end
 end)
+Tabs.Visuals:Space()
 
 	    FullBrightToggle = Tabs.Visuals:Toggle({
     Title = "Full Bright",
@@ -3899,6 +5531,7 @@ end)
         end
     end
 })
+Tabs.Visuals:Space()
 
 NoFogToggle = Tabs.Visuals:Toggle({
     Title = "Remove Fog",
@@ -3913,6 +5546,8 @@ NoFogToggle = Tabs.Visuals:Toggle({
         end
     end
 })
+Tabs.Visuals:Space()
+
 Tabs.Visuals:Button({
     Title = "Shit Render", 
     Callback = function()
@@ -3958,7 +5593,7 @@ Tabs.Visuals:Button({
     end
 })
 local originalFOV = workspace.CurrentCamera.FieldOfView
-local FOVSlider = Tabs.Visuals:Slider({
+--[[local FOVSlider = Tabs.Visuals:Slider({
     Title = "Field of View",
     Flag = "FOVSlider",
     Desc = "Old fov has been moved to settings, will be add back in here soon",
@@ -3967,6 +5602,9 @@ local FOVSlider = Tabs.Visuals:Slider({
         workspace.CurrentCamera.FieldOfView = tonumber(value)
     end
 })
+]]
+Tabs.Visuals:Space()
+
 TimerDisplayToggle = Tabs.Visuals:Toggle({
     Title = "Timer Display",
     Flag = "TimerDisplayToggle",
@@ -6634,6 +8272,20 @@ NextbotDistanceESPToggle = Tabs.ESP:Toggle({
 
 Tabs.ESP:Section({ Title = "Downed Player ESP" })
 
+DownedNameESPToggle = Tabs.ESP:Toggle({
+    Title = "Downed Player Name ESP",
+    Flag = "DownedNameESPToggle",
+    Value = false,
+    Callback = function(state)
+        featureStates.DownedNameESP = state
+        if state then
+            startDownedNameESP()
+        else
+            stopDownedNameESP()
+        end
+    end
+})
+
 DownedBoxESPToggle = Tabs.ESP:Toggle({
     Title = "Downed Player Box ESP",
     Flag = "DownedBoxESPToggle",
@@ -6670,20 +8322,6 @@ DownedTracerToggle = Tabs.ESP:Toggle({
             startDownedTracer()
         else
             stopDownedTracer()
-        end
-    end
-})
-
-DownedNameESPToggle = Tabs.ESP:Toggle({
-    Title = "Downed Player Name ESP",
-    Flag = "DownedNameESPToggle",
-    Value = false,
-    Callback = function(state)
-        featureStates.DownedNameESP = state
-        if state then
-            startDownedNameESP()
-        else
-            stopDownedNameESP()
         end
     end
 })
@@ -7404,1606 +9042,7 @@ BoxticketTypeDropdown = Tabs.ESP:Dropdown({
         end
     end
 })
-    -- Auto Tab
-    Tabs.Auto:Section({ Title = "Auto", TextSize = 40 })
-    
-     AutoJoin = Tabs.Auto:Toggle({
-    Title = "Auto Join",
-    Flag = "AutoJoin",
-    Value = false,
-    Callback = function(state)
-        getgenv().AutoJoinEnabled = state
-        
-        if state then
-            local Players = game:GetService("Players")
-            local ReplicatedStorage = game:GetService("ReplicatedStorage")
-            local LocalPlayer = Players.LocalPlayer
 
-            local statsFolder = workspace:WaitForChild("Game"):WaitForChild("Stats")
-            local hasRunThisRound = false
-            local isExecuting = false
-
-            local function isPlayerAlive()
-                local character = LocalPlayer.Character
-                if not character then return false end
-                
-                local humanoid = character:FindFirstChild("Humanoid")
-                if not humanoid then return false end
-                
-                return humanoid.Health > 0
-            end
-
-            local function executeScript()
-                if isExecuting then return end
-                
-                if isPlayerAlive() then
-                    return
-                end
-                
-                isExecuting = true
-                
-                local success = pcall(function()
-                    game:GetService("ReplicatedStorage").Events.Player.ChangePlayerMode:FireServer(true)
-                end)
-                
-                if success then
-                    hasRunThisRound = true
-                else
-                    hasRunThisRound = false
-                end
-                
-                isExecuting = false
-            end
-
-            local function checkTimerEnd()
-                local timerValue = statsFolder:GetAttribute("Timer")
-                local roundStarted = statsFolder:GetAttribute("RoundStarted")
-                
-                if timerValue == 0 and roundStarted == true then
-                    if not hasRunThisRound then
-                        executeScript()
-                    end
-                end
-                
-                if roundStarted == false then
-                    hasRunThisRound = false
-                end
-            end
-
-            local function onPlayerDied()
-                if not hasRunThisRound then
-                    executeScript()
-                end
-            end
-
-            local function onGetLives()
-                if not hasRunThisRound then
-                    executeScript()
-                end
-            end
-
-            getgenv().AutoJoinConnections = {
-                timerConnection = statsFolder:GetAttributeChangedSignal("Timer"):Connect(checkTimerEnd),
-                heartbeatConnection = game:GetService("RunService").Heartbeat:Connect(function()
-                    local timerValue = statsFolder:GetAttribute("Timer")
-                    local roundStarted = statsFolder:GetAttribute("RoundStarted")
-                    
-                    if timerValue == 0 and roundStarted == true and not hasRunThisRound then
-                        executeScript()
-                    end
-                end),
-                roundConnection = statsFolder:GetAttributeChangedSignal("RoundStarted"):Connect(function()
-                    local roundStarted = statsFolder:GetAttribute("RoundStarted")
-                    if roundStarted == false then
-                        hasRunThisRound = false
-                    end
-                end)
-            }
-
-            getgenv().AutoJoinConnections.characterAddedConnection = LocalPlayer.CharacterAdded:Connect(function(character)
-                local humanoid = character:WaitForChild("Humanoid")
-                
-                getgenv().AutoJoinConnections.humanoidDiedConnection = humanoid.Died:Connect(function()
-                    local downed = character:GetAttribute("Downed")
-                    if downed ~= true then
-                        onPlayerDied()
-                    end
-                end)
-            end)
-
-            if LocalPlayer.Character then
-                local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
-                if humanoid then
-                    getgenv().AutoJoinConnections.humanoidDiedConnection = humanoid.Died:Connect(function()
-                        local downed = LocalPlayer.Character:GetAttribute("Downed")
-                        if downed ~= true then
-                            onPlayerDied()
-                        end
-                    end)
-                end
-            end
-
-            getgenv().AutoJoinConnections.getLivesConnection = ReplicatedStorage.Events.Data.GetLives.OnClientEvent:Connect(function()
-                onGetLives()
-            end)
-
-            task.spawn(function()
-                local success = pcall(function()
-                    ReplicatedStorage.Events.Data.GetLives:FireServer()
-                end)
-            end)
-
-        else
-            if getgenv().AutoJoinConnections then
-                for name, connection in pairs(getgenv().AutoJoinConnections) do
-                    if connection then
-                        connection:Disconnect()
-                    end
-                end
-                getgenv().AutoJoinConnections = nil
-            end
-        end
-    end
-})
-
-game:GetService("Players").LocalPlayer.PlayerScripts.Events.temporary_events.JumpReact:Fire()
-game:GetService("Players").LocalPlayer.PlayerScripts.Events.temporary_events.EndJump:Fire()
-
-getgenv().autoJumpType = "Bounce"
-getgenv().bhopMode = "Acceleration"
-getgenv().bhopAccelValue = -0.5
-getgenv().bhopHoldActive = false
-getgenv().autoJumpEnabled = false
-getgenv().jumpCooldown = 0.7
-featureStates = featureStates or {}
-featureStates.BhopGuiVisible = false
-featureStates.Bhop = false
-featureStates.BhopHold = false
-
-player = game:GetService("Players").LocalPlayer
-RunService = game:GetService("RunService")
-UserInputService = game:GetService("UserInputService")
-Players = game:GetService("Players")
-Tabs = Tabs or {Auto = {}}
-
-isMobile = isMobile or UserInputService.TouchEnabled
-
-bhopConnection = nil
-bhopLoaded = false
-bhopKeyConnection = nil
-characterConnection = nil
-frictionTables = {}
-
-Character = nil
-Humanoid = nil
-HumanoidRootPart = nil
-LastJump = 0
-
-GROUND_CHECK_DISTANCE = 3.5
-MAX_SLOPE_ANGLE = 45
-AIR_RANGE = 0.1
-
-findFrictionTables = function()
-    frictionTables = {}
-    for _, t in pairs(getgc(true)) do
-        if type(t) == "table" and rawget(t, "Friction") then
-            table.insert(frictionTables, {obj = t, original = t.Friction})
-        end
-    end
-end
-
-setFriction = function(value)
-    for _, e in ipairs(frictionTables) do
-        if e.obj and type(e.obj) == "table" and rawget(e.obj, "Friction") then
-            e.obj.Friction = value
-        end
-    end
-end
-
-resetBhopFriction = function()
-    for _, e in ipairs(frictionTables) do
-        if e.obj and type(e.obj) == "table" and rawget(e.obj, "Friction") then
-            e.obj.Friction = e.original
-        end
-    end
-    frictionTables = {}
-end
-
-applyBhopFriction = function()
-    if getgenv().bhopMode == "Acceleration" then
-        findFrictionTables()
-        if #frictionTables > 0 then
-            setFriction(getgenv().bhopAccelValue or -0.5)
-        end
-    else
-        resetBhopFriction()
-    end
-end
-
-IsOnGround = function()
-    if not Character or not HumanoidRootPart or not Humanoid then return false end
-
-    state = Humanoid:GetState()
-    if state == Enum.HumanoidStateType.Jumping or 
-       state == Enum.HumanoidStateType.Freefall or
-       state == Enum.HumanoidStateType.Swimming then
-        return false
-    end
-
-    raycastParams = RaycastParams.new()
-    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-    raycastParams.FilterDescendantsInstances = {Character}
-    raycastParams.IgnoreWater = true
-
-    rayOrigin = HumanoidRootPart.Position
-    rayDirection = Vector3.new(0, -GROUND_CHECK_DISTANCE, 0)
-    raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
-
-    if not raycastResult then return false end
-
-    surfaceNormal = raycastResult.Normal
-    angle = math.deg(math.acos(surfaceNormal:Dot(Vector3.new(0, 1, 0))))
-
-    return angle <= MAX_SLOPE_ANGLE
-end
-
-updateBhop = function()
-    if not bhopLoaded then return end
-    
-    character = player.Character
-    humanoid = character and character:FindFirstChild("Humanoid")
-    if not character or not humanoid then
-        return
-    end
-
-    isBhopActive = getgenv().autoJumpEnabled or getgenv().bhopHoldActive
-
-    if isBhopActive then
-        now = tick()
-        if IsOnGround() and (now - LastJump) > getgenv().jumpCooldown then
-            if getgenv().autoJumpType == "Realistic" then
-                game:GetService("Players").LocalPlayer.PlayerScripts.Events.temporary_events.JumpReact:Fire()
-                task.wait(0.1)
-                game:GetService("Players").LocalPlayer.PlayerScripts.Events.temporary_events.EndJump:Fire()
-            else
-                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-            end
-            LastJump = now
-        end
-    end
-end
-
-loadBhop = function()
-    if bhopLoaded then return end
-    
-    bhopLoaded = true
-    
-    if bhopConnection then
-        bhopConnection:Disconnect()
-    end
-    bhopConnection = RunService.Heartbeat:Connect(updateBhop)
-    applyBhopFriction()
-end
-
-unloadBhop = function()
-    if not bhopLoaded then return end
-    
-    bhopLoaded = false
-    
-    if bhopConnection then
-        bhopConnection:Disconnect()
-        bhopConnection = nil
-    end
-    
-    getgenv().bhopHoldActive = false
-    resetBhopFriction()
-end
-
-checkBhopState = function()
-    shouldLoad = getgenv().autoJumpEnabled or getgenv().bhopHoldActive
-    
-    if shouldLoad then
-        loadBhop()
-    else
-        unloadBhop()
-    end
-end
-
-reapplyBhopOnRespawn = function()
-    if getgenv().autoJumpEnabled or getgenv().bhopHoldActive then
-        wait(0.5)
-        applyBhopFriction()
-        checkBhopState()
-    end
-end
-
-makeDraggable = function(frame)
-    frame.Active = true
-    frame.Draggable = true
-    
-    dragDetector = Instance.new("UIDragDetector")
-    dragDetector.Parent = frame
-    
-    originalBackground = frame.BackgroundColor3
-    originalTransparency = frame.BackgroundTransparency
-    
-    frame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            frame.BackgroundTransparency = originalTransparency - 0.1
-        end
-    end)
-    
-    frame.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            frame.BackgroundTransparency = originalTransparency
-        end
-    end)
-end
-
-setupBhopKeybind = function()
-    if bhopKeyConnection then
-        bhopKeyConnection:Disconnect()
-    end
-    
-    bhopKeyConnection = UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
-        if gameProcessedEvent then return end
-        if input.KeyCode == Enum.KeyCode.B and featureStates.BhopGuiVisible then
-            getgenv().autoJumpEnabled = not getgenv().autoJumpEnabled
-            featureStates.Bhop = getgenv().autoJumpEnabled
-            
-            if BhopToggle then
-                BhopToggle:Set(getgenv().autoJumpEnabled)
-            end
-            
-            if jumpToggleBtn then
-                jumpToggleBtn.Text = getgenv().autoJumpEnabled and "On" or "Off"
-                jumpToggleBtn.BackgroundColor3 = getgenv().autoJumpEnabled and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
-            end
-            
-            checkBhopState()
-        end
-    end)
-end
-
-setupJumpButton = function()
-    success, err = pcall(function()
-        touchGui = player:WaitForChild("PlayerGui", 5):WaitForChild("TouchGui", 5)
-        if not touchGui then return end
-        touchControlFrame = touchGui:WaitForChild("TouchControlFrame", 5)
-        if not touchControlFrame then return end
-        jumpButton = touchControlFrame:WaitForChild("JumpButton", 5)
-        if not jumpButton then return end
-        
-        jumpButton.MouseButton1Down:Connect(function()
-            if featureStates.BhopHold then
-                getgenv().bhopHoldActive = true
-                checkBhopState()
-            end
-        end)
-        
-        jumpButton.MouseButton1Up:Connect(function()
-            getgenv().bhopHoldActive = false
-            checkBhopState()
-        end)
-    end)
-end
-
-createBhopGui = function(yOffset)
-    bhopGuiOld = player.PlayerGui:FindFirstChild("BhopGui")
-    if bhopGuiOld then bhopGuiOld:Destroy() end
-    
-    bhopGui = Instance.new("ScreenGui")
-    bhopGui.Name = "BhopGui"
-    bhopGui.IgnoreGuiInset = true
-    bhopGui.ResetOnSpawn = false
-    bhopGui.Enabled = isMobile and featureStates.BhopGuiVisible or false
-    bhopGui.Parent = player.PlayerGui
-
-    frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 60, 0, 60)
-    frame.Position = UDim2.new(0.5, -30, 0.12 + (yOffset or 0), 0)
-    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    frame.BackgroundTransparency = 0.35
-    frame.BorderSizePixel = 0
-    frame.Parent = bhopGui
-    
-    makeDraggable(frame)
-
-    corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = frame
-
-    stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(150, 150, 150)
-    stroke.Thickness = 2
-    stroke.Parent = frame
-
-    label = Instance.new("TextLabel")
-    label.Text = "Bhop"
-    label.Size = UDim2.new(0.9, 0, 0.5, 0)
-    label.Position = UDim2.new(0.05, 0, 0, 0)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.Font = Enum.Font.Roboto
-    label.TextSize = 16
-    label.TextXAlignment = Enum.TextXAlignment.Center
-    label.TextYAlignment = Enum.TextYAlignment.Center
-    label.TextScaled = true
-    label.Parent = frame
-
-    bhopGuiButton = Instance.new("TextButton")
-    bhopGuiButton.Name = "ToggleButton"
-    bhopGuiButton.Text = getgenv().autoJumpEnabled and "On" or "Off"
-    bhopGuiButton.Size = UDim2.new(0.9, 0, 0.5, 0)
-    bhopGuiButton.Position = UDim2.new(0.05, 0, 0.5, 0)
-    bhopGuiButton.BackgroundColor3 = getgenv().autoJumpEnabled and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
-    bhopGuiButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    bhopGuiButton.Font = Enum.Font.Roboto
-    bhopGuiButton.TextSize = 14
-    bhopGuiButton.TextXAlignment = Enum.TextXAlignment.Center
-    bhopGuiButton.TextYAlignment = Enum.TextYAlignment.Center
-    bhopGuiButton.TextScaled = true
-    bhopGuiButton.Parent = frame
-
-    buttonCorner = Instance.new("UICorner")
-    buttonCorner.CornerRadius = UDim.new(0, 4)
-    buttonCorner.Parent = bhopGuiButton
-
-    bhopGuiButton.MouseButton1Click:Connect(function()
-        getgenv().autoJumpEnabled = not getgenv().autoJumpEnabled
-        featureStates.Bhop = getgenv().autoJumpEnabled
-        bhopGuiButton.Text = getgenv().autoJumpEnabled and "On" or "Off"
-        bhopGuiButton.BackgroundColor3 = getgenv().autoJumpEnabled and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
-        
-        if BhopToggle then
-            BhopToggle:Set(getgenv().autoJumpEnabled)
-        end
-        
-        checkBhopState()
-    end)
-
-    return bhopGui, bhopGuiButton
-end
-
-jumpGui, jumpToggleBtn = createBhopGui(0.12)
-
-setupJumpButton()
-setupBhopKeybind()
-
-RunService.Heartbeat:Connect(function()
-    if not Character or not Character:IsDescendantOf(workspace) then
-        Character = player.Character or player.CharacterAdded:Wait()
-        if Character then
-            Humanoid = Character:FindFirstChildOfClass("Humanoid")
-            HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
-        else
-            Humanoid = nil
-            HumanoidRootPart = nil
-        end
-    end
-end)
-
-if characterConnection then
-    characterConnection:Disconnect()
-end
-characterConnection = player.CharacterAdded:Connect(function(character)
-    Character = character
-    Humanoid = character:WaitForChild("Humanoid")
-    HumanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    setupJumpButton()
-    reapplyBhopOnRespawn()
-end)
-
-AutoJumpTypeDropdown = Tabs.Auto:Dropdown({
-    Title = "Auto Jump type",
-    Flag = "AutoJumpTypeDropdown",
-    Values = {"Bounce", "Realistic"},
-    Value = "Bounce",
-    Callback = function(value)
-        getgenv().autoJumpType = value
-    end
-})
-
-BhopToggle = Tabs.Auto:Toggle({
-    Title = "Bhop",
-    Flag = "BhopToggle",
-    Value = false,
-    Callback = function(state)
-        featureStates.Bhop = state
-        getgenv().autoJumpEnabled = state
-        
-        if jumpGui and jumpToggleBtn then
-            jumpToggleBtn.Text = state and "On" or "Off"
-            jumpToggleBtn.BackgroundColor3 = state and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
-            jumpGui.Enabled = isMobile and featureStates.BhopGuiVisible or false
-        end
-        
-        checkBhopState()
-    end
-})
-
-BhopHoldToggle = Tabs.Auto:Toggle({
-    Title = "Bhop (Hold Space/Jump)",
-    Flag = "BhopHoldToggle",
-    Value = false,
-    Callback = function(state)
-        featureStates.BhopHold = state
-        if not state then
-            getgenv().bhopHoldActive = false
-            checkBhopState()
-        end
-    end
-})
-
-BhopShortcutToggle = Tabs.Auto:Toggle({
-    Title = "Bhop Shortcut",
-    Flag = "BhopShortcutToggle",
-    Desc = "Show Bhop GUI For quick Toggle or press B to Toggle Bhop (Auto jump)",
-    Value = false,
-    Callback = function(state)
-        featureStates.BhopGuiVisible = state
-        if jumpGui then
-            jumpGui.Enabled = isMobile and state or false
-        end
-        setupBhopKeybind()
-    end
-})
-
-BhopModeDropdown = Tabs.Auto:Dropdown({
-    Title = "Bhop Mode",
-    Flag = "BhopModeDropdown",
-    Values = {"Acceleration", "No Acceleration"},
-    Value = "Acceleration",
-    Callback = function(value)
-        getgenv().bhopMode = value
-        checkBhopState()
-    end
-})
-
-BhopAccelInput = Tabs.Auto:Input({
-    Title = "Bhop Acceleration (Negative Only)",
-    Flag = "BhopAccelInput",
-    Placeholder = "-0.5",
-    Numeric = true,
-    Callback = function(value)
-        if tostring(value):sub(1, 1) == "-" then
-            n = tonumber(value)
-            if n then
-                getgenv().bhopAccelValue = n
-                if getgenv().autoJumpEnabled or getgenv().bhopHoldActive then
-                    applyBhopFriction()
-                end
-            end
-        end
-    end
-})
-
-JumpCooldownInput = Tabs.Auto:Input({
-    Title = "Jump Cooldown (Seconds)",
-    Flag = "JumpCooldownInput",
-    Placeholder = "0.7",
-    Numeric = true,
-    Callback = function(value)
-        n = tonumber(value)
-        if n and n > 0 then
-            getgenv().jumpCooldown = n
-        end
-    end
-})
-
-UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
-    if gameProcessedEvent then return end
-    if input.KeyCode == Enum.KeyCode.Space and featureStates.BhopHold then
-        getgenv().bhopHoldActive = true
-        checkBhopState()
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.Space then
-        getgenv().bhopHoldActive = false
-        checkBhopState()
-    end
-end)
-
-Players.PlayerRemoving:Connect(function(leavingPlayer)
-    if leavingPlayer == player then
-        unloadBhop()
-        if jumpGui then
-            jumpGui:Destroy()
-        end
-        if bhopKeyConnection then
-            bhopKeyConnection:Disconnect()
-        end
-        if characterConnection then
-            characterConnection:Disconnect()
-        end
-    end
-end)
-
-checkBhopState()
-
-getgenv().crouchGuiVisible = false
-
-local previousCrouchState = false
-local spamDown = true
-local crouchConnection = nil
-local keybindConnection = nil
-local guiInstance = nil
-
-local function fireKeybind(down, key)
-    local ohTable = {
-        ["Down"] = down,
-        ["Key"] = key
-    }
-    local event = game:GetService("Players").LocalPlayer:WaitForChild("PlayerScripts"):WaitForChild("Events"):WaitForChild("temporary_events"):WaitForChild("UseKeybind")
-    event:Fire(ohTable)
-end
-
-local function makeDraggable(frame)
-    frame.Active = true
-    frame.Draggable = true
-    
-    local dragDetector = Instance.new("UIDragDetector")
-    dragDetector.Parent = frame
-    
-    local originalBackground = frame.BackgroundColor3
-    local originalTransparency = frame.BackgroundTransparency
-    
-    frame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            frame.BackgroundTransparency = originalTransparency - 0.1
-        end
-    end)
-    
-    frame.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            frame.BackgroundTransparency = originalTransparency
-        end
-    end)
-end
-
-local function createCrouchGui(yOffset)
-    local crouchGuiOld = playerGui:FindFirstChild("CrouchGui")
-    if crouchGuiOld then crouchGuiOld:Destroy() end
-    
-    local crouchGui = Instance.new("ScreenGui")
-    crouchGui.Name = "CrouchGui"
-    crouchGui.IgnoreGuiInset = true
-    crouchGui.ResetOnSpawn = false
-    crouchGui.Enabled = getgenv().crouchGuiVisible
-    crouchGui.Parent = playerGui
-
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 50, 0, 50)
-    frame.Position = UDim2.new(0.5, -25, 0.12 + (yOffset or 0), 0)
-    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    frame.BackgroundTransparency = 0.35
-    frame.BorderSizePixel = 0
-    frame.Parent = crouchGui
-    makeDraggable(frame)
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = frame
-
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(150, 150, 150)
-    stroke.Thickness = 2
-    stroke.Parent = frame
-
-    local label = Instance.new("TextLabel")
-    label.Text = "Auto Crouch"
-    label.Size = UDim2.new(0.9, 0, 0.6, 0)
-    label.Position = UDim2.new(0.05, 0, 0, 0)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.Font = Enum.Font.Roboto
-    label.TextSize = 12
-    label.TextXAlignment = Enum.TextXAlignment.Center
-    label.TextYAlignment = Enum.TextYAlignment.Center
-    label.TextScaled = true
-    label.Parent = frame
-
-    local crouchGuiButton = Instance.new("TextButton")
-    crouchGuiButton.Name = "ToggleButton"
-    crouchGuiButton.Text = featureStates.AutoCrouch and "On" or "Off"
-    crouchGuiButton.Size = UDim2.new(0.9, 0, 0.4, 0)
-    crouchGuiButton.Position = UDim2.new(0.05, 0, 0.6, 0)
-    crouchGuiButton.BackgroundColor3 = featureStates.AutoCrouch and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
-    crouchGuiButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    crouchGuiButton.Font = Enum.Font.Roboto
-    crouchGuiButton.TextSize = 12
-    crouchGuiButton.TextXAlignment = Enum.TextXAlignment.Center
-    crouchGuiButton.TextYAlignment = Enum.TextYAlignment.Center
-    crouchGuiButton.TextScaled = true
-    crouchGuiButton.Parent = frame
-
-    local buttonCorner = Instance.new("UICorner")
-    buttonCorner.CornerRadius = UDim.new(0, 4)
-    buttonCorner.Parent = crouchGuiButton
-
-    crouchGuiButton.MouseButton1Click:Connect(function()
-        featureStates.AutoCrouch = not featureStates.AutoCrouch
-        crouchGuiButton.Text = featureStates.AutoCrouch and "On" or "Off"
-        crouchGuiButton.BackgroundColor3 = featureStates.AutoCrouch and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
-    end)
-
-    guiInstance = crouchGui
-end
-
-local function setupAutoCrouchListeners()
-    if crouchConnection then crouchConnection:Disconnect() end
-    crouchConnection = RunService.Heartbeat:Connect(function()
-        if not featureStates.AutoCrouch then return end
-        local character = Players.LocalPlayer.Character
-        if not character or not character:FindFirstChild("Humanoid") then return end
-
-        local humanoid = character.Humanoid
-        local mode = featureStates.AutoCrouchMode
-
-        if mode == "Normal" then
-            fireKeybind(spamDown, "Crouch")
-            spamDown = not spamDown
-        else
-            local isAir = (humanoid.FloorMaterial == Enum.Material.Air) and (humanoid:GetState() ~= Enum.HumanoidStateType.Seated)
-            local shouldCrouch = (mode == "Air" and isAir) or (mode == "Ground" and not isAir)
-            if shouldCrouch ~= previousCrouchState then
-                fireKeybind(shouldCrouch, "Crouch")
-                previousCrouchState = shouldCrouch
-            end
-        end
-    end)
-
-    if keybindConnection then keybindConnection:Disconnect() end
-    keybindConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if gameProcessed then return end
-        if input.KeyCode == Enum.KeyCode.C and getgenv().crouchGuiVisible then
-            featureStates.AutoCrouch = not featureStates.AutoCrouch
-            local gui = playerGui:FindFirstChild("CrouchGui")
-            if gui then
-                local button = gui.Frame:FindFirstChild("ToggleButton")
-                if button then
-                    button.Text = featureStates.AutoCrouch and "On" or "Off"
-                    button.BackgroundColor3 = featureStates.AutoCrouch and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
-                end
-            end
-        end
-    end)
-
-    Players.LocalPlayer.CharacterAdded:Connect(function(newChar)
-        previousCrouchState = false
-        spamDown = true
-    end)
-end
-
-setupAutoCrouchListeners()
-
-AutoCrouchToggle = Tabs.Auto:Toggle({
-    Title = "Auto Crouch",
-    Flag = "AutoCrouchToggle",
-    Desc = "Press C to toggle if you on keyboard",
-    Value = false,
-    Callback = function(state)
-        getgenv().crouchGuiVisible = state
-        if state then
-            if not guiInstance then
-                createCrouchGui()
-            else
-                guiInstance.Enabled = true
-            end
-        else
-            if guiInstance then
-                guiInstance.Enabled = false
-            end
-        end
-    end
-})
-AutoCrouchModeDropdown = Tabs.Auto:Dropdown({
-    Title = "Auto Crouch Mode",
-    Flag = "AutoCrouchModeDropdown",
-    Values = {"Air", "Normal", "Ground"},
-    Value = "Air",
-    Callback = function(value)
-        featureStates.AutoCrouchMode = value
-    end
-})
-
-
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-
-local LocalPlayer = Players.LocalPlayer
-local playerGui = LocalPlayer:WaitForChild("PlayerGui", 5)
-
-local function makeDraggable(frame)
-    local dragging = false
-    local dragStart = nil
-    local startPos = nil
-
-    frame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = frame.Position
-        end
-    end)
-
-    frame.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - dragStart
-            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end)
-end
-
-local function makeDraggable(frame)
-    frame.Active = true
-    frame.Draggable = true
-    
-    local dragDetector = Instance.new("UIDragDetector")
-    dragDetector.Parent = frame
-    
-    local originalBackground = frame.BackgroundColor3
-    local originalTransparency = frame.BackgroundTransparency
-    
-    frame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            frame.BackgroundTransparency = originalTransparency - 0.1
-        end
-    end)
-    
-    frame.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            frame.BackgroundTransparency = originalTransparency
-        end
-    end)
-end
-
-local function createAutoCarryGui(yOffset)
-    local autoCarryGuiOld = playerGui:FindFirstChild("AutoCarryGui")
-    if autoCarryGuiOld then
-        autoCarryGuiOld:Destroy()
-    end
-    
-    local autoCarryGui = Instance.new("ScreenGui")
-    autoCarryGui.Name = "AutoCarryGui"
-    autoCarryGui.IgnoreGuiInset = true
-    autoCarryGui.ResetOnSpawn = false
-    autoCarryGui.Enabled = getgenv().autoCarryGuiVisible
-    autoCarryGui.Parent = playerGui
-
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 60, 0, 60)
-    frame.Position = UDim2.new(0.5, -30, 0.12 + (yOffset or 0), 0)
-    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    frame.BackgroundTransparency = 0.35
-    frame.BorderSizePixel = 0
-    frame.Parent = autoCarryGui
-    makeDraggable(frame)
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = frame
-
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(150, 150, 150)
-    stroke.Thickness = 2
-    stroke.Parent = frame
-
-    local label = Instance.new("TextLabel")
-    label.Text = "Auto"
-    label.Size = UDim2.new(0.9, 0, 0.3, 0)
-    label.Position = UDim2.new(0.05, 0, 0.05, 0)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.Font = Enum.Font.Roboto
-    label.TextSize = 14
-    label.TextXAlignment = Enum.TextXAlignment.Center
-    label.TextYAlignment = Enum.TextYAlignment.Center
-    label.TextScaled = true
-    label.Parent = frame
-
-    local subLabel = Instance.new("TextLabel")
-    subLabel.Text = "Carry"
-    subLabel.Size = UDim2.new(0.9, 0, 0.3, 0)
-    subLabel.Position = UDim2.new(0.05, 0, 0.3, 0)
-    subLabel.BackgroundTransparency = 1
-    subLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    subLabel.Font = Enum.Font.Roboto
-    subLabel.TextSize = 14
-    subLabel.TextXAlignment = Enum.TextXAlignment.Center
-    subLabel.TextYAlignment = Enum.TextYAlignment.Center
-    subLabel.TextScaled = true
-    subLabel.Parent = frame
-
-    local autoCarryGuiButton = Instance.new("TextButton")
-    autoCarryGuiButton.Name = "ToggleButton"
-    autoCarryGuiButton.Text = featureStates.AutoCarry and "On" or "Off"
-    autoCarryGuiButton.Size = UDim2.new(0.9, 0, 0.35, 0)
-    autoCarryGuiButton.Position = UDim2.new(0.05, 0, 0.6, 0)
-    autoCarryGuiButton.BackgroundColor3 = featureStates.AutoCarry and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
-    autoCarryGuiButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    autoCarryGuiButton.Font = Enum.Font.Roboto
-    autoCarryGuiButton.TextSize = 12
-    autoCarryGuiButton.TextXAlignment = Enum.TextXAlignment.Center
-    autoCarryGuiButton.TextYAlignment = Enum.TextYAlignment.Center
-    autoCarryGuiButton.TextScaled = true
-    autoCarryGuiButton.Parent = frame
-
-    local buttonCorner = Instance.new("UICorner")
-    buttonCorner.CornerRadius = UDim.new(0, 4)
-    buttonCorner.Parent = autoCarryGuiButton
-
-    autoCarryGuiButton.MouseButton1Click:Connect(function()
-        featureStates.AutoCarry = not featureStates.AutoCarry
-        if featureStates.AutoCarry then
-            startAutoCarry()
-        else
-            stopAutoCarry()
-        end
-        autoCarryGuiButton.Text = featureStates.AutoCarry and "On" or "Off"
-        autoCarryGuiButton.BackgroundColor3 = featureStates.AutoCarry and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
-    end)
-end
-
-local autoCarryInputConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.X and getgenv().autoCarryGuiVisible then
-        featureStates.AutoCarry = not featureStates.AutoCarry
-        if featureStates.AutoCarry then
-            startAutoCarry()
-        else
-            stopAutoCarry()
-        end
-        local autoCarryGui = playerGui:FindFirstChild("AutoCarryGui")
-        if autoCarryGui and autoCarryGui.Enabled then
-            local button = autoCarryGui.Frame:FindFirstChild("ToggleButton")
-            if button then
-                button.Text = featureStates.AutoCarry and "On" or "Off"
-                button.BackgroundColor3 = featureStates.AutoCarry and Color3.fromRGB(0, 120, 80) or Color3.fromRGB(120, 0, 0)
-            end
-        end
-        WindUI:Notify({
-            Title = "Auto Carry",
-            Content = "Auto Carry " .. (featureStates.AutoCarry and "enabled" or "disabled"),
-            Duration = 2
-        })
-    end
-end)
-
-local function toggleAutoCarryGUI(state)
-    getgenv().autoCarryGuiVisible = state
-    local autoCarryGui = playerGui:FindFirstChild("AutoCarryGui")
-    if autoCarryGui then
-        autoCarryGui.Enabled = state
-    end
-    if state then
-        WindUI:Notify({
-            Title = "Auto Carry GUI",
-            Content = "GUI is enabled. Press X to toggle auto carry.",
-            Duration = 3
-        })
-    else
-        WindUI:Notify({
-            Title = "Auto Carry GUI",
-            Content = "GUI and keybind disabled.",
-            Duration = 3
-        })
-    end
-end
-
-AutoCarryKeybindToggle = Tabs.Auto:Toggle({
-    Title = "Auto carry keybind/button",
-    Flag = "AutoCarryKeybindToggle",
-    Desc = "Toggle gui or keybind for quick enable auto carry",
-    Icon = "toggle-right",
-    Value = false,
-    Callback = function(state)
-        toggleAutoCarryGUI(state)
-    end
-})
-
-createAutoCarryGui(0)
-FastReviveToggle = Tabs.Auto:Toggle({
-    Title = "Fast Revive",
-    Flag = "FastReviveToggle",
-    Value = false,
-    Callback = function(state)
-        featureStates.FastRevive = state
-        if state then
-            startAutoRevive()
-        else
-            stopAutoRevive()
-        end
-    end
-})
-
-FastReviveMethodDropdown = Tabs.Auto:Dropdown({
-    Title = "Fast Revive Method",
-    Flag = "FastReviveMethodDropdown",
-    Values = {"Auto", "Interact"},
-    Value = "Interact",
-    Callback = function(value)
-        featureStates.FastReviveMethod = value
-        
-        stopAutoRevive()
-        if featureStates.FastReviveMethod == "Interact" then
-            featureStates.interactHookActive = false
-        end
-        
-        if featureStates.FastRevive then
-            startAutoRevive()
-        end
-    end
-})
-    AutoVoteDropdown = Tabs.Auto:Dropdown({
-        Title = "Auto Vote Map",
-        Flag = "AutoVoteDropdown",
-        Values = {"Map 1", "Map 2", "Map 3", "Map 4"},
-        Value = "Map 1",
-        Callback = function(value)
-            if value == "Map 1" then
-                featureStates.SelectedMap = 1
-            elseif value == "Map 2" then
-                featureStates.SelectedMap = 2
-            elseif value == "Map 3" then
-                featureStates.SelectedMap = 3
-            elseif value == "Map 4" then
-                featureStates.SelectedMap = 4
-            end
-        end
-    })
-
-    AutoVoteToggle = Tabs.Auto:Toggle({
-        Title = "Auto Vote",
-        Flag = "AutoVoteToggle",
-        Value = false,
-        Callback = function(state)
-            featureStates.AutoVote = state
-            if state then
-                startAutoVote()
-            else
-                stopAutoVote()
-            end
-        end
-    })
-AutoVoteModeToggle = Tabs.Auto:Toggle({
-    Title = "Auto Vote Game Mode",
-        Flag = "AutoVoteModeToggle",
-    Value = false,
-    Callback = function(state)
-        if state then
-            local voteConnection
-            voteConnection = RunService.Heartbeat:Connect(function()
-                local voteEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Player"):WaitForChild("Vote")
-                if voteEvent then
-                    if featureStates.SelectedVoteMode == 1 then
-                        voteEvent:FireServer(1, true)
-                    elseif featureStates.SelectedVoteMode == 2 then
-                        voteEvent:FireServer(2, true)
-                    elseif featureStates.SelectedVoteMode == 3 then
-                        voteEvent:FireServer(3, true)
-                    elseif featureStates.SelectedVoteMode == 4 then
-                        voteEvent:FireServer(4, true)
-                    end
-                end
-            end)
-            
-            getgenv().AutoVoteModeConnection = voteConnection
-        else
-            if getgenv().AutoVoteModeConnection then
-                getgenv().AutoVoteModeConnection:Disconnect()
-                getgenv().AutoVoteModeConnection = nil
-            end
-        end
-    end
-})
-
-AutoVoteModeDropdown = Tabs.Auto:Dropdown({
-    Title = "Vote Mode",
-    Flag = "AutoVoteModeDropdown",
-    Values = {"Mode 1", "Mode 2", "Mode 3", "Mode 4"},
-    Value = "Mode 1",
-    Callback = function(value)
-        if value == "Mode 1" then
-            featureStates.SelectedVoteMode = 1
-        elseif value == "Mode 2" then
-            featureStates.SelectedVoteMode = 2
-        elseif value == "Mode 3" then
-            featureStates.SelectedVoteMode = 3
-        elseif value == "Mode 4" then
-            featureStates.SelectedVoteMode = 4
-        end
-    end
-})
-featureStates.SelfReviveMethod = "Spawnpoint"
-local lastSavedPosition = nil
-local respawnConnection = nil
-local AutoSelfReviveConnection = nil
-local hasRevived = false
-local isReviving = false
-
-AutoSelfReviveToggle = Tabs.Auto:Toggle({
-    Title = "Auto Self Revive",
-    Flag = "AutoSelfReviveToggle",
-    Value = false,
-    Callback = function(state)
-        featureStates.AutoSelfRevive = state
-        if state then
-            if AutoSelfReviveConnection then
-                AutoSelfReviveConnection:Disconnect()
-            end
-            if respawnConnection then
-                respawnConnection:Disconnect()
-            end
-            
-            local character = player.Character
-            if character then
-                local humanoid = character:WaitForChild("Humanoid")
-                local hrp = character:WaitForChild("HumanoidRootPart")
-                
-                AutoSelfReviveConnection = character:GetAttributeChangedSignal("Downed"):Connect(function()
-                    local isDowned = character:GetAttribute("Downed")
-                    if isDowned and not isReviving then
-                        isReviving = true
-                        
-                        if featureStates.SelfReviveMethod == "Spawnpoint" then
-                            if not hasRevived then
-                                hasRevived = true
-                                pcall(function()
-                                    ReplicatedStorage.Events.Player.ChangePlayerMode:FireServer(true)
-                                end)
-                                task.delay(10, function()
-                                    hasRevived = false
-                                end)
-                                task.delay(1, function()
-                                    isReviving = false
-                                end)
-                            else
-                                isReviving = false
-                            end
-                        elseif featureStates.SelfReviveMethod == "Fake Revive" then
-                            if hrp then
-                                lastSavedPosition = hrp.Position
-                            end
-                            
-                            task.spawn(function()
-                                pcall(function()
-                                    ReplicatedStorage:WaitForChild("Events"):WaitForChild("Player"):WaitForChild("ChangePlayerMode"):FireServer(true)
-                                end)
-                                
-                                local newCharacter
-                                repeat
-                                    newCharacter = player.Character
-                                    task.wait()
-                                until newCharacter and newCharacter:FindFirstChild("HumanoidRootPart") and newCharacter ~= character
-                                
-                                if newCharacter then
-                                    local newHRP = newCharacter:FindFirstChild("HumanoidRootPart")
-                                    if lastSavedPosition and newHRP then
-                                        newHRP.CFrame = CFrame.new(lastSavedPosition)
-                                    end
-                                end
-                                
-                                isReviving = false
-                            end)
-                        end
-                    end
-                end)
-            end
-            
-            respawnConnection = player.CharacterAdded:Connect(function(newChar)
-                task.wait(0.5)
-                local newHumanoid = newChar:WaitForChild("Humanoid")
-                local newHRP = newChar:WaitForChild("HumanoidRootPart")
-                
-                if featureStates.AutoSelfRevive then
-                    AutoSelfReviveConnection = newChar:GetAttributeChangedSignal("Downed"):Connect(function()
-                        local isDowned = newChar:GetAttribute("Downed")
-                        if isDowned and not isReviving then
-                            isReviving = true
-                            
-                            if featureStates.SelfReviveMethod == "Spawnpoint" then
-                                if not hasRevived then
-                                    hasRevived = true
-                                    pcall(function()
-                                        ReplicatedStorage.Events.Player.ChangePlayerMode:FireServer(true)
-                                    end)
-                                    task.delay(10, function()
-                                        hasRevived = false
-                                    end)
-                                    task.delay(1, function()
-                                        isReviving = false
-                                    end)
-                                else
-                                    isReviving = false
-                                end
-                            elseif featureStates.SelfReviveMethod == "Fake Revive" then
-                                if newHRP then
-                                    lastSavedPosition = newHRP.Position
-                                end
-                                
-                                task.spawn(function()
-                                    pcall(function()
-                                        ReplicatedStorage:WaitForChild("Events"):WaitForChild("Player"):WaitForChild("ChangePlayerMode"):FireServer(true)
-                                    end)
-                                    
-                                    local freshCharacter
-                                    repeat
-                                        freshCharacter = player.Character
-                                        task.wait()
-                                    until freshCharacter and freshCharacter:FindFirstChild("HumanoidRootPart") and freshCharacter ~= newChar
-                                    
-                                    if freshCharacter then
-                                        local freshHRP = freshCharacter:FindFirstChild("HumanoidRootPart")
-                                        if lastSavedPosition and freshHRP then
-                                            freshHRP.CFrame = CFrame.new(lastSavedPosition)
-                                        end
-                                    end
-                                    
-                                    isReviving = false
-                                end)
-                            end
-                        end
-                    end)
-                end
-            end)
-        else
-            if AutoSelfReviveConnection then
-                AutoSelfReviveConnection:Disconnect()
-                AutoSelfReviveConnection = nil
-            end
-            if respawnConnection then
-                respawnConnection:Disconnect()
-                respawnConnection = nil
-            end
-            hasRevived = false
-            isReviving = false
-            lastSavedPosition = nil
-        end
-    end
-})
-
-SelfReviveMethodDropdown = Tabs.Auto:Dropdown({
-    Title = "Self Revive Method",
-    Flag = "SelfReviveMethodDropdown",
-    Values = {"Spawnpoint", "Fake Revive"},
-    Value = "Spawnpoint",
-    Callback = function(value)
-        featureStates.SelfReviveMethod = value
-    end
-})
-
-if player.Character and featureStates.AutoSelfRevive then
-    local char = player.Character
-    local humanoid = char:WaitForChild("Humanoid")
-    local hrp = char:WaitForChild("HumanoidRootPart")
-    AutoSelfReviveConnection = char:GetAttributeChangedSignal("Downed"):Connect(function()
-    end)
-end
-
-local function manualRevive()
-    local character = player.Character
-    if not character then return end
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    local isDowned = character:GetAttribute("Downed")
-    if not isDowned then return end
-    
-    if featureStates.SelfReviveMethod == "Spawnpoint" then
-        if not hasRevived then
-            hasRevived = true
-            pcall(function()
-                ReplicatedStorage.Events.Player.ChangePlayerMode:FireServer(true)
-            end)
-            task.delay(10, function()
-                hasRevived = false
-            end)
-        end
-    elseif featureStates.SelfReviveMethod == "Fake Revive" then
-        if hrp then
-            lastSavedPosition = hrp.Position
-        end
-        task.spawn(function()
-            pcall(function()
-                ReplicatedStorage:WaitForChild("Events"):WaitForChild("Player"):WaitForChild("ChangePlayerMode"):FireServer(true)
-            end)
-            
-            local newCharacter
-            repeat
-                newCharacter = player.Character
-                task.wait()
-            until newCharacter and newCharacter:FindFirstChild("HumanoidRootPart") and newCharacter ~= character
-            
-            if newCharacter then
-                local newHRP = newCharacter:FindFirstChild("HumanoidRootPart")
-                if lastSavedPosition and newHRP then
-                    newHRP.CFrame = CFrame.new(lastSavedPosition)
-                end
-            end
-        end)
-    end
-end
-Tabs.Auto:Button({
-    Title = "Manual Revive",
-    Desc = "Manually revive yourself",
-    Icon = "heart",
-    Callback = function()
-        manualRevive()
-    end
-})
-
-    AutoWinToggle = Tabs.Auto:Toggle({
-        Title = "Auto Win",
-        Flag = "AutoWinToggle",
-        Value = false,
-        Callback = function(state)
-            featureStates.AutoWin = state
-            if state then
-                startAutoWin()
-                startAntiAFK()
-                AntiAFKToggle:Set(true)
-            else
-                stopAutoWin()
-            end
-        end
-    })
-    AutoWhistleToggle = Tabs.Auto:Toggle({
-    Title = "Auto Whistle",
-    Flag = "AutoWhistleToggle",
-    Value = false,
-    Callback = function(state)
-        featureStates.AutoWhistle = state
-        if state then
-            startAutoWhistle()
-        else
-            stopAutoWhistle()
-        end
-    end
-})
-
-    AutoMoneyFarmToggle = Tabs.Auto:Toggle({
-        Title = "Auto Money Farm",
-        Flag = "AutoMoneyFarmToggle",
-        Value = false,
-        Callback = function(state)
-        if farmsSuppressedByAntiNextbot and state then
-    WindUI:Notify({
-        Title = "Farm Blocked",
-        Content = "Cannot enable while Nextbot is too close. Wait or move away.",
-        Duration = 3
-    })
-    AutoMoneyFarmToggle:Set(false)
-    return
-end
-farmsSuppressedByAntiNextbot = false
-            featureStates.AutoMoneyFarm = state
-            getgenv().moneyfarm = state
-            if state then
-                startAutoMoneyFarm()
-                featureStates.FastRevive = true
-                featureStates.AutoSelfRevive = true
-                featureStates.FastReviveMethod = "Auto"
-                pcall(function()
-                    if FastReviveMethodDropdown and FastReviveMethodDropdown.Select then
-                        FastReviveMethodDropdown:Select("Auto")
-                    elseif FastReviveMethodDropdown and FastReviveMethodDropdown.Set then
-                        FastReviveMethodDropdown:Set("Value", "Auto")
-                    end
-                end)
-                FastReviveToggle:Set(true)
-                AutoSelfReviveToggle:Set(true)
-                startAutoRevive()
-                startAntiAFK()
-                AntiAFKToggle:Set(true)
-            else
-                stopAutoMoneyFarm()
-            end
-        end
-    })
-    featureStates.AutoTurkeyFarm = false
-
-local function startAutoTurkeyFarm()
-    local securityPart = workspace:FindFirstChild("SecurityPart")
-    if not securityPart then
-        return
-    end
-    
-    AutoTurkeyFarmConnection = RunService.Heartbeat:Connect(function()
-        if character and rootPart then
-            local targetFound = false
-            
-            local npcsFolder = workspace:FindFirstChild("NPCs")
-            if npcsFolder then
-                for _, npc in ipairs(npcsFolder:GetChildren()) do
-                    if npc:IsA("Model") and npc.Name == "Turkey" then
-                        local turkeyHrp = npc:FindFirstChild("HumanoidRootPart")
-                        if turkeyHrp then
-                            rootPart.CFrame = turkeyHrp.CFrame + Vector3.new(0, 3, 0)
-                            targetFound = true
-                            break
-                        end
-                    end
-                end
-            end
-            
-            local playersFolder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players")
-            if playersFolder and not targetFound then
-                for _, model in ipairs(playersFolder:GetChildren()) do
-                    if model:IsA("Model") then
-                        local modelHrp = model:FindFirstChild("HumanoidRootPart")
-                        if modelHrp then
-                            if model.Name == "Turkey" then
-                                rootPart.CFrame = modelHrp.CFrame + Vector3.new(0, 3, 0)
-                                targetFound = true
-                                break
-                            elseif featureStates.AutoCarry and model:GetAttribute("Downed") and not model:FindFirstChild("RagdollConstraints") then
-                                rootPart.CFrame = modelHrp.CFrame + Vector3.new(0, 3, 0)
-                                targetFound = true
-                                break
-                            end
-                        end
-                    end
-                end
-            end
-            
-            local ticketsFolder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Effects") and workspace.Game.Effects:FindFirstChild("Tickets")
-            if ticketsFolder and not targetFound and featureStates.AutoMoneyFarm then
-                for _, ticket in ipairs(ticketsFolder:GetChildren()) do
-                    local ticketHrp = ticket:FindFirstChild("HumanoidRootPart")
-                    if ticketHrp then
-                        rootPart.CFrame = ticketHrp.CFrame + Vector3.new(0, 3, 0)
-                        targetFound = true
-                        break
-                    end
-                end
-            end
-            
-            if not targetFound then
-                rootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
-            end
-        end
-    end)
-end
-
-local function stopAutoTurkeyFarm()
-    if AutoTurkeyFarmConnection then
-        AutoTurkeyFarmConnection:Disconnect()
-        AutoTurkeyFarmConnection = nil
-    end
-end
-
-AutoTurkeyFarmToggle = Tabs.Auto:Toggle({
-    Title = "Auto turkey farm",
-    Flag = "AutoTurkeyFarmToggle",
-    Value = false,
-    Callback = function(state)
-        featureStates.AutoTurkeyFarm = state
-        if state then
-            startAutoTurkeyFarm()
-            startAntiAFK()
-            AntiAFKToggle:Set(true)
-        else
-            stopAutoTurkeyFarm()
-        end
-    end
-})
-AutoTicketFarmToggle = Tabs.Auto:Toggle({
-    Title = "Auto ticket farm",
-    Flag = "AutoTicketFarmToggle",
-    Value = false,
-    Callback = function(state)
-        getgenv().ticketfarm = state
-        local AutoTicketFarmConnection
-        local yOffset = 999
-        local currentTicket = nil
-        local ticketProcessedTime = 0
-
-        if state then
-        startAntiAFK()
-        AntiAFKToggle:Set(true)
-            local securityPart = workspace:FindFirstChild("SecurityPart")
-            if not securityPart then
-                print("SecurityPart not found")
-                getgenv().ticketfarm = false
-                return
-            end
-
-            AutoTicketFarmConnection = game:GetService("RunService").Heartbeat:Connect(function()
-                if not getgenv().ticketfarm then
-                    if AutoTicketFarmConnection then
-                        AutoTicketFarmConnection:Disconnect()
-                        AutoTicketFarmConnection = nil
-                    end
-                    return
-                end
-
-                local character = player.Character
-                local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
-                local tickets = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Effects") and workspace.Game.Effects:FindFirstChild("Tickets")
-                local playersInGame = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Players")
-
-                if character and humanoidRootPart then
-                    if character:GetAttribute("Downed") then
-                        ReplicatedStorage.Events.Player.ChangePlayerMode:FireServer(true)
-                        humanoidRootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
-                        return
-                    end
-
-                    if getgenv().moneyfarm and playersInGame then
-                        local downedPlayerFound = false
-                        for _, v in pairs(playersInGame:GetChildren()) do
-                            if v:IsA("Model") and v:GetAttribute("Downed") then
-                                local downedRootPart = v:FindFirstChild("HumanoidRootPart")
-                                if downedRootPart then
-                                    humanoidRootPart.CFrame = downedRootPart.CFrame + Vector3.new(0, 3, 0)
-                                    ReplicatedStorage.Events.Character.Interact:FireServer("Revive", true, v)
-                                    downedPlayerFound = true
-                                    currentTicket = nil 
-                                    break
-                                end
-                            end
-                        end
-                        if downedPlayerFound then
-                            return
-                        end
-                    end
-
-                    if tickets then
-                        local activeTickets = tickets:GetChildren()
-                        if #activeTickets > 0 then
-                            if not currentTicket or not currentTicket.Parent then
-                                currentTicket = activeTickets[1]
-                                ticketProcessedTime = tick()
-                            end
-
-                            if currentTicket and currentTicket.Parent then
-                                local ticketPart = currentTicket:FindFirstChild("HumanoidRootPart")
-                                if ticketPart then
-                                    local targetPosition = ticketPart.Position + Vector3.new(0, yOffset, 0)
-                                    humanoidRootPart.CFrame = CFrame.new(targetPosition)
-                                    
-                                    if tick() - ticketProcessedTime > 0.1 then
-                                        humanoidRootPart.CFrame = ticketPart.CFrame
-                                    end
-                                else
-                                    currentTicket = nil
-                                end
-                            else
-                                humanoidRootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
-                                currentTicket = nil
-                            end
-                        else
-                            humanoidRootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
-                            currentTicket = nil
-                        end
-                    else
-                        humanoidRootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
-                        currentTicket = nil
-                    end
-                end
-            end)
-        else
-            if AutoTicketFarmConnection then
-                AutoTicketFarmConnection:Disconnect()
-                AutoTicketFarmConnection = nil
-            end
-            currentTicket = nil
-            local character = player.Character or player.CharacterAdded:Wait()
-            local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-            local securityPart = workspace:FindFirstChild("SecurityPart")
-            if humanoidRootPart and securityPart then
-                humanoidRootPart.CFrame = securityPart.CFrame + Vector3.new(0, 3, 0)
-            end
-        end
-    end
-})
 -- Utility Tab
 NextbotObjects = {}
 NextbotObjectsToggle = false
@@ -9128,6 +9167,8 @@ NextbotHitboxSlider = Tabs.Utility:Slider({
         end
     end
 })
+
+    Tabs.Utility:Space()
 Tabs.Utility:Toggle({
     Title = "Exchange Menu",
     Default = false,
@@ -9135,7 +9176,10 @@ Tabs.Utility:Toggle({
         game.Players.LocalPlayer.PlayerGui.Menu.Views.Battlepass.Exchange.Visible = value
     end
 })
-
+    Tabs.Utility:Space()
+    
+Tabs.Utility:Space()
+    
 Tabs.Utility:Toggle({
     Title = "Bypass Battle Pass Waiting",
     Desc = "Skip all battle pass requirements and unlock everything instantly",
@@ -9228,6 +9272,8 @@ Tabs.Utility:Toggle({
     end
 })
 
+Tabs.Utility:Space()
+    
 Tabs.Utility:Button({
     Title = "Clear Invis Walls",
     Callback = function()
@@ -9241,7 +9287,8 @@ Tabs.Utility:Button({
         end
     end
 })
-
+    Tabs.Utility:Space()
+    
 FreeCamToggle = Tabs.Utility:Toggle({
     Title = "Free Cam UI",
     Flag = "FreeCamToggle",
@@ -9277,7 +9324,8 @@ local FreeCamSpeedSlider = Tabs.Utility:Slider({
         FREECAM_SPEED = value
     end
 })
-
+    Tabs.Utility:Space()
+    
 TimeChangerInput = Tabs.Utility:Input({
     Title = "Set Time (HH:MM)",
     Flag = "TimeChangerInput",
@@ -9454,7 +9502,8 @@ local function createLagGui(yOffset)
         end
     end)
 end
-
+    Tabs.Utility:Space()
+    
 LagSwitchToggle = Tabs.Utility:Toggle({
     Title = "Lag Switch",
     Flag = "LagSwitchToggle",
@@ -9476,7 +9525,8 @@ LagSwitchToggle = Tabs.Utility:Toggle({
         checkLagState()
     end
 })
-
+    Tabs.Utility:Space()
+    
 LagDurationInput = Tabs.Utility:Input({
     Title = "Lag Duration (seconds)",
     Flag = "LagDurationInput",
@@ -9501,6 +9551,8 @@ Players.PlayerRemoving:Connect(function(leavingPlayer)
 end)
 
 checkLagState()
+    Tabs.Utility:Space()
+    
 GravityToggle = Tabs.Utility:Toggle({
     Title = "Custom Gravity",
     Flag = "GravityToggle",
@@ -9561,7 +9613,8 @@ GravityGUIToggle = Tabs.Utility:Toggle({
 })
 featureStates.NoRender = false
 featureStates.NoRenderColor = Color3.fromRGB(0, 0, 0)
-
+    Tabs.Utility:Space()
+    
 NoRenderToggle = Tabs.Utility:Toggle({
     Title = "No Render",
     Flag = "NoRenderToggle",
@@ -9615,7 +9668,8 @@ NoRenderColorPicker = Tabs.Utility:Colorpicker({
     end
 })
 featureStates.RemoveTextures = false
-
+    Tabs.Utility:Space()
+    
 RemoveTexturesButton = Tabs.Utility:Button({
     Title = "Remove Textures",
     Callback = function()
@@ -9640,7 +9694,8 @@ game:GetService("Players").PlayerRemoving:Connect(function(leavingPlayer)
     if leavingPlayer == player then
         game:GetService("RunService"):Set3dRenderingEnabled(true)
     end
-end)
+end)    Tabs.Utility:Space()
+
 LowQualityButton = Tabs.Utility:Button({
     Title = "Low Quality",
     Desc = "Disable textures, effects, and optimize graphics",
@@ -9711,6 +9766,9 @@ LowQualityButton = Tabs.Utility:Button({
         end
     end
 })
+Tabs.Utility:Section({ Title = "VIP COMMAND", TextSize = 20 })
+Tabs.Utility:Divider()
+
 Tabs.Utility:Button({
     Title = "VIP CMD Macro",
     Icon = "rbxassetid://107814281854748",
@@ -9722,6 +9780,163 @@ Tabs.Utility:Button({
     end
 })
 
+function isValidMap(mapName)
+    local mapsFolder = game:GetService("ReplicatedStorage"):FindFirstChild("Info")
+    if mapsFolder then
+        mapsFolder = mapsFolder:FindFirstChild("Maps")
+        if mapsFolder then
+            for _, map in ipairs(mapsFolder:GetChildren()) do
+                if map.Name == mapName then
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
+function isValidGameMode(gameMode)
+    local gamemodesFolder = game:GetService("ReplicatedStorage"):FindFirstChild("Info")
+    if gamemodesFolder then
+        gamemodesFolder = gamemodesFolder:FindFirstChild("Gamemodes")
+        if gamemodesFolder then
+            for _, mode in ipairs(gamemodesFolder:GetChildren()) do
+                if mode.Name == gameMode then
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+    Tabs.Utility:Space()
+    
+mapSettingsInput = Tabs.Utility:Input({
+    Title = "Set Map Settings",
+    Flag = "MapSettingsInput",
+    Placeholder = "Enter map name (e.g., Abstract)",
+    Value = "Abstract",
+    Callback = function(value)
+        featureStates.SelectedMapSetting = value
+    end
+})
+
+Tabs.Utility:Button({
+    Title = "Add Map",
+    Desc = "Add the specified map to rotation",
+    Icon = "plus",
+    Callback = function()
+        local mapName = featureStates.SelectedMapSetting or "Abstract"
+        if mapName and mapName ~= "" then
+            if isValidMap(mapName) then
+                pcall(function()
+                    game:GetService("ReplicatedStorage").Events.CustomServers.Admin:FireServer("AddMap", mapName)
+                    WindUI:Notify({
+                        Title = "Custom Server",
+                        Content = "Added map: " .. mapName,
+                        Duration = 3
+                    })
+                end)
+            else
+                WindUI:Notify({
+                    Title = "Custom Server",
+                    Content = "Invalid map name: " .. mapName,
+                    Duration = 3
+                })
+            end
+        end
+    end
+})
+
+Tabs.Utility:Button({
+    Title = "Remove Map",
+    Desc = "Remove the specified map from rotation",
+    Icon = "minus",
+    Callback = function()
+        local mapName = featureStates.SelectedMapSetting or "Abstract"
+        if mapName and mapName ~= "" then
+            if isValidMap(mapName) then
+                pcall(function()
+                    game:GetService("ReplicatedStorage").Events.CustomServers.Admin:FireServer("RemoveMap", mapName)
+                    WindUI:Notify({
+                        Title = "Custom Server",
+                        Content = "Removed map: " .. mapName,
+                        Duration = 3
+                    })
+                end)
+            else
+                WindUI:Notify({
+                    Title = "Custom Server",
+                    Content = "Invalid map name: " .. mapName,
+                    Duration = 3
+                })
+            end
+        end
+    end
+})
+    Tabs.Utility:Space()
+    
+gameModeInput = Tabs.Utility:Input({
+    Title = "Select Game Mode",
+    Flag = "GameModeInput",
+    Placeholder = "Enter game mode (e.g., Pro)",
+    Value = "Pro",
+    Callback = function(value)
+        featureStates.SelectedGameMode = value
+    end
+})
+
+Tabs.Utility:Button({
+    Title = "Set Game Mode",
+    Desc = "Change the server game mode",
+    Icon = "settings",
+    Callback = function()
+        local gameMode = featureStates.SelectedGameMode or "Pro"
+        if gameMode and gameMode ~= "" then
+            if isValidGameMode(gameMode) then
+                pcall(function()
+                    game:GetService("ReplicatedStorage").Events.CustomServers.Admin:FireServer("Gamemode", gameMode)
+                    WindUI:Notify({
+                        Title = "Custom Server",
+                        Content = "Set game mode to: " .. gameMode,
+                        Duration = 3
+                    })
+                end)
+            else
+                WindUI:Notify({
+                    Title = "Custom Server",
+                    Content = "Invalid game mode: " .. gameMode,
+                    Duration = 3
+                })
+            end
+        end
+    end
+})
+    Tabs.Utility:Space()
+    
+Tabs.Utility:Button({
+    Title = "Unlock VIP Commands",
+    Desc = "Restore access to VIP commands if accidentally locked",
+    Icon = "unlock",
+    Callback = function()
+        pcall(function()
+            local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+            local globalGui = playerGui:WaitForChild("Global")
+            local vipMenu = globalGui:WaitForChild("VIPMenu")
+            local createFrame = vipMenu:WaitForChild("Create"):WaitForChild("Frame")
+            
+            local lockedFrame = createFrame:FindFirstChild("Locked")
+            if lockedFrame then
+                lockedFrame.Visible = false
+            end
+            
+            local commandsFrame = createFrame:FindFirstChild("Commands")
+            if commandsFrame then
+                commandsFrame.Visible = true
+            end            
+        end)
+    end
+})
 local invisPartsFolder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Map") and workspace.Game.Map:FindFirstChild("InvisParts")
 
 local movingSecurityParts = false
@@ -9758,7 +9973,11 @@ local function restoreInvisPartsCollision()
         end
     end
 end
-
+    Tabs.Utility:Section ({
+    Title = "IDK What to put here",
+    })
+    
+                
 local securityPartToggle = Tabs.Utility:Toggle({
     Title = "Moving Security Part",
     Flag = "securityPartToggle",
@@ -10008,7 +10227,8 @@ local function setupSpeedPadBooster()
         end)
     end
 end
-
+    Tabs.Utility:Space()
+    
 SpeedPadToggle = Tabs.Utility:Toggle({
     Title = "SpeedPad Booster",
     Flag = "SpeedPadToggle",
@@ -10176,7 +10396,8 @@ local function setupJumpPadBooster()
         end)
     end
 end
-
+    Tabs.Utility:Space()
+    
 JumpPadToggle = Tabs.Utility:Toggle({
     Title = "Jump Pad Booster",
     Flag = "JumpPadToggle",
@@ -10243,7 +10464,8 @@ JumpPadValueInput = Tabs.Utility:Input({
         end
     end
 })
-
+    Tabs.Utility:Space()
+    
 UnlimitedColaToggle = Tabs.Utility:Toggle({
     Title = "Unlimited Cola",
     Flag = "UnlimitedColaToggle",
@@ -10403,6 +10625,8 @@ end)
 Tabs.Teleport:Section({ Title = "Teleports", TextSize = 20 })
 Tabs.Teleport:Divider()
 
+Tabs.Teleport:Space()
+    
 Tabs.Teleport:Button({
     Title = "Teleport to Spawn",
     Desc = "Teleport to a random spawn location",
@@ -10425,6 +10649,8 @@ Tabs.Teleport:Button({
     end
 })
 
+Tabs.Teleport:Space()
+    
 Tabs.Teleport:Button({
     Title = "Teleport to Random Player",
     Desc = "Teleport to a random online player",
@@ -10451,6 +10677,8 @@ Tabs.Teleport:Button({
     end
 })
 
+Tabs.Teleport:Space()
+    
 Tabs.Teleport:Button({
     Title = "Teleport to Downed Player",
     Desc = "Teleport to a random downed player",
@@ -10483,6 +10711,7 @@ Tabs.Teleport:Button({
 })
 
 local playerList = {}
+Tabs.Teleport:Space()
 PlayerDropdown = Tabs.Teleport:Dropdown({
     Title = "Select Player",
     Flag = "PlayerDropdown",
@@ -10537,6 +10766,8 @@ Tabs.Teleport:Button({
     end
 })
 
+Tabs.Teleport:Space()
+    
 Tabs.Teleport:Button({
     Title = "Teleport to Ticket",
     Desc = "Teleport to a random ticket",
@@ -10563,6 +10794,8 @@ Tabs.Teleport:Button({
     end
 })
 
+Tabs.Teleport:Space()
+    
 Tabs.Teleport:Button({
     Title = "Teleport to Nextbot",
     Desc = "Teleport to a random nextbot",
@@ -10606,6 +10839,8 @@ Tabs.Teleport:Button({
     end
 })
 
+Tabs.Teleport:Space()
+    
 Tabs.Teleport:Button({
     Title = "Teleport to SecurityPart",
     Icon = "shield",
@@ -10698,7 +10933,7 @@ local function updateObjectiveDropdown()
         objectiveDropdown:Refresh({"No objectives found"}, "No objectives found")
     end
 end
-
+Tabs.Teleport:Space()
 objectiveDropdown = Tabs.Teleport:Dropdown({
     Title = "Select Objective",
     Flag = "objectiveDropdown",
