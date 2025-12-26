@@ -39,15 +39,15 @@ local PlaceScripts = {
     }, --MM2
      [142823291] = { 
         name = "Murder Mystery 2", 
-        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/MM2/DaraHub-MM2.lua" 
+        url = "https://darahub.vercel.app/api/script/DaraHub-MM2.lua" 
     },-- GAG
     [126884695634066] = { 
         name = "Grow-a-Garden-[NEW-PLAYERS]", 
-        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/Grow%20A%20Garden/DaraHub-Grow-A-Garden.lua" 
+        url = "https://darahub.vercel.app/api/script/DaraHub-Grow-A-Garden.lua" 
     },
     [124977557560410] = { 
         name = "Grow-a-Garden", 
-        url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/Grow%20A%20Garden/DaraHub-Grow-A-Garden.lua" 
+        url = "https://darahub.vercel.app/api/script/DaraHub-Grow-A-Garden.lua" 
     },
 }
 
