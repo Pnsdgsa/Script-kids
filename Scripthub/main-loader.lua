@@ -1,9 +1,8 @@
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/Universal/Fps%20display.lua"))()
 
--- Group scripts by URL to avoid duplication
 local ScriptGroups = {
     ["https://darahub.vercel.app/api/script/DaraHub-Evade.lua"] = {
-        name = "Evade Variants",
+        name = "Evade",
         placeIds = {
             10324346056, -- Big Team
             9872472334,  -- Evade
