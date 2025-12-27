@@ -45,7 +45,7 @@ local function createLoadingUI()
     Title.Size = UDim2.new(1, -20, 1, 0)
     Title.Position = UDim2.new(0, 10, 0, 0)
     Title.BackgroundTransparency = 1
-    Title.Text = "DaraHub Script Loader"
+    Title.Text = "DaraHub Is loading... | Made in Cambodia 🇰🇭"
     Title.TextColor3 = Color3.fromRGB(255, 255, 255)
     Title.TextSize = 18
     Title.Font = Enum.Font.GothamBold
