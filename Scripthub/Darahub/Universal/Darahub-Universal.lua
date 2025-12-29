@@ -1,3 +1,5 @@
+--Nice bro trynna steal my shit. this thing is unfinished as fuck
+
 -- Load WindUI
 local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
 -- Localization setup
