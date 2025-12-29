@@ -2046,7 +2046,89 @@ UtilityTab:Divider()
 UtilityTab:Button({
     Title = "Punch Fling",
     Callback = function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/FilteringEnabled/FE/main/punch"))()
+        local CharacterModel = game:GetService("Players").LocalPlayer.Character
+local Humanoid = CharacterModel:WaitForChild("Humanoid")
+CharacterModel:WaitForChild("HumanoidRootPart")
+game:GetService("Players")
+game:GetService("Workspace")
+local function FindPart(ParentModel, PartName, PartType)
+    local FoundPart = nil
+    pcall(function()
+        local ParentModel = ParentModel
+        local Iterator, Table, Key = pairs(ParentModel:GetChildren())
+        while true do
+            local Value
+            Key, Value = Iterator(Table, Key)
+            if Key == nil then
+                break
+            end
+            if Value.Name == PartName and Value:IsA(PartType) then
+                FoundPart = Value
+                break
+            end
+        end
+    end)
+    return FoundPart
+end
+local IsEnabled = false
+local RunService = game:GetService("RunService")
+local SteppedEvent = RunService.Stepped
+local HeartbeatEvent = RunService.Heartbeat
+local RenderSteppedEvent = RunService.RenderStepped
+local LocalPlayer = game.Players.LocalPlayer
+local IsActive = true
+spawn(function()
+    local Character = nil
+    local Part = nil
+    local VelocityMultiplier = 0.1
+    while IsActive do
+        HeartbeatEvent:Wait()
+        if IsEnabled then
+            while IsEnabled and (IsActive and not (Character and (Character.Parent and (Part and Part.Parent)))) do
+                HeartbeatEvent:Wait()
+                Character = LocalPlayer.Character
+                Part = FindPart(Character, "HumanoidRootPart", "BasePart") or (FindPart(Character, "Torso", "BasePart") or FindPart(Character, "UpperTorso", "BasePart"))
+            end
+            if IsActive and IsEnabled then
+                local OriginalVelocity = Part.Velocity
+                Part.Velocity = OriginalVelocity * 100 + Vector3.new(10000, 10000, 0)
+                Part.CFrame = Part.CFrame * CFrame.new(0, 0.001, 0)
+                RenderSteppedEvent:Wait()
+                if Character and (Character.Parent and (Part and Part.Parent)) then
+                    Part.Velocity = OriginalVelocity
+                end
+                SteppedEvent:Wait()
+                if Character and (Character.Parent and (Part and Part.Parent)) then
+                    Part.Velocity = OriginalVelocity + Vector3.new(0, VelocityMultiplier, 0)
+                    VelocityMultiplier = VelocityMultiplier * - 1
+                end
+            end
+        end
+    end
+end)
+if game.Players.LocalPlayer.Character.Humanoid.RigType ~= Enum.HumanoidRigType.R15 then
+    AnimationId = "218504594"
+else
+    AnimationId = "674871189"
+end
+local Animation = Instance.new("Animation")
+Animation.AnimationId = "rbxassetid://" .. AnimationId
+local LoadedAnimation = game.Players.LocalPlayer.Character.Humanoid:LoadAnimation(Animation)
+local Tool = Instance.new("Tool", game.Players.LocalPlayer.Backpack)
+Tool.RequiresHandle = false
+Tool.Name = "Punch Fling"
+Tool.TextureId = "rbxassetid://3836615692"
+Tool.Activated:Connect(function()
+    LoadedAnimation:Play()
+    IsEnabled = true
+    wait(2)
+    IsEnabled = false
+end)
+Humanoid.Died:Connect(function()
+    IsActive = false
+    Tool:Destroy()
+    Animation:Destroy()
+end)
     end
 })
 
