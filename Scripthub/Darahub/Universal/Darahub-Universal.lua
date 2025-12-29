@@ -1,4 +1,4 @@
---Nice bro trynna steal my shit. this thing is unfinished as fuck
+--Nice bro trynna steal my shit. this thing is unfinished as fuck! fell like an ai slop coodes
 
 -- Load WindUI
 local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
