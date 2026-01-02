@@ -340,7 +340,7 @@ local ScriptGroups = {
 
 local UniversalScript = {
     name = "Universal Script",
-    url = "https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/Universal/Darahub-Universal.lua"
+    url = "https://darahub.vercel.app/api/script/Darahub-Universal.lua"
 }
 
 -- Find appropriate script for current game
